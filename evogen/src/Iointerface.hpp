@@ -32,7 +32,7 @@ namespace evogen
         void fgetdata( std::vector<std::vector<bool>> &out );            /* Reads ASCII SNP data; this is for markers */
         
         template <typename T>
-        void fgetdata( std::vector<std::vector<T>> &out );               /* this is for data tables of type: float, double long int, size_t; we are not parsing 1,0 as markers */                                   /* Reads general ASCII formated data */
+        void fgetdata( std::vector<std::vector<T>> &out );               /* this is for data tables of type: float, double, long int, size_t; we are not parsing 1,0 as markers */                                   /* Reads general ASCII formated data */
         
         bool is_genotype_data();                                         /* returns true if data extracted is genotypes; otherwise it is haplotypes */
 

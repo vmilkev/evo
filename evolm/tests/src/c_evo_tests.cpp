@@ -4,15 +4,20 @@
  Class instance of type 'mytype'.
 */
 
-#include "catch.hpp"
+#include "catch_amalgamated.hpp"
 #include "model.hpp"
 #include "solver_pcg.hpp"
 #include "iointerface.hpp"
 #include <string>
 
+TEST_CASE("Testing set-up")
+{
+    bool is_ok = true;
+    CHECK(is_ok == true);
+}
+
 TEST_CASE("Small data test: model 1")
 {
-
     // ---------------------------
     // model:
     // effect: 1       2
@@ -42,13 +47,13 @@ TEST_CASE("Small data test: model 1")
                         1, 0,
                         1, 0};
 
-    std::vector<int> z1{0, 0, 0, 1, 0, 0, 0, 0,
+    std::vector<size_t> z1{0, 0, 0, 1, 0, 0, 0, 0,
                         0, 0, 0, 0, 1, 0, 0, 0,
                         0, 0, 0, 0, 0, 1, 0, 0,
                         0, 0, 0, 0, 0, 0, 1, 0,
                         0, 0, 0, 0, 0, 0, 0, 1};
 
-    std::vector<int> z2{0, 0, 0, 1, 0, 0, 0, 0,
+    std::vector<size_t> z2{0, 0, 0, 1, 0, 0, 0, 0,
                         0, 0, 0, 0, 1, 0, 0, 0,
                         0, 0, 0, 0, 0, 1, 0, 0,
                         0, 0, 0, 0, 0, 0, 1, 0,
@@ -221,6 +226,7 @@ TEST_CASE("Small data test: model 1")
     {
         try
         {
+
             evolm::Model model;
 
             CHECK(model.size_of("res") == 0);
@@ -239,24 +245,29 @@ TEST_CASE("Small data test: model 1")
             int obs_trate_2 = 1;
 
             model.append_residual(iR, 2);
+
             model.append_observation(y1, 5); // obs := 0
 
             CHECK(model.size_of("res") == 4);
             CHECK(model.size_of("obs") == 5);
 
             model.append_residual(iR, 2);
+
             model.append_observation(y2, 5); // obs := 1
 
             CHECK(model.size_of("res") == 8);
             CHECK(model.size_of("obs") == 10);
 
             model.append_effect(x1, 5, 2); // eff:= 0
+
             CHECK(model.size_of("eff") == 10);
 
             model.append_effect(x2, 5, 2); // eff:= 1
+
             CHECK(model.size_of("eff") == 20);
 
             model.append_effect(z1, 5, 8); // eff:= 2
+
             CHECK(model.size_of("eff") == 60);
 
             model.append_effect(z2, 5, 8); // eff:= 3
@@ -271,13 +282,12 @@ TEST_CASE("Small data test: model 1")
             CHECK(model.size_of("cor_eff") == 2);
             CHECK(model.size_of("obs_trt") == 2);
             CHECK(model.size_of("eff_trt") == 4);
-
+            
             model.clear_residuals();
             model.clear_observations();
             model.clear_effects();
             model.clear_corrstruct();
             model.clear_traitstruct();
-
             CHECK(model.size_of("res") == 0);
             CHECK(model.size_of("obs") == 0);
             CHECK(model.size_of("eff") == 0);
@@ -286,28 +296,29 @@ TEST_CASE("Small data test: model 1")
             CHECK(model.size_of("cor_eff") == 0);
             CHECK(model.size_of("obs_trt") == 0);
             CHECK(model.size_of("eff_trt") == 0);
+            
         }
         catch (const std::exception &e)
         {
             std::cerr << " Model 1. Exit from the Model tests size due to the exception:" << '\n';
             std::cerr << " Model 1.  => " << e.what() << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
         catch (const std::string &err)
         {
             std::cerr << " Model 1. Exit from the Model tests size due to the exception:" << '\n';
             std::cerr << " Model 1.  => " << err << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
         catch (int ierr)
         {
             std::cerr << " Model 1. Exit from the Model tests size due to the exception with code " << ierr << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
         catch (...)
         {
             std::cerr << " Model 1. Exit from the Model tests size due to an unknown exception." << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
     }
 
@@ -426,23 +437,23 @@ TEST_CASE("Small data test: model 1")
         {
             std::cerr << " Model 1. Exit from the Model tests shapes due to the exception:" << '\n';
             std::cerr << " Model 1.  => " << e.what() << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
         catch (const std::string &err)
         {
             std::cerr << " Model 1. Exit from the Model tests shapes due to the exception:" << '\n';
             std::cerr << " Model 1.  => " << err << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
         catch (int ierr)
         {
             std::cerr << " Model 1. Exit from the Model tests shapes due to the exception with code " << ierr << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
         catch (...)
         {
             std::cerr << " Model 1. Exit from the Model tests shapes due to an unknown exception." << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
     }
 
@@ -512,23 +523,23 @@ TEST_CASE("Small data test: model 1")
         {
             std::cerr << " Model 1. Exit from [The Pcg class: test vect_z_uni] due to the exception:" << '\n';
             std::cerr << " Model 1.  => " << e.what() << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
         catch (const std::string &err)
         {
             std::cerr << " Model 1. Exit from [The Pcg class: test vect_z_uni] due to the exception:" << '\n';
             std::cerr << " Model 1.  => " << err << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
         catch (int ierr)
         {
             std::cerr << " Model 1. Exit from [The Pcg class: test vect_z_uni] due to the exception with code " << ierr << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
         catch (...)
         {
             std::cerr << " Model 1. Exit from [The Pcg class: test vect_z_uni] due to an unknown exception." << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
     }
 
@@ -569,7 +580,7 @@ TEST_CASE("Small data test: model 1")
             evolm::matrix<float> model_rhs = solver.test_rhs();
 
             for (size_t i = 0; i < _rhs.size(); i++)
-                CHECK((_rhs[i]) == Approx(model_rhs[i]).margin(0.0001).epsilon(1e-3));
+                CHECK((_rhs[i]) == Catch::Approx(model_rhs[i]).margin(0.0001).epsilon(1e-3));
 
             solver.remove_model();
 
@@ -579,23 +590,23 @@ TEST_CASE("Small data test: model 1")
         {
             std::cerr << " Model 1. Exit from [The Pcg class: test RHS] due to the exception:" << '\n';
             std::cerr << " Model 1.  => " << e.what() << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
         catch (const std::string &err)
         {
             std::cerr << " Model 1. Exit from [The Pcg class: test RHS] due to the exception:" << '\n';
             std::cerr << " Model 1.  => " << err << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
         catch (int ierr)
         {
             std::cerr << " Model 1. Exit from [The Pcg class: test RHS] due to the exception with code " << ierr << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
         catch (...)
         {
             std::cerr << " Model 1. Exit from [The Pcg class: test RHS] due to an unknown exception." << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
     }
 
@@ -638,7 +649,7 @@ TEST_CASE("Small data test: model 1")
             CHECK(dval.size() == dval_true.size());
 
             for (size_t i = 0; i < dval_true.size(); i++)
-                CHECK(dval[i] == Approx(dval_true[i]).margin(0.0001).epsilon(1e-4));
+                CHECK(dval[i] == Catch::Approx(dval_true[i]).margin(0.0001).epsilon(1e-4));
 
             solver.remove_model();
 
@@ -648,23 +659,23 @@ TEST_CASE("Small data test: model 1")
         {
             std::cerr << " Model 1. Exit from [The Pcg class: test dval] due to the exception:" << '\n';
             std::cerr << " Model 1.  => " << e.what() << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
         catch (const std::string &err)
         {
             std::cerr << " Model 1. Exit from [The Pcg class: test dval] due to the exception:" << '\n';
             std::cerr << " Model 1.  => " << err << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
         catch (int ierr)
         {
             std::cerr << " Model 1. Exit from [The Pcg class: test dval] due to the exception with code " << ierr << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
         catch (...)
         {
             std::cerr << " Model 1. Exit from [The Pcg class: test dval] due to an unknown exception." << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
     }
 
@@ -711,7 +722,7 @@ TEST_CASE("Small data test: model 1")
             {
                 for (size_t j = 0; j < A[0].size(); j++)
                 {
-                    CHECK(A[i][j] == Approx(CoeffMatrix[i][j]).margin(0.001).epsilon(1e-3));
+                    CHECK(A[i][j] == Catch::Approx(CoeffMatrix[i][j]).margin(0.001).epsilon(1e-3));
                 }
             }
 
@@ -723,23 +734,23 @@ TEST_CASE("Small data test: model 1")
         {
             std::cerr << " Model 1. Exit from [The Pcg class: test CoeffMatrix] due to the exception:" << '\n';
             std::cerr << " Model 1.  => " << e.what() << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
         catch (const std::string &err)
         {
             std::cerr << " Model 1. Exit from [The Pcg class: test CoeffMatrix] due to the exception:" << '\n';
             std::cerr << " Model 1.  => " << err << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
         catch (int ierr)
         {
             std::cerr << " Model 1. Exit from [The Pcg class: test CoeffMatrix] due to the exception with code " << ierr << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
         catch (...)
         {
             std::cerr << " Model 1. Exit from [The Pcg class: test CoeffMatrix] due to an unknown exception." << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
     }
 
@@ -809,23 +820,23 @@ TEST_CASE("Small data test: model 1")
         {
             std::cerr << " Model 1. Exit from [The Pcg class: test intermediate data structures] due to the exception:" << '\n';
             std::cerr << " Model 1.  => " << e.what() << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
         catch (const std::string &err)
         {
             std::cerr << " Model 1. Exit from [The Pcg class: test intermediate data structures] due to the exception:" << '\n';
             std::cerr << " Model 1.  => " << err << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
         catch (int ierr)
         {
             std::cerr << " Model 1. Exit from [The Pcg class: test intermediate data structures] due to the exception with code " << ierr << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
         catch (...)
         {
             std::cerr << " Model 1. Exit from [The Pcg class: test intermediate data structures] due to an unknown exception." << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
     }
 
@@ -870,7 +881,7 @@ TEST_CASE("Small data test: model 1")
             solver.get_solution("cpp_solution_model_1.dat");
 
             for (size_t i = 0; i < sol.size(); i++)
-                CHECK((_sol[i]) == Approx(sol[i]).margin(0.0001).epsilon(1e-3));
+                CHECK((_sol[i]) == Catch::Approx(sol[i]).margin(0.0001).epsilon(1e-3));
 
             solver.remove_model();
 
@@ -880,23 +891,23 @@ TEST_CASE("Small data test: model 1")
         {
             std::cerr << " Model 1. Exit from [The Pcg class: test solution] due to the exception:" << '\n';
             std::cerr << " Model 1.  => " << e.what() << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
         catch (const std::string &err)
         {
             std::cerr << " Model 1. Exit from [The Pcg class: test solution] due to the exception:" << '\n';
             std::cerr << " Model 1.  => " << err << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
         catch (int ierr)
         {
             std::cerr << " Model 1. Exit from [The Pcg class: test solution] due to the exception with code " << ierr << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
         catch (...)
         {
             std::cerr << " Model 1. Exit from [The Pcg class: test solution] due to an unknown exception." << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
     }
 
@@ -906,6 +917,7 @@ TEST_CASE("Small data test: model 1")
     {
         try
         {
+            
             evolm::IOInterface datstream;
 
             datstream.set_fname("tests/data/allele.dat");
@@ -974,7 +986,7 @@ TEST_CASE("Small data test: model 1")
             //-------------------------------------------------
 
             datstream.set_fname("tests/data/1000G.EUR.QC.22.bed"); // Expected rows: variants (SNPs); columns: samples (observations).
-
+            
             datstream.fgetdata(489, 141123, in);
 
             REQUIRE(in.empty() == false);
@@ -1009,31 +1021,32 @@ TEST_CASE("Small data test: model 1")
                     CHECK(in[i][j] == alleledat[i][j]);
                 }
             }
-
+            
             in.clear();
             in.shrink_to_fit();
+            
         }
         catch (const std::exception &e)
         {
             std::cerr << " Model 1. Exit from [The IO interface class: test base class] due to the exception:" << '\n';
             std::cerr << " Model 1.  => " << e.what() << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
         catch (const std::string &err)
         {
             std::cerr << " Model 1. Exit from [The IO interface class: test base class] due to the exception:" << '\n';
             std::cerr << " Model 1.  => " << err << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
         catch (int ierr)
         {
             std::cerr << " Model 1. Exit from [The IO interface class: test base class] due to the exception with code " << ierr << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
         catch (...)
         {
             std::cerr << " Model 1. Exit from [The IO interface class: test base class] due to an unknown exception." << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
     }
 
@@ -1058,11 +1071,11 @@ TEST_CASE("Small data test: model 1")
             std::vector<float> eff_2 = model.test_effects(2, dummy_type2);
             std::vector<float> eff_3 = model.test_effects(3, dummy_type2);
 
-            //std::cout<<"eff_0.size(): "<<eff_0.size()<<"\n";
+            // std::cout<<"eff_0.size(): "<<eff_0.size()<<"\n";
             for (size_t i = 0; i < eff_0.size(); i++)
             {
                 CHECK(z1[i] == eff_0[i]);
-                //std::cout<<"eff_0[i]: i "<<i<<" -> "<<eff_0[i]<<"\n";
+                // std::cout<<"eff_0[i]: i "<<i<<" -> "<<eff_0[i]<<"\n";
             }
 
             for (size_t i = 0; i < eff_1.size(); i++)
@@ -1118,23 +1131,23 @@ TEST_CASE("Small data test: model 1")
         {
             std::cerr << " Model 1. Exit from [The overloaded methods (Model & IO interface): testing IN -> data] due to the exception:" << '\n';
             std::cerr << " Model 1.  => " << e.what() << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
         catch (const std::string &err)
         {
             std::cerr << " Model 1. Exit from [The overloaded methods (Model & IO interface): testing IN -> data] due to the exception:" << '\n';
             std::cerr << " Model 1.  => " << err << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
         catch (int ierr)
         {
             std::cerr << " Model 1. Exit from [The overloaded methods (Model & IO interface): testing IN -> data] due to the exception with code " << ierr << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
         catch (...)
         {
             std::cerr << " Model 1. Exit from [The overloaded methods (Model & IO interface): testing IN -> data] due to an unknown exception." << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
     }
 
@@ -1207,23 +1220,23 @@ TEST_CASE("Small data test: model 1")
         {
             std::cerr << " Model 1. Exit from [The overloaded methods (Model & IO interface): testing vect_z_uni] due to the exception:" << '\n';
             std::cerr << " Model 1.  => " << e.what() << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
         catch (const std::string &err)
         {
             std::cerr << " Model 1. Exit from [The overloaded methods (Model & IO interface): testing vect_z_uni] due to the exception:" << '\n';
             std::cerr << " Model 1.  => " << err << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
         catch (int ierr)
         {
             std::cerr << " Model 1. Exit from [The overloaded methods (Model & IO interface): testing vect_z_uni] due to the exception with code " << ierr << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
         catch (...)
         {
             std::cerr << " Model 1. Exit from [The overloaded methods (Model & IO interface): testing vect_z_uni] due to an unknown exception." << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
     }
 
@@ -1267,14 +1280,14 @@ TEST_CASE("Small data test: model 1")
             evolm::matrix<float> model_rhs = solver.test_rhs();
 
             for (size_t i = 0; i < _rhs.size(); i++)
-                CHECK((_rhs[i]) == Approx(model_rhs[i]).margin(0.0001).epsilon(1e-3));
+                CHECK((_rhs[i]) == Catch::Approx(model_rhs[i]).margin(0.0001).epsilon(1e-3));
 
             std::vector<float> dval = solver.test_dval();
 
             CHECK(dval.size() == dval_true.size());
 
             for (size_t i = 0; i < dval_true.size(); i++)
-                CHECK(dval[i] == Approx(dval_true[i]).margin(0.0001).epsilon(1e-4));
+                CHECK(dval[i] == Catch::Approx(dval_true[i]).margin(0.0001).epsilon(1e-4));
 
             solver.remove_model();
 
@@ -1284,23 +1297,23 @@ TEST_CASE("Small data test: model 1")
         {
             std::cerr << " Model 1. Exit from [The overloaded methods (Model & IO interface): testing dval] due to the exception:" << '\n';
             std::cerr << " Model 1.  => " << e.what() << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
         catch (const std::string &err)
         {
             std::cerr << " Model 1. Exit from [The overloaded methods (Model & IO interface): testing dval] due to the exception:" << '\n';
             std::cerr << " Model 1.  => " << err << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
         catch (int ierr)
         {
             std::cerr << " Model 1. Exit from [The overloaded methods (Model & IO interface): testing dval] due to the exception with code " << ierr << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
         catch (...)
         {
             std::cerr << " Model 1. Exit from [The overloaded methods (Model & IO interface): testing dval] due to an unknown exception." << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
     }
 
@@ -1350,7 +1363,7 @@ TEST_CASE("Small data test: model 1")
             {
                 for (size_t j = 0; j < A[0].size(); j++)
                 {
-                    CHECK(A[i][j] == Approx(CoeffMatrix[i][j]).margin(0.001).epsilon(1e-3));
+                    CHECK(A[i][j] == Catch::Approx(CoeffMatrix[i][j]).margin(0.001).epsilon(1e-3));
                 }
             }
 
@@ -1362,23 +1375,23 @@ TEST_CASE("Small data test: model 1")
         {
             std::cerr << " Model 1. Exit from [The overloaded methods (Model & IO interface): testing CoeffMatrix] due to the exception:" << '\n';
             std::cerr << " Model 1.  => " << e.what() << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
         catch (const std::string &err)
         {
             std::cerr << " Model 1. Exit from [The overloaded methods (Model & IO interface): testing CoeffMatrix] due to the exception:" << '\n';
             std::cerr << " Model 1.  => " << err << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
         catch (int ierr)
         {
             std::cerr << " Model 1. Exit from [The overloaded methods (Model & IO interface): testing CoeffMatrix] due to the exception with code " << ierr << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
         catch (...)
         {
             std::cerr << " Model 1. Exit from [The overloaded methods (Model & IO interface): testing CoeffMatrix] due to an unknown exception." << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
     }
 
@@ -1451,23 +1464,23 @@ TEST_CASE("Small data test: model 1")
         {
             std::cerr << " Model 1. Exit from [The overloaded methods (Model & IO interface): testing intermediate data structures] due to the exception:" << '\n';
             std::cerr << " Model 1.  => " << e.what() << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
         catch (const std::string &err)
         {
             std::cerr << " Model 1. Exit from [The overloaded methods (Model & IO interface): testing intermediate data structures] due to the exception:" << '\n';
             std::cerr << " Model 1.  => " << err << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
         catch (int ierr)
         {
             std::cerr << " Model 1. Exit from [The overloaded methods (Model & IO interface): testing intermediate data structures] due to the exception with code " << ierr << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
         catch (...)
         {
             std::cerr << " Model 1. Exit from [The overloaded methods (Model & IO interface): testing intermediate data structures] due to an unknown exception." << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
     }
 
@@ -1511,7 +1524,7 @@ TEST_CASE("Small data test: model 1")
             evolm::matrix<float> model_rhs = solver.test_rhs();
 
             for (size_t i = 0; i < _rhs.size(); i++)
-                CHECK((_rhs[i]) == Approx(model_rhs[i]).margin(0.0001).epsilon(1e-3));
+                CHECK((_rhs[i]) == Catch::Approx(model_rhs[i]).margin(0.0001).epsilon(1e-3));
 
             solver.remove_model();
 
@@ -1521,23 +1534,23 @@ TEST_CASE("Small data test: model 1")
         {
             std::cerr << " Model 1. Exit from [The overloaded methods (Model & IO interface): testing RHS] due to the exception:" << '\n';
             std::cerr << " Model 1.  => " << e.what() << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
         catch (const std::string &err)
         {
             std::cerr << " Model 1. Exit from [The overloaded methods (Model & IO interface): testing RHS] due to the exception:" << '\n';
             std::cerr << " Model 1.  => " << err << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
         catch (int ierr)
         {
             std::cerr << " Model 1. Exit from [The overloaded methods (Model & IO interface): testing RHS] due to the exception with code " << ierr << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
         catch (...)
         {
             std::cerr << " Model 1. Exit from [The overloaded methods (Model & IO interface): testing RHS] due to an unknown exception." << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
     }
 
@@ -1580,6 +1593,8 @@ TEST_CASE("Small data test: model 1")
 
             solver.append_model(model);
 
+            //model.print();
+
             solver.solve();
 
             std::vector<float> sol = solver.get_solution();
@@ -1588,7 +1603,7 @@ TEST_CASE("Small data test: model 1")
 
             for (size_t i = 0; i < sol.size(); i++)
             {
-                CHECK((_sol[i]) == Approx(sol[i]).margin(0.0001).epsilon(1e-3));
+                CHECK((_sol[i]) == Catch::Approx(sol[i]).margin(0.0001).epsilon(1e-3));
                 // std::cout<<sol[i]<<"\n";
             }
 
@@ -1600,28 +1615,27 @@ TEST_CASE("Small data test: model 1")
         {
             std::cerr << " Model 1. Exit from [The overloaded methods (Model & IO interface): testing solution] due to the exception:" << '\n';
             std::cerr << " Model 1.  => " << e.what() << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
         catch (const std::string &err)
         {
             std::cerr << " Model 1. Exit from [The overloaded methods (Model & IO interface): testing solution] due to the exception:" << '\n';
             std::cerr << " Model 1.  => " << err << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
         catch (int ierr)
         {
             std::cerr << " Model 1. Exit from [The overloaded methods (Model & IO interface): testing solution] due to the exception with code " << ierr << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
         catch (...)
         {
             std::cerr << " Model 1. Exit from [The overloaded methods (Model & IO interface): testing solution] due to an unknown exception." << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
     }
 
     // ========================================================================================
-    
 }
 
 TEST_CASE("Small data test: model 2")
@@ -1765,7 +1779,7 @@ TEST_CASE("Small data test: model 2")
 
     // ----- define the model -------
 
-    model.append_residual(iR, 2);
+    model.append_residual(iR, 1);
 
     model.append_observation(y, 10); // obs := 0
 
@@ -1783,10 +1797,12 @@ TEST_CASE("Small data test: model 2")
     model.append_corrstruct(iG2, 2, iA, 14, corr_eff_1);
 
     std::string identity("I");
-    // model.append_corrstruct(iG3, 1, corS, 4, corr_eff_2);
+    //model.append_corrstruct(iG3, 1, corS, 4, corr_eff_2);
     model.append_corrstruct(iG3, 1, identity, 4, corr_eff_2);
 
     model.append_traitstruct(obs_trate, eff_trate);
+
+    //model.print();
 
     solver.append_model(model);
 
@@ -1803,33 +1819,34 @@ TEST_CASE("Small data test: model 2")
             solver.get_solution("cpp_solution_model_2.dat");
 
             for (size_t i = 0; i < sol.size(); i++)
-                CHECK((_sol[i]) == Approx(sol[i]).margin(0.03).epsilon(1e-3));
+                CHECK((_sol[i]) == Catch::Approx(sol[i]).margin(0.03).epsilon(1e-3));
 
             solver.remove_model();
 
             model.clear();
+            
         }
         catch (const std::exception &e)
         {
             std::cerr << " Model 2. Exit from [The Pcg class: test solution] due to the exception:" << '\n';
             std::cerr << " Model 2.  => " << e.what() << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
         catch (const std::string &err)
         {
             std::cerr << " Model 2. Exit from [The Pcg class: test solution] due to the exception:" << '\n';
             std::cerr << " Model 2.  => " << err << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
         catch (int ierr)
         {
             std::cerr << " Model 2. Exit from [The Pcg class: test solution] due to the exception with code " << ierr << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
         catch (...)
         {
             std::cerr << " Model 2. Exit from [The Pcg class: test solution] due to an unknown exception." << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
     }
 
@@ -1934,7 +1951,7 @@ TEST_CASE("Small data test: model 3")
             solver.get_solution("cpp_solution_model_3.dat");
 
             for (size_t i = 0; i < sol.size(); i++)
-                CHECK((_sol[i]) == Approx(sol[i]).margin(0.003).epsilon(1e-3));
+                CHECK((_sol[i]) == Catch::Approx(sol[i]).margin(0.003).epsilon(1e-3));
 
             solver.remove_model();
 
@@ -1944,23 +1961,23 @@ TEST_CASE("Small data test: model 3")
         {
             std::cerr << " Model 3. Exit from [The Pcg class: test solution] due to the exception:" << '\n';
             std::cerr << " Model 3.  => " << e.what() << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
         catch (const std::string &err)
         {
             std::cerr << " Model 3. Exit from [The Pcg class: test solution] due to the exception:" << '\n';
             std::cerr << " Model 3.  => " << err << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
         catch (int ierr)
         {
             std::cerr << " Model 3. Exit from [The Pcg class: test solution] due to the exception with code " << ierr << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
         catch (...)
         {
             std::cerr << " Model 3. Exit from [The Pcg class: test solution] due to an unknown exception." << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
     }
 
@@ -2006,7 +2023,7 @@ TEST_CASE("Small data test: model 3")
             solver.get_solution("cpp_solution_model_3(I).dat");
 
             for (size_t i = 0; i < sol.size(); i++)
-                CHECK((_sol[i]) == Approx(sol[i]).margin(0.003).epsilon(1e-3));
+                CHECK((_sol[i]) == Catch::Approx(sol[i]).margin(0.003).epsilon(1e-3));
 
             solver.remove_model();
 
@@ -2016,23 +2033,23 @@ TEST_CASE("Small data test: model 3")
         {
             std::cerr << " Model 3. Exit from [The Pcg class: test identity corr structure] due to the exception:" << '\n';
             std::cerr << " Model 3.  => " << e.what() << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
         catch (const std::string &err)
         {
             std::cerr << " Model 3. Exit from [The Pcg class: test identity corr structure] due to the exception:" << '\n';
             std::cerr << " Model 3.  => " << err << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
         catch (int ierr)
         {
             std::cerr << " Model 3. Exit from [The Pcg class: test identity corr structure] due to the exception with code " << ierr << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
         catch (...)
         {
             std::cerr << " Model 3. Exit from [The Pcg class: test identity corr structure] due to an unknown exception." << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
     }
 
@@ -2060,7 +2077,7 @@ TEST_CASE("Small data test: model 4")
             float type2 = 0.0f;
 
             model.append_effect("tests/data/model_4/obs_489_snp_100.txt", type1); // eff := 0
-            model.append_effect("tests/data/model_4/fixed_1.dat", type2);          // eff := 1
+            model.append_effect("tests/data/model_4/fixed_1.dat", type2);         // eff := 1
 
             std::vector<int> corr_eff{0};
 
@@ -2077,7 +2094,7 @@ TEST_CASE("Small data test: model 4")
 
             solver.solve();
 
-            //std::vector<float> sol = solver.get_solution();
+            // std::vector<float> sol = solver.get_solution();
 
             solver.get_solution("cpp_solution_model_4.dat");
 
@@ -2089,23 +2106,23 @@ TEST_CASE("Small data test: model 4")
         {
             std::cerr << " Model 4. Exit from [The Pcg class: test full SNP blup] due to the exception:" << '\n';
             std::cerr << " Model 4.  => " << e.what() << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
         catch (const std::string &err)
         {
             std::cerr << " Model 4. Exit from [The Pcg class: test full SNP blup] due to the exception:" << '\n';
             std::cerr << " Model 4.  => " << err << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
         catch (int ierr)
         {
             std::cerr << " Model 4. Exit from [The Pcg class: test full SNP blup] due to the exception with code " << ierr << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
         catch (...)
         {
             std::cerr << " Model 4. Exit from [The Pcg class: test full SNP blup] due to an unknown exception." << '\n';
-            //exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
     }
 }

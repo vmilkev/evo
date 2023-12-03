@@ -206,8 +206,6 @@ namespace evogen
 
                 try
                 {
-                        size_t loop_counter = 0;
-
                         std::ifstream snpF;
                         std::string line;
                         std::vector<std::string> data_list;
@@ -273,8 +271,6 @@ namespace evogen
                                 id_map.push_back(ids);
 
                                 data_list.erase(data_list.begin(), data_list.end());
-
-                                loop_counter++;
                         }
 
                         snpF.close();
@@ -498,7 +494,7 @@ namespace evogen
         template void IOInterface::fgetdata(std::vector<std::vector<double>> &out);
         template void IOInterface::fgetdata(std::vector<std::vector<float>> &out);
         template void IOInterface::fgetdata(std::vector<std::vector<size_t>> &out);
-        template void IOInterface::fgetdata(std::vector<std::vector<unsigned long>> &out);
+        template void IOInterface::fgetdata(std::vector<std::vector<unsigned int>> &out);
 
         //===============================================================================================================
 }

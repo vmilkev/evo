@@ -32,7 +32,7 @@ namespace evogen
         {
             Utilites u;
 
-            id = u.get_randi(1000000);
+            id = u.get_randi( 1, 1000000000 );
         }
         catch (const std::exception &e)
         {
@@ -59,9 +59,9 @@ namespace evogen
         {
             Utilites u;
 
-            unsigned long id = u.get_randi(1000000);
+            unsigned long id = u.get_randi(1, 100);
 
-            if (id <= 500000)
+            if (id <= 50)
                 sex = 1;
             else
                 sex = 0;

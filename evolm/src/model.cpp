@@ -38,6 +38,12 @@ namespace evolm
             std::cerr << e.what() << '\n';
             throw e;
         }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Model::append_residual(pybind11::array_t<float>, size_t)." << '\n';
+            std::cerr <<"Reason: "<< e << '\n';
+            throw e;
+        }
         catch (...)
         {
             std::cerr << "Exception in Model::append_residual(pybind11::array_t<float>, size_t)." << '\n';
@@ -625,13 +631,11 @@ namespace evolm
         try
         {
             // lda := is leading diagonal of symmetric matrix, though arr is in a full-store format
-
             matrix<float> residual;
 
-            size_t n = sizeof(arr) / sizeof(arr[0]);
             residual.resize(lda, lda);
-            // residual.rectosym();
-            for (size_t i = 0; i < n; i++)
+            
+            for (size_t i = 0; i < lda*lda; i++)
                 residual[i] = arr[i];
 
             residual.fwrite();
@@ -640,7 +644,13 @@ namespace evolm
         catch (const std::exception &e)
         {
             std::cerr << "Exception in Model::append_residual(const std::vector<float> &, size_t)." << '\n';
-            std::cerr << e.what() << '\n';
+            std::cerr << "Reason: " << e.what() << '\n';
+            throw e;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Model::append_residual(const std::vector<float> &, size_t)." << '\n';
+            std::cerr << "Reason: " << e << '\n';
             throw e;
         }
         catch (...)
@@ -648,7 +658,6 @@ namespace evolm
             std::cerr << "Exception in Model::append_residual(const std::vector<float> &, size_t)." << '\n';
             throw;
         }
-
         return 0;
     }
 
@@ -1227,11 +1236,11 @@ namespace evolm
             arr.clear();
             arr.shrink_to_fit();
         }
-        catch (std::string err)
+        catch (const std::string &e)
         {
             std::cerr << "Exception in Model::append_observation(const std::string &)." << '\n';
-            std::cerr << err << '\n';
-            throw err;
+            std::cerr << "Reason: " << e << '\n';
+            throw e;
         }
         catch (const std::exception &e)
         {

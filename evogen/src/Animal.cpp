@@ -8,8 +8,7 @@ namespace evogen
     {
         try
         {
-            // genotype2 = new AnimalGenome();
-
+            // genotype2 = new Genome();
             properties.id = asign_id();
             properties.sire = 0;
             properties.dame = 0;

@@ -9,6 +9,7 @@
 #include <vector>
 #include <cmath>
 #include <algorithm>
+#include <string>
 #include "Utilites.hpp"
 
 namespace evogen
@@ -30,12 +31,16 @@ namespace evogen
                          std::vector<std::vector<unsigned long>> &gstructure ); /* returns genome information: variants and structure */
         
         short get_ploidy();
+        //size_t get_nmarkers();
 
         void get_reproduction_gamete( size_t cross_per_chr, size_t mut_per_genome, std::vector<bool> &out_gamete, short &out_sex_chr_id ); /* NOTE! we allow possibility for polyploid gametes */
         
         // For tests
         void show_genome( int max_variants ); // this is for debugging
         void show_recombination();
+        std::vector<short> get_genome_at(size_t locus);
+
+        std::vector<std::vector<unsigned long>> get_snp_table();
 
     private:
         std::vector<std::vector<bool>> markers;   /* SNP (markers) variants for entire genome, the structure descriped in 'structure' */

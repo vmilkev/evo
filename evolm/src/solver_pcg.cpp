@@ -7,21 +7,22 @@ namespace evolm
         try
         {
             set_pipeline(pipeline_val);
-
             construct_rhs();
-
             size_t n_all_levels = num_all_levels(); // number of all random effects in the model
-
             std::vector<size_t> ordered_random_levels = get_ordered_levels();
-
             std::vector<std::vector<size_t>> rcov_offsets = get_cov_offsets(ordered_random_levels);
-
             jacobi_pcg(rcov_offsets, n_all_levels, ordered_random_levels);
         }
         catch (const std::exception &e)
         {
             std::cerr << "Exception in Pcg::solve()." << '\n';
             std::cerr << e.what() << '\n';
+            throw e;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Pcg::solve()." << '\n';
+            std::cerr <<"Reason: "<< e << '\n';
             throw e;
         }
         catch (...)
@@ -60,17 +61,6 @@ namespace evolm
             std::cerr << "Exception in Pcg::solve(int)." << '\n';
             throw;
         }
-    }
-
-    unsigned long long Pcg::rdtsc()
-    {
-        /* Seed for random number generator. */
-
-        unsigned int lo, hi;
-        __asm__ __volatile__("rdtsc"
-                             : "=a"(lo), "=d"(hi));
-
-        return ((unsigned long long)hi << 32) | lo;
     }
 
     void Pcg::set_pipeline(int which_pipeline)
@@ -342,10 +332,19 @@ namespace evolm
                     fA.seekg(0 * all_tr_levels * sizeof(float));
 
                     float *A;
+#ifdef intelmkl
                     A = (float *)mkl_malloc(all_tr_levels * all_tr_levels * sizeof(float), sizeof(float) * 8);
+#else
+                    //A = (float *)aligned_alloc(sizeof(float) * 8, all_tr_levels * all_tr_levels * sizeof(float));
+                    A = (float *)malloc(all_tr_levels * all_tr_levels * sizeof(float));
+#endif
                     if (A == NULL)
                     {
+#ifdef intelmkl
                         mkl_free(A);
+#else
+                        free(A);
+#endif
                         throw std::string("Memory allocation error in memload_amatr()");
                     }
 
@@ -355,7 +354,11 @@ namespace evolm
 
                     amatrix_onmem = true;
 
+#ifdef intelmkl
                     mkl_free(A);
+#else
+                    free(A);
+#endif
 
                     fA.close();
                 }
@@ -578,10 +581,19 @@ namespace evolm
                 fA.seekg(row * all_tr_levels * sizeof(float));
 
                 float *A;
+#ifdef intelmkl
                 A = (float *)mkl_malloc(1 * all_tr_levels * sizeof(float), sizeof(float) * 8);
+#else
+                //A = (float *)aligned_alloc(sizeof(float) * 8, 1 * all_tr_levels * sizeof(float));
+                A = (float *)malloc(1 * all_tr_levels * sizeof(float));
+#endif
                 if (A == NULL)
                 {
+#ifdef intelmkl
                     mkl_free(A);
+#else
+                    free(A);
+#endif
                     throw std::string("Memory allocation errorin fget_vect(size_t all_tr_levels, size_t row)");
                 }
 
@@ -589,7 +601,11 @@ namespace evolm
 
                 vect.insert_array(A);
 
+#ifdef intelmkl
                 mkl_free(A);
+#else
+                free(A);
+#endif
 
                 fA.close();
             }
@@ -758,7 +774,7 @@ namespace evolm
                 // debugging
                 // if (!(iterations % 50))
                 //{
-                std::cout << "titeration: " << iterations << "; delta_new: " << delta_new << "\n";
+                //std::cout << "titeration: " << iterations << "; delta_new: " << delta_new << "\n";
                 //}
 
                 iterations = iterations + 1;

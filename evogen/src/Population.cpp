@@ -1,24 +1,24 @@
-#include "AnimalPopulation.hpp"
+#include "Population.hpp"
 
 namespace evogen
 {
     //===============================================================================================================
 
-    AnimalPopulation::AnimalPopulation()
+    Population::Population()
     {
         //
     }
 
     //===============================================================================================================
 
-    AnimalPopulation::~AnimalPopulation()
+    Population::~Population()
     {
         //
     }
 
     //===============================================================================================================
 
-    void AnimalPopulation::set_population(size_t nindividuals, const std::string &genotype_structure, float ref_allele_probability)
+    void Population::set_population(size_t nindividuals, const std::string &genotype_structure, float ref_allele_probability)
     {
         try
         {
@@ -43,26 +43,26 @@ namespace evogen
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in AnimalPopulation::set_population(size_t, const std::string &, float)." << '\n';
+            std::cerr << "Exception in Population::set_population(size_t, const std::string &, float)." << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &err)
         {
-            std::cerr << "Exception in AnimalPopulation::set_population(size_t, const std::string &, float)." << '\n';
+            std::cerr << "Exception in Population::set_population(size_t, const std::string &, float)." << '\n';
             std::cerr << err << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in AnimalPopulation::set_population(size_t, const std::string &, float)." << '\n';
+            std::cerr << "Exception in Population::set_population(size_t, const std::string &, float)." << '\n';
             throw;
         }
     }
 
     //===============================================================================================================
 
-    size_t AnimalPopulation::get_size()
+    size_t Population::get_size()
     {
         size_t out = 0;
 
@@ -72,13 +72,13 @@ namespace evogen
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in AnimalPopulation::get_size()." << '\n';
+            std::cerr << "Exception in Population::get_size()." << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in AnimalPopulation::get_size()." << '\n';
+            std::cerr << "Exception in Population::get_size()." << '\n';
             throw;
         }
 
@@ -87,7 +87,7 @@ namespace evogen
 
     //===============================================================================================================
 
-    void AnimalPopulation::set_population(const std::string &haplotypes_fname, const std::string &genotype_structure, bool with_pedigree)
+    void Population::set_population(const std::string &haplotypes_fname, const std::string &genotype_structure, bool with_pedigree)
     {
         /*
         Create population using haplotypes file. This variant reads unnamed haplotypes, hence,
@@ -128,7 +128,7 @@ namespace evogen
                 throw err;
             }
 
-            for (int i = 0; i < n_haplotypes;)
+            for (size_t i = 0; i < n_haplotypes;)
             {
                 std::vector<std::vector<bool>> markers(2, std::vector<bool>(n_markers));
 
@@ -158,26 +158,146 @@ namespace evogen
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in AnimalPopulation::set_population(const std::string &, const std::string &)." << '\n';
+            std::cerr << "Exception in Population::set_population(const std::string &, const std::string &)." << '\n';
             std::cerr << e.what() << '\n';
             throw e;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in AnimalPopulation::set_population(const std::string &, const std::string &)." << '\n';
+            std::cerr << "Exception in Population::set_population(const std::string &, const std::string &)." << '\n';
             std::cerr << e << '\n';
             throw e;
         }
         catch (...)
         {
-            std::cerr << "Exception in AnimalPopulation::set_population(const std::string &, const std::string &)." << '\n';
+            std::cerr << "Exception in Population::set_population(const std::string &, const std::string &)." << '\n';
             throw;
         }
     }
 
     //===============================================================================================================
 
-    void AnimalPopulation::show_animals( int max_animals, int max_snps )
+    std::vector<std::vector<unsigned long>> Population::get_genome_table()
+    {
+        try
+        {
+            if ( individuals.size() >= 1 )
+                return individuals[0].genome.get_snp_table();
+            else
+                throw std::string("Cannot return snp_table for the empty population");
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Population::get_genome_table()." << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Population::get_genome_table()." << '\n';
+            std::cerr <<"Reason: "<< e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Population::get_genome_table()." << '\n';
+            throw;
+        }
+    }
+
+    //===============================================================================================================
+
+    size_t Population::get_ploidy()
+    {
+        try
+        {
+            if ( individuals.size() >= 1 )
+                return (size_t)individuals[0].genome.get_ploidy();
+            else
+                throw std::string("Cannot return ploidy for the empty population");
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Population::get_ploidy()." << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Population::get_ploidy()." << '\n';
+            std::cerr <<"Reason: "<< e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Population::get_ploidy()." << '\n';
+            throw;
+        }
+    }
+
+    //===============================================================================================================
+
+    /*size_t Population::get_nmarkers()
+    {
+        try
+        {
+            if ( individuals.size() >= 1 )
+                return individuals[0].genome.get_nmarkers();
+            else
+                throw std::string("Cannot return the number of markers for the empty population");
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Population::get_nmarkers()." << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Population::get_nmarkers()." << '\n';
+            std::cerr <<"Reason: "<< e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Population::get_nmarkers()." << '\n';
+            throw;
+        }
+    }*/
+
+    //===============================================================================================================
+
+    std::vector<short> Population::get_genome_at(size_t which_genome, size_t locus)
+    {
+        try
+        {
+            if ( individuals.size() < which_genome+1 )
+                throw std::string("Cannot return the markers value for the requested individual, which is not exists!");
+            else
+                return individuals[which_genome].genome.get_genome_at(locus);
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Population::get_genome_at(size_t, size_t)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Population::get_genome_at(size_t, size_t)" << '\n';
+            std::cerr <<"Reason: "<< e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Population::get_genome_at(size_t, size_t)" << '\n';
+            throw;
+        }
+    }
+
+    //===============================================================================================================
+
+    void Population::show_animals( size_t max_animals, size_t max_snps )
     {
         try
         {
@@ -206,13 +326,13 @@ namespace evogen
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in AnimalPopulation::show_animals(int, int)." << '\n';
+            std::cerr << "Exception in Population::show_animals(int, int)." << '\n';
             std::cerr << e.what() << '\n';
             throw e;
         }
         catch (...)
         {
-            std::cerr << "Exception in AnimalPopulation::show_animals(int, int)." << '\n';
+            std::cerr << "Exception in Population::show_animals(int, int)." << '\n';
             throw;
         }
     }

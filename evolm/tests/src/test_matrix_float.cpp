@@ -4,7 +4,7 @@
  Class instance of type 'mytype'.
 */
 
-#include "catch.hpp"
+#include "catch_amalgamated.hpp"
 #include "cs_matrix.hpp"
 
 typedef float mytype;
@@ -220,7 +220,7 @@ TEST_CASE("Checking class constructors, type = float"){
 
         evolm::matrix <mytype> M2(5,3);
         REQUIRE_FALSE(M2.failbit);
-        M2 = M2;
+        M2 = *&M2;
         REQUIRE_FALSE(M2.failbit);
     }
 
@@ -236,19 +236,19 @@ TEST_CASE("Check access operators, type = float"){
             
             M.at(10,10) = 0.8;
 
-            CHECK(M.at(10,10) == Approx(0.8));
+            CHECK(M.at(10,10) == Catch::Approx(0.8));
             CHECK(M.size() == 121);
 
             M.resize(1,3);
             M.at(0,2) = 0.2;
 
-            CHECK(M.at(0,2) == Approx(0.2));
+            CHECK(M.at(0,2) == Catch::Approx(0.2));
             CHECK(M.size() == 3);
 
             M.clear();
             M.at(1000, 200) = 1.2;
 
-            CHECK(M.at(1000,200) == Approx(1.2));
+            CHECK(M.at(1000,200) == Catch::Approx(1.2));
             CHECK(M.size() == 201201);
             CHECK(M.capacity() == 201201);
             CHECK(M.failbit == false);           
@@ -258,8 +258,8 @@ TEST_CASE("Check access operators, type = float"){
             
             M.resize(10,10);
             M(9,9) = 0.9;
-            CHECK(M(9,9) == Approx(0.9));
-            CHECK(M(0,0) == Approx(0.0));
+            CHECK(M(9,9) == Catch::Approx(0.9));
+            CHECK(M(0,0) == Catch::Approx(0.0));
             CHECK(M.failbit == false);
         }
     }
@@ -274,18 +274,18 @@ TEST_CASE("Check access operators, type = float"){
 
             M.at(10,10) = 0.8;
 
-            CHECK(M.at(10,10) == Approx(0.8));
+            CHECK(M.at(10,10) == Catch::Approx(0.8));
             
             M.resize(1,3);
             M.at(0,2) = 0.2;
 
-            CHECK(M.at(0,2) == Approx(0.2));
+            CHECK(M.at(0,2) == Catch::Approx(0.2));
             CHECK(M.size() == 3);
 
             M.clear();
             M.at(1000, 200) = 1.2;
 
-            CHECK(M.at(1000,200) == Approx(1.2));
+            CHECK(M.at(1000,200) == Catch::Approx(1.2));
             CHECK(M.size() == 201201);
             CHECK(M.capacity() == 201201);
             CHECK(M.failbit == false);           
@@ -295,8 +295,8 @@ TEST_CASE("Check access operators, type = float"){
             
             M(9,9) = 0.9;
 
-            CHECK(M(9,9) == Approx(0.9));
-            CHECK(M(0,0) == Approx(0.0));
+            CHECK(M(9,9) == Catch::Approx(0.9));
+            CHECK(M(0,0) == Catch::Approx(0.0));
             CHECK(M.failbit == false);
         }
 
@@ -312,12 +312,12 @@ TEST_CASE("Check access operators, type = float"){
 
             M.at(10,10) = 0.8;
 
-            CHECK(M.at(10,10) == Approx(0.8));
+            CHECK(M.at(10,10) == Catch::Approx(0.8));
             
             M.resize(3,1);
             M.at(0,0) = 0.5;
 
-            CHECK(M.at(0,0) == Approx(0.5));
+            CHECK(M.at(0,0) == Catch::Approx(0.5));
             CHECK(M.size() == 6);
 
             M.resize(1);
@@ -326,19 +326,19 @@ TEST_CASE("Check access operators, type = float"){
 
             M.at(2,0) = 0.2;
 
-            CHECK(M.at(2,0) == Approx(0.2));
+            CHECK(M.at(2,0) == Catch::Approx(0.2));
             CHECK(M.size() == 6);
 
             M.clear();
             M.at(1000, 200) = 1.2;
 
-            CHECK(M.at(1000,200) == Approx(1.2));
+            CHECK(M.at(1000,200) == Catch::Approx(1.2));
             CHECK(M.size() == 501501);
             CHECK(M.failbit == false);
 
             M.at(3, 2) = 1.2;
 
-            CHECK(M.at(3,2) == Approx(1.2));
+            CHECK(M.at(3,2) == Catch::Approx(1.2));
             CHECK(M.failbit == false);                    
         }
 
@@ -346,8 +346,8 @@ TEST_CASE("Check access operators, type = float"){
             
             M(9,9) = 0.9;
 
-            CHECK(M(9,9) == Approx(0.9));
-            CHECK(M(0,0) == Approx(0.0));
+            CHECK(M(9,9) == Catch::Approx(0.9));
+            CHECK(M(0,0) == Catch::Approx(0.0));
             CHECK(M.failbit == false);
         }
 
@@ -370,7 +370,7 @@ TEST_CASE("Testing scale() method, type = float"){
 
         for(size_t i = 0; i < M.size(); i++){
             mytype j = i*0.5f;
-            CHECK(M[i] == Approx(j));
+            CHECK(M[i] == Catch::Approx(j));
         }
 
     }
@@ -388,7 +388,7 @@ TEST_CASE("Testing scale() method, type = float"){
 
         for(size_t i = 0; i < M.size(); i++){
             mytype j = i*(-2.5f);
-            CHECK(M[i] == Approx(j));
+            CHECK(M[i] == Catch::Approx(j));
         }
 
     }
@@ -406,7 +406,7 @@ TEST_CASE("Testing scale() method, type = float"){
 
         for(size_t i = 0; i < M.size(); i++){
             mytype j = i*0.5f;
-            CHECK(M[i] == Approx(j));
+            CHECK(M[i] == Catch::Approx(j));
         }
 
     }
@@ -424,7 +424,7 @@ TEST_CASE("Testing scale() method, type = float"){
 
         for(size_t i = 0; i < M.size(); i++){
             mytype j = i*1.5f;
-            CHECK(M[i] == Approx(j));
+            CHECK(M[i] == Catch::Approx(j));
         }
 
     }
@@ -442,7 +442,7 @@ TEST_CASE("Testing scale() method, type = float"){
 
         for(size_t i = 0; i < M.size(); i++){
             mytype j = i*(-2.5f);
-            CHECK(M[i] == Approx(j));
+            CHECK(M[i] == Catch::Approx(j));
         }
 
     }
@@ -695,7 +695,7 @@ TEST_CASE("Testing symtorec() method, type = float"){
         CHECK(M.size() == 9);
 
         for(size_t i = 0; i < M.size(); i++){
-            CHECK(M[i] == Approx(m[i]));
+            CHECK(M[i] == Catch::Approx(m[i]));
         }
     }
 
@@ -711,7 +711,7 @@ TEST_CASE("Testing symtorec() method, type = float"){
         CHECK(M.size() == 9);
 
         for(size_t i = 0; i < M.size(); i++){
-            CHECK(M[i] == Approx(m2[i]));
+            CHECK(M[i] == Catch::Approx(m2[i]));
         }
     }
 
@@ -738,7 +738,7 @@ TEST_CASE("Check rectosym() method, type = float"){
         CHECK(M.size() == 6);
 
         for(size_t i = 0; i < M.size(); i++){
-            CHECK(M[i] == Approx(m[i]));
+            CHECK(M[i] == Catch::Approx(m[i]));
         }
     }
 
@@ -757,7 +757,7 @@ TEST_CASE("Check rectosym() method, type = float"){
         CHECK(M.size() == 6);
 
         for(size_t i = 0; i < M.size(); i++){
-            CHECK(M[i] == Approx(m[i]));
+            CHECK(M[i] == Catch::Approx(m[i]));
         }
     }
 
@@ -780,7 +780,7 @@ TEST_CASE("Check transpose() method, type = float"){
 
         for(size_t i = 0; i < M.size(); i++){
             if( i%(dim-1) )
-                CHECK(M[i] != Approx(m[i]));
+                CHECK(M[i] != Catch::Approx(m[i]));
         }
 
         M.transpose();
@@ -788,7 +788,7 @@ TEST_CASE("Check transpose() method, type = float"){
         REQUIRE_FALSE(M.failbit);
 
         for(size_t i = 0; i < M.size(); i++){
-            CHECK(M[i] == Approx(m[i]));
+            CHECK(M[i] == Catch::Approx(m[i]));
         }
     }
 
@@ -811,7 +811,7 @@ TEST_CASE("Check transpose() method, type = float"){
         REQUIRE_FALSE(M.failbit);
 
         for(size_t i = 0; i < M.size(); i++){
-            CHECK(M[i] == Approx(m[i]));
+            CHECK(M[i] == Catch::Approx(m[i]));
         }
     }
 
@@ -834,7 +834,7 @@ TEST_CASE("Check transpose() method, type = float"){
         REQUIRE_FALSE(M.failbit);
 
         for(size_t i = 0; i < M.size(); i++){
-            CHECK(M[i] == Approx(m[i]));
+            CHECK(M[i] == Catch::Approx(m[i]));
         }
     }
 
@@ -856,7 +856,7 @@ TEST_CASE("Check transpose() method, type = float"){
         REQUIRE_FALSE(M.failbit);
 
         for(size_t i = 0; i < M.size(); i++){
-            CHECK(M[i] == Approx(m[i]));
+            CHECK(M[i] == Catch::Approx(m[i]));
         }
     }
 
@@ -883,7 +883,7 @@ TEST_CASE("Chacking fread()/fwrite() methods, type = float"){
         REQUIRE_FALSE(M.failbit);
 
         for(size_t i = 0; i < M.size(); i++){
-            CHECK(M[i] == Approx(m[i]));
+            CHECK(M[i] == Catch::Approx(m[i]));
         }
 
         M.fwrite();
@@ -901,7 +901,7 @@ TEST_CASE("Chacking fread()/fwrite() methods, type = float"){
         CHECK(M.capacity() == 15);
 
         for(size_t i = 0; i < M.size(); i++){
-            CHECK(M[i] == Approx(m[i]));
+            CHECK(M[i] == Catch::Approx(m[i]));
         }
 
     }
@@ -925,7 +925,7 @@ TEST_CASE("Chacking fread()/fwrite() methods, type = float"){
         REQUIRE_FALSE(M.failbit);
 
         for(size_t i = 0; i < M.size(); i++){
-            CHECK(M[i] == Approx(m[i]));
+            CHECK(M[i] == Catch::Approx(m[i]));
         }
 
         M.fwrite();
@@ -941,7 +941,7 @@ TEST_CASE("Chacking fread()/fwrite() methods, type = float"){
         CHECK(M.capacity() == 15);
 
         for(size_t i = 0; i < M.size(); i++){
-            CHECK(M[i] == Approx(m[i]));
+            CHECK(M[i] == Catch::Approx(m[i]));
         }
 
     }
@@ -964,7 +964,7 @@ TEST_CASE("Chacking fread()/fwrite() methods, type = float"){
         REQUIRE_FALSE(M.failbit);
 
         for(size_t i = 0; i < M.size(); i++){
-            CHECK(M[i] == Approx(m[i]));
+            CHECK(M[i] == Catch::Approx(m[i]));
         }
 
         M.fwrite();
@@ -980,7 +980,7 @@ TEST_CASE("Chacking fread()/fwrite() methods, type = float"){
         CHECK(M.capacity() == 9);
 
         for(size_t i = 0; i < M.size(); i++){
-            CHECK(M[i] == Approx(m[i]));
+            CHECK(M[i] == Catch::Approx(m[i]));
         }
 
     }
@@ -1008,7 +1008,7 @@ TEST_CASE("Checking the invert() method, type = float"){
         REQUIRE_FALSE(M.failbit);
 
         for(size_t i = 0; i < M.size(); i++){
-            CHECK( M[i] == Approx( m[i]) );
+            CHECK( M[i] == Catch::Approx( m[i]) );
         }
 
         CHECK_FALSE(M.failbit);
@@ -1034,7 +1034,7 @@ TEST_CASE("Checking the invert() method, type = float"){
         REQUIRE_FALSE(M.failbit);
 
         for(size_t i = 0; i < M.size(); i++){
-            CHECK( M[i] == Approx( m[i]) );
+            CHECK( M[i] == Catch::Approx( m[i]) );
         }
 
         CHECK_FALSE(M.failbit);
@@ -1061,7 +1061,7 @@ TEST_CASE("Checking the invert() method, type = float"){
         CHECK(M.size() == 6);
 
         for(size_t i = 0; i < M.size(); i++){
-            CHECK(M[i] == Approx(m[i]));
+            CHECK(M[i] == Catch::Approx(m[i]));
         }
 
         CHECK_FALSE(M.failbit);
@@ -1092,7 +1092,7 @@ TEST_CASE("Checking overloaded operator ^, type = float"){
         REQUIRE_FALSE(M.failbit);
 
         for(size_t i = 0; i < M.size(); i++){
-            CHECK( M[i] == Approx( m[i]) );
+            CHECK( M[i] == Catch::Approx( m[i]) );
         }
 
         CHECK_FALSE(M.failbit);
@@ -1120,7 +1120,7 @@ TEST_CASE("Checking overloaded operator ^, type = float"){
         REQUIRE_FALSE(M2.failbit);
 
         for(size_t i = 0; i < M.size(); i++){
-            CHECK( M2[i] == Approx( m[i]) );
+            CHECK( M2[i] == Catch::Approx( m[i]) );
         }
 
         CHECK_FALSE(M2.failbit);
@@ -1146,7 +1146,7 @@ TEST_CASE("Checking overloaded operator ^, type = float"){
         REQUIRE_FALSE(M.failbit);
 
         for(size_t i = 0; i < M.size(); i++){
-            CHECK( M[i] == Approx( m[i]) );
+            CHECK( M[i] == Catch::Approx( m[i]) );
         }
 
         CHECK_FALSE(M.failbit);
@@ -1173,7 +1173,7 @@ TEST_CASE("Checking overloaded operator ^, type = float"){
         CHECK(M.size() == 6);
 
         for(size_t i = 0; i < M.size(); i++){
-            CHECK(M[i] == Approx(m[i]));
+            CHECK(M[i] == Catch::Approx(m[i]));
         }
 
         CHECK_FALSE(M.failbit);
@@ -1204,7 +1204,7 @@ TEST_CASE("Checking overloaded operator ^, type = float"){
         CHECK(res.size() == 9);
 
         for(size_t i = 0; i < res.size(); i++){
-            CHECK(res[i] == Approx(m[i]));
+            CHECK(res[i] == Catch::Approx(m[i]));
         }
 
         for(size_t i = 0; i < M.size(); i++){
@@ -1233,7 +1233,7 @@ TEST_CASE("Checking overloaded operator ^, type = float"){
         REQUIRE_FALSE(M.failbit);
 
         for(size_t i = 0; i < M.size(); i++){
-            CHECK( M[i] == Approx( m[i]) );
+            CHECK( M[i] == Catch::Approx( m[i]) );
         }
 
         CHECK_FALSE(M.failbit);
@@ -1259,7 +1259,7 @@ TEST_CASE("Checking overloaded operator ^, type = float"){
         REQUIRE_FALSE(M.failbit);
 
         for(size_t i = 0; i < M.size(); i++){
-            CHECK( M[i] == Approx( m[i]) );
+            CHECK( M[i] == Catch::Approx( m[i]) );
         }
 
         CHECK_FALSE(M.failbit);
@@ -1288,7 +1288,7 @@ TEST_CASE("Checking overloaded operator ^, type = float"){
         REQUIRE_FALSE(M2.failbit);
 
         for(size_t i = 0; i < M.size(); i++){
-            CHECK( M2[i] == Approx( m[i]) );
+            CHECK( M2[i] == Catch::Approx( m[i]) );
         }
 
         CHECK_FALSE(M.failbit);
@@ -1309,7 +1309,7 @@ TEST_CASE("Checking overloaded operator *, type = float"){
         REQUIRE_FALSE(res.failbit);
 
         mytype m1[] = {42, 45, 48, 150, 162, 174, 258, 279, 300};
-        mytype m2[] = {-42, -45, -48, -150, -162, -174, -258, -279, -300};
+        //mytype m2[] = {-42, -45, -48, -150, -162, -174, -258, -279, -300};
 
     SECTION("Positive square matrices: (3,3)*(3,3): result is in uninitialised matrix"){
 
@@ -1330,7 +1330,7 @@ TEST_CASE("Checking overloaded operator *, type = float"){
         if( !res.failbit ){
             CHECK(res.size() == 9);
             for(size_t i = 0; i < res.size(); i++){
-                CHECK( res[i] == Approx( m1[i]) );
+                CHECK( res[i] == Catch::Approx( m1[i]) );
             }
         }
     }
@@ -1353,7 +1353,7 @@ TEST_CASE("Checking overloaded operator *, type = float"){
         if( !M1.failbit ){
             CHECK(M1.size() == 9);
             for(size_t i = 0; i < M1.size(); i++){
-                CHECK( M1[i] == Approx( m1[i]) );
+                CHECK( M1[i] == Catch::Approx( m1[i]) );
             }
         }
     }
@@ -1390,7 +1390,7 @@ TEST_CASE("(2) Checking overloaded operator *, type = float"){
         REQUIRE_FALSE(res.failbit);
 
         for(size_t i = 0; i < res.size(); i++){
-            CHECK( res[i] == Approx( m2[i]) );
+            CHECK( res[i] == Catch::Approx( m2[i]) );
         }
     }
 
@@ -1410,7 +1410,7 @@ TEST_CASE("(2) Checking overloaded operator *, type = float"){
         REQUIRE_FALSE(M2.failbit);
 
         for(size_t i = 0; i < M2.size(); i++){
-            CHECK( M2[i] == Approx( m2[i]) );
+            CHECK( M2[i] == Catch::Approx( m2[i]) );
         }
     }
 }
@@ -1449,7 +1449,7 @@ TEST_CASE("(3) Checking overloaded operator *, type = float"){
         CHECK(res.size() == 9);
 
         for(size_t i = 0; i < res.size(); i++){
-            CHECK( res[i] == Approx( m[i]) );
+            CHECK( res[i] == Catch::Approx( m[i]) );
         }
 
         CHECK_FALSE(res.failbit);
@@ -1466,7 +1466,7 @@ TEST_CASE("(3) Checking overloaded operator *, type = float"){
         CHECK(res.size() == 9);
 
         for(size_t i = 0; i < res.size(); i++){
-            CHECK( res[i] == Approx( m[i]) );
+            CHECK( res[i] == Catch::Approx( m[i]) );
         }
 
         CHECK_FALSE(res.failbit);
@@ -1481,7 +1481,7 @@ TEST_CASE("(3) Checking overloaded operator *, type = float"){
         CHECK(res.size() == 9);
 
         for(size_t i = 0; i < res.size(); i++){
-            CHECK( res[i] == Approx( m[i]) );
+            CHECK( res[i] == Catch::Approx( m[i]) );
         }
 
         CHECK_FALSE(res.failbit);
@@ -1509,11 +1509,11 @@ TEST_CASE("(3) Checking overloaded operator *, type = float"){
         REQUIRE_FALSE(res.failbit);
 
         for(size_t i = 0; i < res.size(); i++){
-            CHECK( res[i] == Approx( m2[i]) );
+            CHECK( res[i] == Catch::Approx( m2[i]) );
         }
        
         for(size_t i = 0; i < res.size(); i++){
-            CHECK( M[i] == Approx( m2[i]) );
+            CHECK( M[i] == Catch::Approx( m2[i]) );
         }
 
         CHECK_FALSE(res.failbit);
@@ -1540,11 +1540,11 @@ TEST_CASE("(3) Checking overloaded operator *, type = float"){
         REQUIRE_FALSE(res.failbit);
 
         for(size_t i = 0; i < res.size(); i++){
-            CHECK( res[i] == Approx( m3[i]) );
+            CHECK( res[i] == Catch::Approx( m3[i]) );
         }
        
         for(size_t i = 0; i < res.size(); i++){
-            CHECK( M[i] == Approx( m3[i]) );
+            CHECK( M[i] == Catch::Approx( m3[i]) );
         }
 
         CHECK_FALSE(res.failbit);
@@ -1589,7 +1589,7 @@ TEST_CASE("Checking overloaded +/- operators, type = float"){
         if ( !res.failbit ) {
             CHECK(res.size() == 15);
             for(size_t i = 0; i < res.size(); i++){
-                CHECK( res[i] == Approx( m[i]) );
+                CHECK( res[i] == Catch::Approx( m[i]) );
             }
         }
         else {
@@ -1631,7 +1631,7 @@ TEST_CASE("(2) Checking overloaded +/- operators, type = float"){
         if ( !res.failbit ) {
             CHECK(res.size() == 15);
             for(size_t i = 0; i < res.size(); i++){
-                CHECK( res[i] == Approx( m[i]) );
+                CHECK( res[i] == Catch::Approx( m[i]) );
             }
         }
         else {
@@ -1666,7 +1666,7 @@ TEST_CASE("(2) Checking overloaded +/- operators, type = float"){
         if ( !res.failbit ) {
             CHECK(res.size() == 15);
             for(size_t i = 0; i < res.size(); i++){
-                CHECK( res[i] == Approx( m[i]) );
+                CHECK( res[i] == Catch::Approx( m[i]) );
             }
         }
         else {
@@ -1697,7 +1697,7 @@ TEST_CASE("(2) Checking overloaded +/- operators, type = float"){
         if ( !res.failbit ) {
             CHECK(res.size() == 15);
             for(size_t i = 0; i < res.size(); i++){
-                CHECK( res[i] == Approx( m[i]) );
+                CHECK( res[i] == Catch::Approx( m[i]) );
             }
         }
         else {
@@ -1729,7 +1729,7 @@ TEST_CASE("(2) Checking overloaded +/- operators, type = float"){
         if ( !res.failbit ) {
             CHECK(res.size() == 15);
             for(size_t i = 0; i < res.size(); i++){
-                CHECK( res[i] == Approx( m[i]) );
+                CHECK( res[i] == Catch::Approx( m[i]) );
             }
         }
         else {
@@ -1762,7 +1762,7 @@ TEST_CASE("(2) Checking overloaded +/- operators, type = float"){
         if ( !res.failbit ) {
             CHECK(res.size() == 15);
             for(size_t i = 0; i < res.size(); i++){
-                CHECK( res[i] == Approx( m[i]) );
+                CHECK( res[i] == Catch::Approx( m[i]) );
             }
         }
         else {
@@ -1915,7 +1915,7 @@ TEST_CASE("Final integration test, type = float"){
         REQUIRE_FALSE(tmp_res2.failbit);
 
         for (size_t i = 0; i < tmp_res2.size(); i++)
-            CHECK( Approx(tmp_res2[i]) == (m_inv[i]) );    
+            CHECK( Catch::Approx(tmp_res2[i]) == (m_inv[i]) );    
 
         res = ( ( (M^2)^(-1) ) - 0.01 )*tmp_res;
 
@@ -1933,7 +1933,7 @@ TEST_CASE("Final integration test, type = float"){
         REQUIRE_FALSE(res2.failbit);
 
         for (size_t i = 0; i < res.size(); i++)
-            CHECK( res[i] == Approx(m_res[i]) );
+            CHECK( res[i] == Catch::Approx(m_res[i]) );
 
         for (size_t i = 0; i < res.size(); i++)
             CHECK( res[i] == res2[i] );
@@ -1973,19 +1973,19 @@ TEST_CASE("Final integration test, type = float"){
             CHECK (tmp_res[i] == m_sqv[i]);
 
         tmp_res.invert();
-        tmp_res = tmp_res;
+        tmp_res = *&tmp_res;
 
         REQUIRE_FALSE(tmp_res.failbit);
 
         for (size_t i = 0; i < tmp_res.size(); i++)
-            CHECK ( (tmp_res[i]) == Approx(m_inv[i]).margin(0.1) );
+            CHECK ( (tmp_res[i]) == Catch::Approx(m_inv[i]).margin(0.1) );
 
         res = (M^-2)*b*0.01;
 
         REQUIRE_FALSE(res.failbit);
 
         for (size_t i = 0; i < res.size(); i++)
-            CHECK( res[i] == Approx(m_res[i]).margin(0.01) );
+            CHECK( res[i] == Catch::Approx(m_res[i]).margin(0.01) );
 
         for (size_t i = 0; i < M.size(); i++){
             CHECK (M[i] == m0[i]);
@@ -2002,7 +2002,7 @@ TEST_CASE("Final integration test, type = float"){
         CHECK(res2.size() == 16);
 
         for (size_t i = 0; i < res2.size(); i++)
-            CHECK( res2[i] == Approx(m0_tr[i]) );
+            CHECK( res2[i] == Catch::Approx(m0_tr[i]) );
 
         M.symtorec();
 
@@ -2011,14 +2011,14 @@ TEST_CASE("Final integration test, type = float"){
         REQUIRE_FALSE(res2.failbit);
 
         for (size_t i = 0; i < res2.size(); i++)
-            CHECK( res2[i] == Approx(m_sqv[i]) );
+            CHECK( res2[i] == Catch::Approx(m_sqv[i]) );
 
         res2 = ( ( M*(M^"T") )^-1 )*b*0.01;
 
         REQUIRE_FALSE(res2.failbit);
 
         for (size_t i = 0; i < res2.size(); i++)
-            CHECK( res2[i] == Approx(m_res[i]).margin(0.01) );
+            CHECK( res2[i] == Catch::Approx(m_res[i]).margin(0.01) );
 
     }
 }

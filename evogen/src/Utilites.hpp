@@ -12,7 +12,6 @@ namespace evogen
     public:
         Utilites();
 
-        unsigned long long rdtsc();
         unsigned long get_randi(unsigned long range);
 
         template <typename T>
@@ -25,12 +24,26 @@ namespace evogen
                                     T upp_bound,
                                     bool reset); /* returns a vector of uniformly distributed random integer within the specified interval */
 
-        std::vector<double> get_gamma_rand(size_t n_values,
-                                           double alpha,
-                                           double beta,
-                                           bool reset); /* returns a vector of gamma distributed random value */
+        template <typename T>
+        std::vector<T> get_runi_rand(size_t n_values,
+                                    T low_bound,
+                                    T upp_bound,
+                                    bool reset); /* returns a vector of uniformly distributed random integer within the specified interval */
+
+        template <typename T>
+        std::vector<T> get_norm_rand(size_t n_values,
+                                     T dist_mean,
+                                     T dist_std,
+                                     bool reset); /* returns a vector of normally distributed floating point random number */
+
+        template <typename T>
+        std::vector<T> get_gamma_rand(size_t n_values,
+                                           T alpha,
+                                           T beta,
+                                           bool reset); /* returns a vector of gamma distributed random floating point values */
 
     private:
+        // std::mt19937 generator;
 
     protected:
     };

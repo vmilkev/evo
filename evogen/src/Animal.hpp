@@ -2,7 +2,7 @@
 #define animal_hpp__
 
 #include "Organism.hpp"
-#include "AnimalGenome.hpp"
+#include "Genome.hpp"
 
 namespace evogen
 {
@@ -12,8 +12,8 @@ namespace evogen
         Animal();
         ~Animal();
 
-        AnimalGenome genome;
-        // AnimalGenome *genotype2 = nullptr;
+        Genome genome;
+        // Genome *genotype2 = nullptr;
 
         void set_id(unsigned long id);
         void set_sire(unsigned long id);

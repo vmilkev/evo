@@ -148,7 +148,7 @@ class TestEVO( unittest.TestCase ):
         self.assertEqual( model.size_of("cor_eff"), 0 )
         self.assertEqual( model.size_of("obs_trt"), 0 )
         self.assertEqual( model.size_of("eff_trt"), 0 )
-
+    
     def testSolver( self ):
 
         model = evolm.Model()
@@ -641,7 +641,7 @@ class TestEVO( unittest.TestCase ):
         model.clear()
 
         # ----------------------------------
-
+    
 if __name__ == '__main__':
     unittest.main()
     

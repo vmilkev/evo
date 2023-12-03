@@ -8,6 +8,8 @@ namespace evogen
     {
         try
         {
+            // std::random_device rd;
+            // std::mt19937 generator( rd() );
         }
         catch (const std::exception &e)
         {
@@ -20,37 +22,6 @@ namespace evogen
             std::cerr << "Exception in Utilites::Utilites()." << '\n';
             throw;
         }
-    }
-
-    //===============================================================================================================
-
-    unsigned long long Utilites::rdtsc()
-    {
-        unsigned long long number = 0;
-
-        try
-        {
-            /* Seed for random number generator. */
-
-            unsigned int lo, hi;
-            __asm__ __volatile__("rdtsc"
-                                 : "=a"(lo), "=d"(hi));
-
-            number = ((unsigned long long)hi << 32) | lo;
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Exception in Utilites::rdtsc()." << '\n';
-            std::cerr << e.what() << '\n';
-            throw;
-        }
-        catch (...)
-        {
-            std::cerr << "Exception in Utilites::rdtsc()." << '\n';
-            throw;
-        }
-
-        return number;
     }
 
     //===============================================================================================================
@@ -61,7 +32,9 @@ namespace evogen
 
         try
         {
-            srand(static_cast<unsigned int>(rdtsc()));
+            std::random_device rd;
+            srand(rd());
+
             rnum = std::rand() % range;
         }
         catch (const std::exception &e)
@@ -88,11 +61,12 @@ namespace evogen
 
         try
         {
-            std::mt19937 generator(static_cast<unsigned int>(rdtsc()));
+            std::random_device rd;
+            std::mt19937 generator(rd());
 
             std::uniform_int_distribution<T> distribution(low_bound, upp_bound);
 
-            // distribution.reset();
+            distribution.reset();
 
             rnum = distribution(generator);
         }
@@ -116,7 +90,7 @@ namespace evogen
     template ushort Utilites::get_randi(ushort low_bound, ushort upp_bound);
     template uint Utilites::get_randi(uint low_bound, uint upp_bound);
     template long Utilites::get_randi(long low_bound, long upp_bound);
-    template ulong Utilites::get_randi(ulong low_bound, ulong upp_bound);
+    template unsigned long Utilites::get_randi(unsigned long low_bound, unsigned long upp_bound);
     template unsigned long long Utilites::get_randi(unsigned long long low_bound, unsigned long long upp_bound);
 
     //===============================================================================================================
@@ -128,7 +102,8 @@ namespace evogen
 
         try
         {
-            std::mt19937 generator(static_cast<unsigned int>(rdtsc()));
+            std::random_device rd;
+            std::mt19937 generator(rd());
 
             std::uniform_int_distribution<T> distribution(low_bound, upp_bound);
 
@@ -143,13 +118,13 @@ namespace evogen
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Utilites::get_randi( size_t, T, T, bool )." << '\n';
+            std::cerr << "Exception in Utilites::get_uni_rand( size_t, T, T, bool )." << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Utilites::get_randi( size_t, T, T, bool )." << '\n';
+            std::cerr << "Exception in Utilites::get_uni_rand( size_t, T, T, bool )." << '\n';
             throw;
         }
 
@@ -161,12 +136,95 @@ namespace evogen
     template std::vector<ushort> Utilites::get_uni_rand(size_t n_values, ushort low_bound, ushort upp_bound, bool reset);
     template std::vector<uint> Utilites::get_uni_rand(size_t n_values, uint low_bound, uint upp_bound, bool reset);
     template std::vector<long> Utilites::get_uni_rand(size_t n_values, long low_bound, long upp_bound, bool reset);
-    template std::vector<ulong> Utilites::get_uni_rand(size_t n_values, ulong low_bound, ulong upp_bound, bool reset);
+    template std::vector<unsigned long> Utilites::get_uni_rand(size_t n_values, unsigned long low_bound, unsigned long upp_bound, bool reset);
     template std::vector<unsigned long long> Utilites::get_uni_rand(size_t n_values, unsigned long long low_bound, unsigned long long upp_bound, bool reset);
 
     //===============================================================================================================
 
-    std::vector<double> Utilites::get_gamma_rand(size_t n_values, double alpha, double beta, bool reset)
+    template <typename T>
+    std::vector<T> Utilites::get_runi_rand(size_t n_values, T low_bound, T upp_bound, bool reset)
+    {
+        std::vector<T> rnum_vect;
+
+        try
+        {
+            std::random_device rd;
+            std::mt19937 generator(rd());
+
+            std::uniform_real_distribution<T> distribution(low_bound, upp_bound);
+
+            for (size_t i = 0; i < n_values; i++)
+            {
+                if (reset)
+                    distribution.reset();
+
+                T number = distribution(generator);
+                rnum_vect.push_back(number);
+            }
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Utilites::get_runi_rand( size_t, T, T, bool )." << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Utilites::get_runi_rand( size_t, T, T, bool )." << '\n';
+            throw;
+        }
+
+        return rnum_vect;
+    }
+
+    template std::vector<double> Utilites::get_runi_rand(size_t n_values, double low_bound, double upp_bound, bool reset);
+    template std::vector<float> Utilites::get_runi_rand(size_t n_values, float low_bound, float upp_bound, bool reset);
+
+    //===============================================================================================================
+
+    template <typename T>
+    std::vector<T> Utilites::get_norm_rand(size_t n_values, T dist_mean, T dist_std, bool reset)
+    {
+        std::vector<T> rnum_vect;
+
+        try
+        {
+            std::random_device rd;
+            std::mt19937 generator(rd());
+
+            std::normal_distribution<T> distribution(dist_mean, dist_std);
+
+            for (size_t i = 0; i < n_values; i++)
+            {
+                if (reset)
+                    distribution.reset();
+
+                T number = distribution(generator);
+                rnum_vect.push_back(number);
+            }
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Utilites::get_norm_rand( size_t, T, T, bool )." << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Utilites::get_norm_rand( size_t, T, T, bool )." << '\n';
+            throw;
+        }
+
+        return rnum_vect;
+    }
+
+    template std::vector<double> Utilites::get_norm_rand(size_t n_values, double dist_mean, double dist_std, bool reset);
+    template std::vector<float> Utilites::get_norm_rand(size_t n_values, float dist_mean, float dist_std, bool reset);
+
+    //===============================================================================================================
+
+    template <typename T>
+    std::vector<T> Utilites::get_gamma_rand(size_t n_values, T alpha, T beta, bool reset)
     {
         /*
            n_values - number of random numbers generated;
@@ -176,37 +234,41 @@ namespace evogen
                    independent, if false - all numbers are from the same distribution.
         */
 
-        std::vector<double> rnum_vect;
+        std::vector<T> rnum_vect;
 
         try
         {
-            std::mt19937 generator(static_cast<unsigned int>(rdtsc()));
+            std::random_device rd;
+            std::mt19937 generator(rd());
 
-            std::gamma_distribution<double> distribution(alpha, beta);
+            std::gamma_distribution<T> distribution(alpha, beta);
 
             for (size_t i = 0; i < n_values; i++)
             {
                 if (reset)
                     distribution.reset();
 
-                double number = distribution(generator);
+                T number = distribution(generator);
                 rnum_vect.push_back(number);
             }
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Utilites::get_gamma_rand(size_t, double, double, bool)." << '\n';
+            std::cerr << "Exception in Utilites::get_gamma_rand(size_t, T, T, bool)." << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Utilites::get_gamma_rand(size_t, double, double, bool)." << '\n';
+            std::cerr << "Exception in Utilites::get_gamma_rand(size_t, T, T, bool)." << '\n';
             throw;
         }
 
         return rnum_vect;
     }
+
+    template std::vector<double> Utilites::get_gamma_rand(size_t n_values, double alpha, double beta, bool reset);
+    template std::vector<float> Utilites::get_gamma_rand(size_t n_values, float alpha, float beta, bool reset);
 
     //===============================================================================================================
 

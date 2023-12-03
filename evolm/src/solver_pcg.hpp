@@ -29,7 +29,8 @@ namespace evolm
 
                         pipeline_val = 4; // default
 
-                        srand( static_cast<unsigned int>( rdtsc() ) );
+                        std::random_device rd;
+                        srand(rd());
                         
                         int iNum = std::rand() % 100000;
                         
@@ -116,8 +117,6 @@ namespace evolm
                 void set_amatrix();
                 void memload_amatr();
                 void set_pipeline(int which_pipeline);
-
-                unsigned long long rdtsc(); /* Seed for random number generator. */
 
                 matrix<float> rhs;
                 matrix<float> sol;

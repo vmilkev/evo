@@ -20,7 +20,7 @@ namespace evogen
         {
             size_t n_chr = structure.size();
 
-            ulong previous = 0;
+            unsigned long previous = 0;
 
             for (size_t i = 0; i < n_chr; i++)
             {
@@ -39,9 +39,41 @@ namespace evogen
             std::cerr << e.what() << '\n';
             throw e;
         }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Genome::def_snp_table()." << '\n';
+            std::cerr <<"Reason: "<< e << '\n';
+            throw e;
+        }
         catch (...)
         {
             std::cerr << "Exception in Genome::def_snp_table()." << '\n';
+            throw;
+        }
+    }
+    //===============================================================================================================
+
+    std::vector<std::vector<unsigned long>> Genome::get_snp_table()
+    {
+        try
+        {
+            return snp_table;
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Genome::get_snp_table()." << '\n';
+            std::cerr << e.what() << '\n';
+            throw e;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Genome::get_snp_table()." << '\n';
+            std::cerr <<"Reason: "<< e << '\n';
+            throw e;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Genome::get_snp_table()." << '\n';
             throw;
         }
     }
@@ -110,7 +142,7 @@ namespace evogen
                 snp_variants = snp_variants + std::floor(structure[i][0] / structure[i][1]);
             }
 
-            for (size_t i = 0; i < nploidy; i++)
+            for (size_t i = 0; i < (size_t)nploidy; i++)
             {
                 std::vector<bool> variants;
                 for (size_t j = 0; j < snp_variants; j++)
@@ -198,6 +230,73 @@ namespace evogen
 
     //===============================================================================================================
 
+    /*size_t Genome::get_nmarkers()
+    {
+        try
+        {
+            if ( markers.size() >= 2 )
+                return markers[0].size();
+            else
+                throw std::string("The genome is empty, cannot retreat the markers number!");
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Genome::get_nmarkers()." << '\n';
+            std::cerr << e.what() << '\n';
+            throw e;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Genome::get_nmarkers()." << '\n';
+            std::cerr <<"Reason: "<< e << '\n';
+            throw e;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Genome::get_nmarkers()." << '\n';
+            throw;
+        }
+    }*/
+
+    //===============================================================================================================
+
+    std::vector<short> Genome::get_genome_at(size_t locus)
+    {
+        try
+        {
+            if ( markers.size() < 2 )
+                throw std::string("The genome is empty, cannot retreat the markers values!");
+
+            size_t n_ploidy = (size_t)get_ploidy();
+            
+            std::vector<short> v;
+
+            for (size_t i = 0; i < n_ploidy; i++)
+                v.push_back( (short)markers[i][locus] );
+            
+            return v;
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Genome::get_genome_at(size_t)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw e;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Genome::get_genome_at(size_t)" << '\n';
+            std::cerr <<"Reason: "<< e << '\n';
+            throw e;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Genome::get_genome_at(size_t)" << '\n';
+            throw;
+        }
+    }
+
+    //===============================================================================================================
+
     void Genome::show_genome(int max_variants)
     {
         try
@@ -210,14 +309,14 @@ namespace evogen
             {
                 size_t max_markers = std::min(max_variants, (int)e.size());
 
-                for (auto i = 0; i < max_markers; i++)
+                for (size_t i = 0; i < max_markers; i++)
                     std::cout << e[i] << " ";
                 std::cout << "\n";
             }
 
             for (const auto &e : structure)
             {
-                for (auto i = 0; i < e.size(); i++)
+                for (size_t i = 0; i < e.size(); i++)
                     std::cout << e[i] << " ";
                 std::cout << "\n";
             }
@@ -227,7 +326,7 @@ namespace evogen
 
             for (const auto &e : snp_table)
             {
-                for (auto i = 0; i < e.size(); i++)
+                for (size_t i = 0; i < e.size(); i++)
                     std::cout << e[i] << " ";
                 std::cout << "\n";
             }

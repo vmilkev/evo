@@ -4,7 +4,7 @@
  Class instance of type 'mytype'.
 */
 
-#include "catch.hpp"
+#include "catch_amalgamated.hpp"
 #include "cs_matrix.hpp"
 #include <chrono>
 
@@ -238,7 +238,7 @@ TEST_CASE("Checking class constructors, type = double"){
 
         evolm::matrix <mytype> M2(5,3);
         REQUIRE_FALSE(M2.failbit);
-        M2 = M2;
+        M2 = *&M2;
         REQUIRE_FALSE(M2.failbit);
     }
 
@@ -254,19 +254,19 @@ TEST_CASE("Check access operators, type = double"){
             
             M.at(10,10) = 0.8;
 
-            CHECK(M.at(10,10) == Approx(0.8));
+            CHECK(M.at(10,10) == Catch::Approx(0.8));
             CHECK(M.size() == 121);
 
             M.resize(1,3);
             M.at(0,2) = 0.2;
 
-            CHECK(M.at(0,2) == Approx(0.2));
+            CHECK(M.at(0,2) == Catch::Approx(0.2));
             CHECK(M.size() == 3);
 
             M.clear();
             M.at(1000, 200) = 1.2;
 
-            CHECK(M.at(1000,200) == Approx(1.2));
+            CHECK(M.at(1000,200) == Catch::Approx(1.2));
             CHECK(M.size() == 201201);
             CHECK(M.capacity() == 201201);
             CHECK(M.failbit == false);           
@@ -276,8 +276,8 @@ TEST_CASE("Check access operators, type = double"){
             
             M.resize(10,10);
             M(9,9) = 0.9;
-            CHECK(M(9,9) == Approx(0.9));
-            CHECK(M(0,0) == Approx(0.0));
+            CHECK(M(9,9) == Catch::Approx(0.9));
+            CHECK(M(0,0) == Catch::Approx(0.0));
             CHECK(M.failbit == false);
         }
     }
@@ -292,18 +292,18 @@ TEST_CASE("Check access operators, type = double"){
 
             M.at(10,10) = 0.8;
 
-            CHECK(M.at(10,10) == Approx(0.8));
+            CHECK(M.at(10,10) == Catch::Approx(0.8));
             
             M.resize(1,3);
             M.at(0,2) = 0.2;
 
-            CHECK(M.at(0,2) == Approx(0.2));
+            CHECK(M.at(0,2) == Catch::Approx(0.2));
             CHECK(M.size() == 3);
 
             M.clear();
             M.at(1000, 200) = 1.2;
 
-            CHECK(M.at(1000,200) == Approx(1.2));
+            CHECK(M.at(1000,200) == Catch::Approx(1.2));
             CHECK(M.size() == 201201);
             CHECK(M.capacity() == 201201);
             CHECK(M.failbit == false);           
@@ -313,8 +313,8 @@ TEST_CASE("Check access operators, type = double"){
             
             M(9,9) = 0.9;
 
-            CHECK(M(9,9) == Approx(0.9));
-            CHECK(M(0,0) == Approx(0.0));
+            CHECK(M(9,9) == Catch::Approx(0.9));
+            CHECK(M(0,0) == Catch::Approx(0.0));
             CHECK(M.failbit == false);
         }
 
@@ -330,12 +330,12 @@ TEST_CASE("Check access operators, type = double"){
 
             M.at(10,10) = 0.8;
 
-            CHECK(M.at(10,10) == Approx(0.8));
+            CHECK(M.at(10,10) == Catch::Approx(0.8));
             
             M.resize(3,1);
             M.at(0,0) = 0.5;
 
-            CHECK(M.at(0,0) == Approx(0.5));
+            CHECK(M.at(0,0) == Catch::Approx(0.5));
             CHECK(M.size() == 6);
 
             M.resize(1);
@@ -344,19 +344,19 @@ TEST_CASE("Check access operators, type = double"){
 
             M.at(2,0) = 0.2;
 
-            CHECK(M.at(2,0) == Approx(0.2));
+            CHECK(M.at(2,0) == Catch::Approx(0.2));
             CHECK(M.size() == 6);
 
             M.clear();
             M.at(1000, 200) = 1.2;
 
-            CHECK(M.at(1000,200) == Approx(1.2));
+            CHECK(M.at(1000,200) == Catch::Approx(1.2));
             CHECK(M.size() == 501501);
             CHECK(M.failbit == false);
 
             M.at(3, 2) = 1.2;
 
-            CHECK(M.at(3,2) == Approx(1.2));
+            CHECK(M.at(3,2) == Catch::Approx(1.2));
             CHECK(M.failbit == false);                    
         }
 
@@ -364,8 +364,8 @@ TEST_CASE("Check access operators, type = double"){
             
             M(9,9) = 0.9;
 
-            CHECK(M(9,9) == Approx(0.9));
-            CHECK(M(0,0) == Approx(0.0));
+            CHECK(M(9,9) == Catch::Approx(0.9));
+            CHECK(M(0,0) == Catch::Approx(0.0));
             CHECK(M.failbit == false);
         }
 
@@ -388,7 +388,7 @@ TEST_CASE("Testing scale() method, type = double"){
 
         for(size_t i = 0; i < M.size(); i++){
             mytype j = i*0.5;
-            CHECK(M[i] == Approx(j));
+            CHECK(M[i] == Catch::Approx(j));
         }
 
     }
@@ -406,7 +406,7 @@ TEST_CASE("Testing scale() method, type = double"){
 
         for(size_t i = 0; i < M.size(); i++){
             mytype j = i*(-2.5);
-            CHECK(M[i] == Approx(j));
+            CHECK(M[i] == Catch::Approx(j));
         }
 
     }
@@ -424,7 +424,7 @@ TEST_CASE("Testing scale() method, type = double"){
 
         for(size_t i = 0; i < M.size(); i++){
             mytype j = i*0.5;
-            CHECK(M[i] == Approx(j));
+            CHECK(M[i] == Catch::Approx(j));
         }
 
     }
@@ -442,7 +442,7 @@ TEST_CASE("Testing scale() method, type = double"){
 
         for(size_t i = 0; i < M.size(); i++){
             mytype j = i*1.5;
-            CHECK(M[i] == Approx(j));
+            CHECK(M[i] == Catch::Approx(j));
         }
 
     }
@@ -460,7 +460,7 @@ TEST_CASE("Testing scale() method, type = double"){
 
         for(size_t i = 0; i < M.size(); i++){
             mytype j = i*(-2.5);
-            CHECK(M[i] == Approx(j));
+            CHECK(M[i] == Catch::Approx(j));
         }
 
     }
@@ -713,7 +713,7 @@ TEST_CASE("Testing symtorec() method, type = double"){
         CHECK(M.size() == 9);
 
         for(size_t i = 0; i < M.size(); i++){
-            CHECK(M[i] == Approx(m[i]));
+            CHECK(M[i] == Catch::Approx(m[i]));
         }
     }
 
@@ -729,7 +729,7 @@ TEST_CASE("Testing symtorec() method, type = double"){
         CHECK(M.size() == 9);
 
         for(size_t i = 0; i < M.size(); i++){
-            CHECK(M[i] == Approx(m2[i]));
+            CHECK(M[i] == Catch::Approx(m2[i]));
         }
     }
 
@@ -756,7 +756,7 @@ TEST_CASE("Check rectosym() method, type = double"){
         CHECK(M.size() == 6);
 
         for(size_t i = 0; i < M.size(); i++){
-            CHECK(M[i] == Approx(m[i]));
+            CHECK(M[i] == Catch::Approx(m[i]));
         }
     }
 
@@ -775,7 +775,7 @@ TEST_CASE("Check rectosym() method, type = double"){
         CHECK(M.size() == 6);
 
         for(size_t i = 0; i < M.size(); i++){
-            CHECK(M[i] == Approx(m[i]));
+            CHECK(M[i] == Catch::Approx(m[i]));
         }
     }
 
@@ -855,12 +855,12 @@ TEST_CASE("Check transpose() method, type = double"){
             }
         }
 
-        auto start = std::chrono::high_resolution_clock::now();
+        //auto start = std::chrono::high_resolution_clock::now();
 
         M1.transpose();
 
-        auto stop = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+        //auto stop = std::chrono::high_resolution_clock::now();
+        //auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
         //std::cout << duration.count() << std::endl;
         
         //M1.print("M1, transposed");
@@ -889,7 +889,7 @@ TEST_CASE("Check transpose() method, type = double"){
 
         for(size_t i = 0; i < M.size(); i++){
             if( i%(dim-1) )
-                CHECK(M[i] != Approx(m[i]));
+                CHECK(M[i] != Catch::Approx(m[i]));
         }
 
         M.transpose();
@@ -897,7 +897,7 @@ TEST_CASE("Check transpose() method, type = double"){
         REQUIRE_FALSE(M.failbit);
 
         for(size_t i = 0; i < M.size(); i++){
-            CHECK(M[i] == Approx(m[i]));
+            CHECK(M[i] == Catch::Approx(m[i]));
         }
     }
 
@@ -920,7 +920,7 @@ TEST_CASE("Check transpose() method, type = double"){
         REQUIRE_FALSE(M.failbit);
 
         for(size_t i = 0; i < M.size(); i++){
-            CHECK(M[i] == Approx(m[i]));
+            CHECK(M[i] == Catch::Approx(m[i]));
         }
     }
 
@@ -943,7 +943,7 @@ TEST_CASE("Check transpose() method, type = double"){
         REQUIRE_FALSE(M.failbit);
 
         for(size_t i = 0; i < M.size(); i++){
-            CHECK(M[i] == Approx(m[i]));
+            CHECK(M[i] == Catch::Approx(m[i]));
         }
     }
 
@@ -965,7 +965,7 @@ TEST_CASE("Check transpose() method, type = double"){
         REQUIRE_FALSE(M.failbit);
 
         for(size_t i = 0; i < M.size(); i++){
-            CHECK(M[i] == Approx(m[i]));
+            CHECK(M[i] == Catch::Approx(m[i]));
         }
     }
 
@@ -992,7 +992,7 @@ TEST_CASE("Chacking fread()/fwrite() methods, type = double"){
         REQUIRE_FALSE(M.failbit);
 
         for(size_t i = 0; i < M.size(); i++){
-            CHECK(M[i] == Approx(m[i]));
+            CHECK(M[i] == Catch::Approx(m[i]));
         }
 
         M.fwrite();
@@ -1010,7 +1010,7 @@ TEST_CASE("Chacking fread()/fwrite() methods, type = double"){
         CHECK(M.capacity() == 15);
 
         for(size_t i = 0; i < M.size(); i++){
-            CHECK(M[i] == Approx(m[i]));
+            CHECK(M[i] == Catch::Approx(m[i]));
         }
 
     }
@@ -1034,7 +1034,7 @@ TEST_CASE("Chacking fread()/fwrite() methods, type = double"){
         REQUIRE_FALSE(M.failbit);
 
         for(size_t i = 0; i < M.size(); i++){
-            CHECK(M[i] == Approx(m[i]));
+            CHECK(M[i] == Catch::Approx(m[i]));
         }
 
         M.fwrite();
@@ -1050,7 +1050,7 @@ TEST_CASE("Chacking fread()/fwrite() methods, type = double"){
         CHECK(M.capacity() == 15);
 
         for(size_t i = 0; i < M.size(); i++){
-            CHECK(M[i] == Approx(m[i]));
+            CHECK(M[i] == Catch::Approx(m[i]));
         }
 
     }
@@ -1073,7 +1073,7 @@ TEST_CASE("Chacking fread()/fwrite() methods, type = double"){
         REQUIRE_FALSE(M.failbit);
 
         for(size_t i = 0; i < M.size(); i++){
-            CHECK(M[i] == Approx(m[i]));
+            CHECK(M[i] == Catch::Approx(m[i]));
         }
 
         M.fwrite();
@@ -1089,7 +1089,7 @@ TEST_CASE("Chacking fread()/fwrite() methods, type = double"){
         CHECK(M.capacity() == 9);
 
         for(size_t i = 0; i < M.size(); i++){
-            CHECK(M[i] == Approx(m[i]));
+            CHECK(M[i] == Catch::Approx(m[i]));
         }
 
     }
@@ -1117,7 +1117,7 @@ TEST_CASE("Checking the invert() method, type = double"){
         REQUIRE_FALSE(M.failbit);
 
         for(size_t i = 0; i < M.size(); i++){
-            CHECK( M[i] == Approx( m[i]) );
+            CHECK( M[i] == Catch::Approx( m[i]) );
         }
 
         CHECK_FALSE(M.failbit);
@@ -1143,7 +1143,7 @@ TEST_CASE("Checking the invert() method, type = double"){
         REQUIRE_FALSE(M.failbit);
 
         for(size_t i = 0; i < M.size(); i++){
-            CHECK( M[i] == Approx( m[i]) );
+            CHECK( M[i] == Catch::Approx( m[i]) );
         }
 
         CHECK_FALSE(M.failbit);
@@ -1170,7 +1170,7 @@ TEST_CASE("Checking the invert() method, type = double"){
         CHECK(M.size() == 6);
 
         for(size_t i = 0; i < M.size(); i++){
-            CHECK(M[i] == Approx(m[i]));
+            CHECK(M[i] == Catch::Approx(m[i]));
         }
 
         CHECK_FALSE(M.failbit);
@@ -1201,7 +1201,7 @@ TEST_CASE("Checking overloaded operator ^, type = double"){
         REQUIRE_FALSE(M.failbit);
 
         for(size_t i = 0; i < M.size(); i++){
-            CHECK( M[i] == Approx( m[i]) );
+            CHECK( M[i] == Catch::Approx( m[i]) );
         }
 
         CHECK_FALSE(M.failbit);
@@ -1230,7 +1230,7 @@ TEST_CASE("Checking overloaded operator ^, type = double"){
         REQUIRE_FALSE(M2.failbit);
 
         for(size_t i = 0; i < M2.size(); i++){
-            CHECK( M2[i] == Approx( m[i]) );
+            CHECK( M2[i] == Catch::Approx( m[i]) );
         }
 
         CHECK( M[0] == 3.0 );
@@ -1261,7 +1261,7 @@ TEST_CASE("Checking overloaded operator ^, type = double"){
         REQUIRE_FALSE(M.failbit);
 
         for(size_t i = 0; i < M.size(); i++){
-            CHECK( M[i] == Approx( m[i]) );
+            CHECK( M[i] == Catch::Approx( m[i]) );
         }
 
         CHECK_FALSE(M.failbit);
@@ -1288,7 +1288,7 @@ TEST_CASE("Checking overloaded operator ^, type = double"){
         CHECK(M.size() == 6);
 
         for(size_t i = 0; i < M.size(); i++){
-            CHECK(M[i] == Approx(m[i]));
+            CHECK(M[i] == Catch::Approx(m[i]));
         }
 
         CHECK_FALSE(M.failbit);
@@ -1319,7 +1319,7 @@ TEST_CASE("Checking overloaded operator ^, type = double"){
         CHECK(res.size() == 9);
 
         for(size_t i = 0; i < res.size(); i++){
-            CHECK(res[i] == Approx(m[i]));
+            CHECK(res[i] == Catch::Approx(m[i]));
         }
 
         for(size_t i = 0; i < M.size(); i++){
@@ -1348,7 +1348,7 @@ TEST_CASE("Checking overloaded operator ^, type = double"){
         REQUIRE_FALSE(M.failbit);
 
         for(size_t i = 0; i < M.size(); i++){
-            CHECK( M[i] == Approx( m[i]) );
+            CHECK( M[i] == Catch::Approx( m[i]) );
         }
 
         CHECK_FALSE(M.failbit);
@@ -1374,7 +1374,7 @@ TEST_CASE("Checking overloaded operator ^, type = double"){
         REQUIRE_FALSE(M.failbit);
 
         for(size_t i = 0; i < M.size(); i++){
-            CHECK( M[i] == Approx( m[i]) );
+            CHECK( M[i] == Catch::Approx( m[i]) );
         }
 
         CHECK_FALSE(M.failbit);
@@ -1403,7 +1403,7 @@ TEST_CASE("Checking overloaded operator ^, type = double"){
         REQUIRE_FALSE(M2.failbit);
 
         for(size_t i = 0; i < M.size(); i++){
-            CHECK( M2[i] == Approx( m[i]) );
+            CHECK( M2[i] == Catch::Approx( m[i]) );
         }
 
         CHECK_FALSE(M.failbit);
@@ -1424,7 +1424,7 @@ TEST_CASE("Checking overloaded operator *, type = double"){
         REQUIRE_FALSE(res.failbit);
 
         mytype m1[] = {42, 45, 48, 150, 162, 174, 258, 279, 300};
-        mytype m2[] = {-42, -45, -48, -150, -162, -174, -258, -279, -300};
+        //mytype m2[] = {-42, -45, -48, -150, -162, -174, -258, -279, -300};
 
     SECTION("Positive square matrices: (3,3)*(3,3): result is in uninitialised matrix"){
 
@@ -1445,7 +1445,7 @@ TEST_CASE("Checking overloaded operator *, type = double"){
         if( !res.failbit ){
             CHECK(res.size() == 9);
             for(size_t i = 0; i < res.size(); i++){
-                CHECK( res[i] == Approx( m1[i]) );
+                CHECK( res[i] == Catch::Approx( m1[i]) );
             }
         }
 
@@ -1477,7 +1477,7 @@ TEST_CASE("Checking overloaded operator *, type = double"){
         if( !M1.failbit ){
             CHECK(M1.size() == 9);
             for(size_t i = 0; i < M1.size(); i++){
-                CHECK( M1[i] == Approx( m1[i]) );
+                CHECK( M1[i] == Catch::Approx( m1[i]) );
             }
         }
     }
@@ -1514,7 +1514,7 @@ TEST_CASE("(2) Checking overloaded operator *, type = double"){
         REQUIRE_FALSE(res.failbit);
 
         for(size_t i = 0; i < res.size(); i++){
-            CHECK( res[i] == Approx( m2[i]) );
+            CHECK( res[i] == Catch::Approx( m2[i]) );
         }
     }
 
@@ -1534,7 +1534,7 @@ TEST_CASE("(2) Checking overloaded operator *, type = double"){
         REQUIRE_FALSE(M2.failbit);
 
         for(size_t i = 0; i < M2.size(); i++){
-            CHECK( M2[i] == Approx( m2[i]) );
+            CHECK( M2[i] == Catch::Approx( m2[i]) );
         }
     }
 }
@@ -1576,7 +1576,7 @@ TEST_CASE("(3) Checking overloaded operator *, type = double"){
         CHECK(res.size() == 9);
 
         for(size_t i = 0; i < res.size(); i++){
-            CHECK( res[i] == Approx( m[i]) );
+            CHECK( res[i] == Catch::Approx( m[i]) );
         }
 
         for(size_t i = 0; i < res.size(); i++){
@@ -1602,7 +1602,7 @@ TEST_CASE("(3) Checking overloaded operator *, type = double"){
         CHECK(res.size() == 9);
 
         for(size_t i = 0; i < res.size(); i++){
-            CHECK( res[i] == Approx( m[i]) );
+            CHECK( res[i] == Catch::Approx( m[i]) );
         }
 
         CHECK_FALSE(res.failbit);
@@ -1617,7 +1617,7 @@ TEST_CASE("(3) Checking overloaded operator *, type = double"){
         CHECK(res.size() == 9);
 
         for(size_t i = 0; i < res.size(); i++){
-            CHECK( res[i] == Approx( m[i]) );
+            CHECK( res[i] == Catch::Approx( m[i]) );
         }
 
         CHECK_FALSE(res.failbit);
@@ -1649,11 +1649,11 @@ TEST_CASE("(3) Checking overloaded operator *, type = double"){
         REQUIRE_FALSE(res.failbit);
 
         for(size_t i = 0; i < res.size(); i++){
-            CHECK( res[i] == Approx( m2[i]) );
+            CHECK( res[i] == Catch::Approx( m2[i]) );
         }
        
         for(size_t i = 0; i < res.size(); i++){
-            CHECK( M[i] == Approx( m2[i]) );
+            CHECK( M[i] == Catch::Approx( m2[i]) );
         }
 
         CHECK_FALSE(res.failbit);
@@ -1705,11 +1705,11 @@ TEST_CASE("(3) Checking overloaded operator *, type = double"){
         REQUIRE_FALSE(res.failbit);
 
         for(size_t i = 0; i < res.size(); i++){
-            CHECK( res[i] == Approx( m3[i]) );
+            CHECK( res[i] == Catch::Approx( m3[i]) );
         }
        
         for(size_t i = 0; i < res.size(); i++){
-            CHECK( M[i] == Approx( m3[i]) );
+            CHECK( M[i] == Catch::Approx( m3[i]) );
         }
 
         CHECK_FALSE(res.failbit);
@@ -1762,7 +1762,7 @@ TEST_CASE("Checking overloaded +/- operators, type = double"){
         if ( !res.failbit ) {
             CHECK(res.size() == 15);
             for(size_t i = 0; i < res.size(); i++){
-                CHECK( res[i] == Approx( m[i]) );
+                CHECK( res[i] == Catch::Approx( m[i]) );
             }
         }
         else {
@@ -1804,7 +1804,7 @@ TEST_CASE("(2) Checking overloaded +/- operators, type = double"){
         if ( !res.failbit ) {
             CHECK(res.size() == 15);
             for(size_t i = 0; i < res.size(); i++){
-                CHECK( res[i] == Approx( m[i]) );
+                CHECK( res[i] == Catch::Approx( m[i]) );
             }
         }
         else {
@@ -1839,7 +1839,7 @@ TEST_CASE("(2) Checking overloaded +/- operators, type = double"){
         if ( !res.failbit ) {
             CHECK(res.size() == 15);
             for(size_t i = 0; i < res.size(); i++){
-                CHECK( res[i] == Approx( m[i]) );
+                CHECK( res[i] == Catch::Approx( m[i]) );
             }
         }
         else {
@@ -1870,7 +1870,7 @@ TEST_CASE("(2) Checking overloaded +/- operators, type = double"){
         if ( !res.failbit ) {
             CHECK(res.size() == 15);
             for(size_t i = 0; i < res.size(); i++){
-                CHECK( res[i] == Approx( m[i]) );
+                CHECK( res[i] == Catch::Approx( m[i]) );
             }
         }
         else {
@@ -1902,7 +1902,7 @@ TEST_CASE("(2) Checking overloaded +/- operators, type = double"){
         if ( !res.failbit ) {
             CHECK(res.size() == 15);
             for(size_t i = 0; i < res.size(); i++){
-                CHECK( res[i] == Approx( m[i]) );
+                CHECK( res[i] == Catch::Approx( m[i]) );
             }
         }
         else {
@@ -1935,7 +1935,7 @@ TEST_CASE("(2) Checking overloaded +/- operators, type = double"){
         if ( !res.failbit ) {
             CHECK(res.size() == 15);
             for(size_t i = 0; i < res.size(); i++){
-                CHECK( res[i] == Approx( m[i]) );
+                CHECK( res[i] == Catch::Approx( m[i]) );
             }
         }
         else {
@@ -2070,7 +2070,7 @@ TEST_CASE ("Checking dual direction overloaded operators * , type = double"){
         }
 
         //M1.print("M1, symmetric");
-        int count = 0;
+        size_t count = 0;
         for(size_t i = 0; i < 5; i++){
             for(size_t j= 0; j <= i; j++){
                 M2(i,j) = M2(j,i) = count;
@@ -2133,12 +2133,12 @@ TEST_CASE ("Checking dual direction overloaded operators * , type = double"){
         //M1.print("M1, symmetric");
         //M2.print("M2, symmetric");
 
-        auto start = std::chrono::high_resolution_clock::now();
+        //auto start = std::chrono::high_resolution_clock::now();
 
         res1 = M1 << M2;
 
-        auto stop = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+        //auto stop = std::chrono::high_resolution_clock::now();
+        //auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
         //std::cout << duration.count() << std::endl;
         
         //res1.print("res1, concatenation without transpose");
@@ -2193,7 +2193,7 @@ TEST_CASE ("Checking dual direction overloaded operators * , type = double"){
         const std::type_info& data_l = typeid(Ml[0]);
         const std::type_info& data_f = typeid(Mf[0]);
         const std::type_info& data_d = typeid(Md[0]);
-        const std::type_info& data_res = typeid(res[0]);
+        //const std::type_info& data_res = typeid(res[0]);
 
         CHECK( t_b == data_b );
         CHECK( t_i == data_i );
@@ -2242,12 +2242,12 @@ TEST_CASE ("Checking dual direction overloaded operators * , type = double"){
         //M1.print("M1, symmetric");
         //M2.print("M2, symmetric");
 
-        auto start = std::chrono::high_resolution_clock::now();
+        //auto start = std::chrono::high_resolution_clock::now();
 
         res1 = M1 >> M2;
 
-        auto stop = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+        //auto stop = std::chrono::high_resolution_clock::now();
+        //auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
         //std::cout << duration.count() << std::endl;
         
         //res1.print("res1, concatenation M1 >> M2");
@@ -2284,12 +2284,12 @@ TEST_CASE ("Checking dual direction overloaded operators * , type = double"){
         //M1.print("M1, symmetric");
         //M2.print("M2, symmetric");
 
-        auto start = std::chrono::high_resolution_clock::now();
+        //auto start = std::chrono::high_resolution_clock::now();
 
         res1 = M1 >> M2;
 
-        auto stop = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+        //auto stop = std::chrono::high_resolution_clock::now();
+        //auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
         //std::cout << duration.count() << std::endl;
         
         //res1.print("res1, concatenation M1 >> M2");
@@ -2327,12 +2327,12 @@ TEST_CASE ("Checking dual direction overloaded operators * , type = double"){
         //M1.print("M1, rectangular");
         //M2.print("M2, rectangular");
 
-        auto start = std::chrono::high_resolution_clock::now();
+        //auto start = std::chrono::high_resolution_clock::now();
 
         res1 = M1 << M2;
 
-        auto stop = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+        //auto stop = std::chrono::high_resolution_clock::now();
+        //auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
         //std::cout << duration.count() << std::endl;
         
         //res1.print("res1, concatenation without transpose");
@@ -2350,8 +2350,8 @@ TEST_CASE ("Checking dual direction overloaded operators * , type = double"){
 
     SECTION("fget: rectangular, no transpose"){
 
-        int dim = 500;
-        int dim2 = 600;
+        size_t dim = 500;
+        size_t dim2 = 600;
         evolm::matrix <mytype> M1( dim, dim2 );
         evolm::matrix <mytype> res1;
 
@@ -2363,22 +2363,22 @@ TEST_CASE ("Checking dual direction overloaded operators * , type = double"){
 
         M1.fwrite();
 
-        size_t irow[] = {0, dim-1};
-        size_t icol[] = {0, floor(dim2/2)};
-        size_t icol2[] = {floor(dim2/2)+1, dim2-1};
-        size_t icol3[] = {0, dim2-1};
+        size_t irow[] = {(size_t)0, dim-1};
+        size_t icol[] = {(size_t)0, (size_t)floor(dim2/2)};
+        size_t icol2[] = {(size_t)floor(dim2/2)+1, dim2-1};
+        //size_t icol3[] = {(size_t)0, dim2-1};
 
         //res1 = M1.fget( irow, icol );
         //res1.print("res1, Extracted M1, no preallocation");
 
         //res1.clear();
 
-        auto start = std::chrono::high_resolution_clock::now();
+        //auto start = std::chrono::high_resolution_clock::now();
 
         res1 = M1.fget( irow, icol ) << M1.fget( irow, icol2 );
 
-        auto stop = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+        //auto stop = std::chrono::high_resolution_clock::now();
+        //auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
         //std::cout <<"rectangular: "<< duration.count() << std::endl;
         
         M1.fread();
@@ -2411,7 +2411,7 @@ TEST_CASE ("Checking dual direction overloaded operators * , type = double"){
 
     SECTION("fget: symmetrical, no transpose"){
 
-        int dim = 600;
+        size_t dim = 600;
         evolm::matrix <mytype> M1( dim );
         evolm::matrix <mytype> res1;
         evolm::matrix <mytype> res2;
@@ -2424,10 +2424,10 @@ TEST_CASE ("Checking dual direction overloaded operators * , type = double"){
 
         M1.fwrite();
 
-        size_t irow[] = {floor(dim/3), floor(dim/2)};
-        size_t icol[] = {floor(dim/3), floor(dim/2)};
-        size_t icol2[] = {floor(dim/2), floor(dim)-1};
-        size_t icol3[] = {floor(dim/5), floor(dim/4)};
+        size_t irow[] = {(size_t)floor(dim/3), (size_t)floor(dim/2)};
+        size_t icol[] = {(size_t)floor(dim/3), (size_t)floor(dim/2)};
+        size_t icol2[] = {(size_t)floor(dim/2), (size_t)floor(dim)-1};
+        size_t icol3[] = {(size_t)floor(dim/5), (size_t)floor(dim/4)};
 
         res1 = M1.fget( irow, icol );
 
@@ -2459,12 +2459,12 @@ TEST_CASE ("Checking dual direction overloaded operators * , type = double"){
 
         //res1.clear();
 
-        auto start = std::chrono::high_resolution_clock::now();
+        //auto start = std::chrono::high_resolution_clock::now();
 
         res1 = M1.fget( irow, icol ) << M1.fget( irow, icol2 );
 
-        auto stop = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+        //auto stop = std::chrono::high_resolution_clock::now();
+        //auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
         //std::cout <<"symmetrical: "<< duration.count() << std::endl;
         
         M1.fread();
@@ -2483,8 +2483,8 @@ TEST_CASE ("Checking dual direction overloaded operators * , type = double"){
 
     SECTION("cast_fget(...): rectangular, no transpose"){
 
-        int dim = 500;
-        int dim2 = 600;
+        size_t dim = 500;
+        size_t dim2 = 600;
         evolm::matrix <int> M1( dim, dim2 );
         evolm::matrix <float> res1;
         evolm::matrix <float> res2;
@@ -2498,24 +2498,24 @@ TEST_CASE ("Checking dual direction overloaded operators * , type = double"){
 
         M1.fwrite();
 
-        size_t irow[] = {0, dim-1};
-        size_t icol[] = {0, floor(dim2/2)};
-        size_t icol2[] = {floor(dim2/2)+1, dim2-1};
-        size_t icol3[] = {0, dim2-1};
+        size_t irow[] = {(size_t)0, dim-1};
+        size_t icol[] = {(size_t)0, (size_t)floor(dim2/2)};
+        size_t icol2[] = {(size_t)floor(dim2/2)+1, dim2-1};
+        size_t icol3[] = {(size_t)0, dim2-1};
 
         //res1 = M1.fget( irow, icol );
         //res1.print("res1, Extracted M1, no preallocation");
 
         //res1.clear();
 
-        auto start = std::chrono::high_resolution_clock::now();
+        //auto start = std::chrono::high_resolution_clock::now();
 
         M1.cast_fget( irow, icol, res1 );
         M1.cast_fget( irow, icol2, res2 );
         res3 = res1 << res2;
 
-        auto stop = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+        //auto stop = std::chrono::high_resolution_clock::now();
+        //auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
         //std::cout <<"rectangular: "<< duration.count() << std::endl;
         
         M1.fread();
@@ -2591,7 +2591,7 @@ TEST_CASE("Final integration test, type = double"){
         REQUIRE_FALSE(tmp_res2.failbit);
 
         for (size_t i = 0; i < tmp_res2.size(); i++)
-            CHECK( Approx(tmp_res2[i]) == (m_inv[i]) );    
+            CHECK( Catch::Approx(tmp_res2[i]) == (m_inv[i]) );    
 
         res = ( ( (M^2)^(-1) ) - 0.01 )*tmp_res;
         
@@ -2617,7 +2617,7 @@ TEST_CASE("Final integration test, type = double"){
         REQUIRE_FALSE(res2.failbit);
 
         for (size_t i = 0; i < res.size(); i++)
-            CHECK( res[i] == Approx(m_res[i]) );
+            CHECK( res[i] == Catch::Approx(m_res[i]) );
 
         for (size_t i = 0; i < res.size(); i++)
             CHECK( res[i] == res2[i] );
@@ -2657,12 +2657,12 @@ TEST_CASE("Final integration test, type = double"){
             CHECK (tmp_res[i] == m_sqv[i]);
 
         tmp_res.invert();
-        tmp_res = tmp_res;
+        tmp_res = *&tmp_res;
 
         REQUIRE_FALSE(tmp_res.failbit);
 
         for (size_t i = 0; i < tmp_res.size(); i++)
-            CHECK ( (tmp_res[i]) == Approx(m_inv[i]) );
+            CHECK ( (tmp_res[i]) == Catch::Approx(m_inv[i]) );
 
         res = (M^-2)*b*0.01;
         
@@ -2673,7 +2673,7 @@ TEST_CASE("Final integration test, type = double"){
         REQUIRE_FALSE(res.failbit);
 
         for (size_t i = 0; i < res.size(); i++)
-            CHECK( res[i] == Approx(m_res[i]) );
+            CHECK( res[i] == Catch::Approx(m_res[i]) );
 
         for (size_t i = 0; i < M.size(); i++){
             CHECK (M[i] == m0[i]);
@@ -2692,7 +2692,7 @@ TEST_CASE("Final integration test, type = double"){
         CHECK(res2.size() == 16);
 
         for (size_t i = 0; i < res2.size(); i++)
-            CHECK( res2[i] == Approx(m0_tr[i]) );
+            CHECK( res2[i] == Catch::Approx(m0_tr[i]) );
 
         evolm::matrix <mytype> m02 = M;
 
@@ -2720,7 +2720,7 @@ TEST_CASE("Final integration test, type = double"){
         REQUIRE_FALSE(res2.failbit);
 
         for (size_t i = 0; i < res2.size(); i++)
-            CHECK( res2[i] == Approx(m_sqv[i]) );
+            CHECK( res2[i] == Catch::Approx(m_sqv[i]) );
 
         res2 = ( ( M*(M^"T") )^-1 )*b*0.01;
         
@@ -2731,7 +2731,7 @@ TEST_CASE("Final integration test, type = double"){
         REQUIRE_FALSE(res2.failbit);
 
         for (size_t i = 0; i < res2.size(); i++)
-            CHECK( res2[i] == Approx(m_res[i]) );
+            CHECK( res2[i] == Catch::Approx(m_res[i]) );
 
         //res2.print("res2 = ( ( M*(M^T) )^-1 )*b*0,01");
         M.rectosym();

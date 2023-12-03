@@ -1,5 +1,5 @@
 /*
-    Abstract class
+    Abstract (?) class
 */
 
 #ifndef organism_hpp__

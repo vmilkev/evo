@@ -1,6 +1,5 @@
 APPNAME := evolm
 
-CXX := icpc
 SRCDIR := src
 BDIR_PYLIB := release
 BDIR_CLIB := release2
@@ -9,25 +8,55 @@ TESTDIR := tests
 BDIR_TST := $(TESTDIR)/release
 TSRCDIR := $(TESTDIR)/src
 
-UNAME_S := $(shell uname -s)
+# determine OS and source of BLAS lib
+UNAME_OS := $(shell uname -s)
+SOURSE_BLAS_IS_INTEL := 0
+
+# determine compiler
+ifeq ($(UNAME_OS),Darwin)
+	CXX := clang++
+else
+	ifeq ( $(SOURSE_BLAS_IS_INTEL), 1)
+		CXX := icpc
+	else
+		CXX := g++
+	endif
+endif
+
 PWDADDR := $(shell pwd)
 PYBINDINCL := $(shell python3 -m pybind11 --includes)
 PYSUFF := $(shell python3-config --extension-suffix)
 VERSUFF := .so
 
-ifeq ($(UNAME_S),Linux)
-	CFLAGS_TEST := -O3 -qopenmp -I$(SRCDIR) -DMKL_ILP64 -I${MKLROOT}/include $(PYBINDINCL) -std=c++14
-	CFLAGS_APP := -O3 -qopenmp -I$(SRCDIR) -DMKL_ILP64 -I${MKLROOT}/include -std=c++14
-	CFLAGS_PYLIB := -O3 -qopenmp -DPYBIND -DMKL_ILP64 -I${MKLROOT}/include $(PYBINDINCL) -fPIC -std=c++14
-	CFLAGS_CLIB := -O3 -qopenmp -DMKL_ILP64 -I${MKLROOT}/include -fPIC -std=c++14
-	
-	EXTRA_CFLAGS := -D UTEST -Wcheck -Wall -w2
+ifeq ($(UNAME_OS),Darwin) # using apple's Accelerate
+	CFLAGS_TEST :=  -I$(SRCDIR) $(PYBINDINCL)
+	CFLAGS_APP := -I$(SRCDIR)
+	CFLAGS_PYLIB := -DPYBIND $(PYBINDINCL)
+	CFLAGS_CLIB :=
+
+	EXTRA_CFLAGS := -Wall -Wextra -pedantic -Wno-c99-extensions -D UTEST -O3 -Xpreprocessor -fopenmp -I/opt/homebrew/opt/openblas/include -I/opt/homebrew/opt/libomp/include -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -std=c++14
+
+	LIBFLAGS := -undefined dynamic_lookup -shared -lpthread -lm -lomp -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -L/opt/homebrew/opt/libomp/lib -L/opt/homebrew/opt/openblas/lib -lopenblas
+	LIBFLAGS_TEST := -undefined dynamic_lookup -lpthread -lm -lomp -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -L/opt/homebrew/opt/libomp/lib -L/opt/homebrew/opt/openblas/lib -lopenblas
+	EXTRA_LIBFLAGS :=  -L$(BDIR_CLIB) -l$(APPNAME)
+else
+	ifeq ($(UNAME_OS),Linux)
+		ifeq ( $(SOURSE_BLAS_IS_INTEL), 1) # using Intel's MKL
+			CFLAGS_TEST := -O3 -qopenmp -I$(SRCDIR) -DMKL_ILP64 -I${MKLROOT}/include $(PYBINDINCL) -std=c++14
+			CFLAGS_APP := -O3 -qopenmp -I$(SRCDIR) -DMKL_ILP64 -I${MKLROOT}/include -std=c++14
+			CFLAGS_PYLIB := -O3 -qopenmp -DPYBIND -DMKL_ILP64 -I${MKLROOT}/include $(PYBINDINCL) -fPIC -std=c++14
+			CFLAGS_CLIB := -O3 -qopenmp -DMKL_ILP64 -I${MKLROOT}/include -fPIC -std=c++14
+			
+			EXTRA_CFLAGS := -D UTEST -D intelmkl -Wcheck -Wall -w2
 #-Wstrict-prototypes -Wtrigraphs -Wuninitialized -Wunknown-pragmas -Wunused-function -Wunused-variable -Wwrite-strings -Wsign-compare -Wdeprecated -Wextra-tokens -Wic-pointer -Wnon-virtual-dtor -Wp64 -Wpointer-arith -Wport -Wreorder -Wreturn-type -Wshadow
-	EXTRA_LIBFLAGS := -L$(BDIR_CLIB) -l$(APPNAME)
-	EXTRA_LIBFLAGS_2 :=
-	
-	LIBFLAGS := -shared -qopenmp -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_ilp64.a ${MKLROOT}/lib/intel64/libmkl_core.a ${MKLROOT}/lib/intel64/libmkl_intel_thread.a -Wl,--end-group -lpthread -lm
-	LIBFLAGS_TEST := -qopenmp -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_ilp64.a ${MKLROOT}/lib/intel64/libmkl_core.a ${MKLROOT}/lib/intel64/libmkl_intel_thread.a -Wl,--end-group -lpthread -lm
+			EXTRA_LIBFLAGS := -L$(BDIR_CLIB) -l$(APPNAME)
+			EXTRA_LIBFLAGS_2 :=
+			
+			LIBFLAGS := -shared -qopenmp -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_ilp64.a ${MKLROOT}/lib/intel64/libmkl_core.a ${MKLROOT}/lib/intel64/libmkl_intel_thread.a -Wl,--end-group -lpthread -lm
+			LIBFLAGS_TEST := -qopenmp -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_ilp64.a ${MKLROOT}/lib/intel64/libmkl_core.a ${MKLROOT}/lib/intel64/libmkl_intel_thread.a -Wl,--end-group -lpthread -lm
+		else # using openBLAS
+		endif
+	endif
 endif
 
 ifdef perf_num
@@ -39,8 +68,7 @@ TARGET_CLIB := $(BDIR_CLIB)/lib$(APPNAME)$(VERSUFF)
 TARGET_APP := $(BDIR_APP)/$(APPNAME)_app.exe
 TARGET_TEST := $(BDIR_TST)/$(APPNAME)_test.exe
 
-#icpc: $(TARGET_APP) run
-icpc: $(TARGET_PYLIB) $(TARGET_CLIB) $(TARGET_TEST) $(TARGET_APP)
+CXX: $(TARGET_PYLIB) $(TARGET_CLIB) $(TARGET_TEST) $(TARGET_APP)
 
 SOURCES_ALL := $(wildcard $(SRCDIR)/*.cpp)
 SOURCES = $(filter-out $(SRCDIR)/evo_profiling.cpp, $(wildcard $(SRCDIR)/*.cpp))
@@ -104,6 +132,10 @@ $(BDIR_APP)/%.o: $(SRCDIR)/%.cpp
 clean:
 	@echo " Cleaning..."
 	@rm -fr $(BDIR_PYLIB) $(BDIR_CLIB) $(BDIR_TST) $(BDIR_APP) $(TARGET_PYLIB) $(TARGET_TEST) 2>/dev/null || true
+	@rm amatrix_* py_out_solution_model_* cpp_solution_model_* 2>/dev/null || true
+
+rclean:
+	@echo " Cleaning..."
 	@rm amatrix_* py_out_solution_model_* cpp_solution_model_* 2>/dev/null || true
 
 test:

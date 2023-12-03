@@ -79,6 +79,9 @@ namespace evolm
                 {
                         FILE *in_stream = fopen(io_file.c_str(), "rb");
 
+                        if ( in_stream == NULL )
+                                throw std::string("Cannot open file. Error in IOInterface::fgetdata(size_t, size_t, std::vector<std::vector<int>> &)");
+
                         size_t nbytes = std::ceil(double(samples) / 4);
 
                         unsigned char *buffer = (unsigned char *)malloc(nbytes);
@@ -96,7 +99,7 @@ namespace evolm
                         //  00 01 10 11         bit level  corresponds to
                         //  0  1  2  3          xij level  corresponds to
                         //  2  NA  1  0         number of copies of first allele in bim file
-
+                        
                         for (size_t i = 0; i < variants; i++)
                         {
                                 long int offset = (i)*nbytes + 3;
@@ -125,6 +128,12 @@ namespace evolm
                 {
                         std::cerr << "Exception in IOInterface::read_bed(size_t, size_t, std::vector<std::vector<int>> &)." << '\n';
                         std::cerr << e.what() << '\n';
+                        throw e;
+                }
+                catch (const std::string &e)
+                {
+                        std::cerr << "Exception in IOInterface::read_bed(size_t, size_t, std::vector<std::vector<int>> &)." << '\n';
+                        std::cerr <<"Reason: "<< e << '\n';
                         throw e;
                 }
                 catch (...)
