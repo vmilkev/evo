@@ -1,15 +1,15 @@
 #ifndef animal_hpp__
 #define animal_hpp__
 
-#include "Organism.hpp"
 #include "Genome.hpp"
 
 namespace evogen
 {
-    class Animal : public Organism
+    class Animal
     {
     public:
         Animal();
+        Animal(Animal &a, Animal &b);
         ~Animal();
 
         Genome genome;
@@ -18,16 +18,40 @@ namespace evogen
         void set_id(unsigned long id);
         void set_sire(unsigned long id);
         void set_dame(unsigned long id);
-        void set_age(unsigned long age);
+        void set_age(int age);
         void set_alive(bool alive);
+        void set_isgenotyped(bool genotyped);
         void set_sex(int sex);
+        void set_phenotype(std::vector<double> &phen);
+        void set_breeding_value(std::vector<double> &bv);
 
         unsigned long get_id();
         unsigned long get_sire();
         unsigned long get_dame();
-        unsigned long get_age();
+        int get_age();
         bool get_alive();
-        short get_sex();
+        bool get_isgenotyped();
+        bool get_active();
+        int get_sex();
+        std::vector<double> get_phenotype();
+        std::vector<double> get_breeding_value();
+
+        void clear();
+
+        void operator=(const Animal& a)
+        {
+            genome = a.genome;
+            properties.id = a.properties.id;
+            properties.sire = a.properties.sire;
+            properties.dame = a.properties.dame;
+            properties.age = a.properties.age;
+            properties.alive = a.properties.alive;
+            properties.active = a.properties.active;
+            properties.isgenotyped = a.properties.isgenotyped;
+            properties.sex = a.properties.sex;
+            properties.phenotype = a.properties.phenotype;
+            properties.breeding_value = a.properties.breeding_value;
+        }
 
     private:
         struct Property
@@ -35,12 +59,20 @@ namespace evogen
             unsigned long id;
             unsigned long sire;
             unsigned long dame;
-            unsigned long age;
+            int age;
             bool alive;
-            short sex;
-        };
+            bool active;
+            bool isgenotyped;
+            int sex;
 
+            std::vector<double> phenotype;
+            std::vector<double> breeding_value;
+        };
         Animal::Property properties;
+
+        void set_active(bool active); // maybe delete this because clear() is defined!
+        unsigned long asign_id();
+        int asign_sex();
 
     protected:
     };

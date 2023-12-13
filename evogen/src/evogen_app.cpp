@@ -1,8 +1,10 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+
 #include "Animal.hpp"
 #include "Population.hpp"
+#include "Group.hpp"
 #include "Utilites.hpp"
 #include "Trait.hpp"
 #include "cs_matrix.hpp"
@@ -18,8 +20,8 @@ int main(int argc, char *argv[])
 
 		evogen::Population a, b; // simulated
 
-		a.set_population(5, "tests/data/struct_haplotypes_pop1.dat", 0.4);
-		b.set_population(5, "tests/data/struct_haplotypes_pop1.dat", 0.6);
+		a.set_population(5, "tests/data/struct_haplotypes_pop1.dat", 0.4, 4);
+		b.set_population(5, "tests/data/struct_haplotypes_pop1.dat", 0.6, 6);
 
 		std::cout << "showing wild population A:"
 				  << "\n";
@@ -70,14 +72,16 @@ int main(int argc, char *argv[])
 			myfile_g << gamma_numbers[i] << "\n";
 		}
 
+		// ---------------------------------------------------------------
 		std::cout << "\n";
 		std::cout << "Testing trait:"
 				  << "\n";
 		std::cout << "\n";
+		// ---------------------------------------------------------------
 
 		evogen::Population pop; // simulated
 
-		pop.set_population(500, "tests/data/struct_haplotypes_pop3.dat", 0.7); // (1) population
+		pop.set_population(10, "tests/data/struct_haplotypes_pop3.dat", 0.7, 4); // (1) population
 
 		std::cout << "pop is ready."<<"\n";
 
@@ -113,10 +117,130 @@ int main(int argc, char *argv[])
 
 		size_t which_model = 1;
 
+		std::cout << "Setting trait:"<<"\n";
 		evogen::Trait T;
 		T.set_trait(pop, tr_mean, qtl_prop, cor_g, var_g, cor_e, var_e, env, which_model, k_range_U);
 
-		T.get_observations(pop, env, "trait.dat");
+		std::cout << "Make observations on pop:"<<"\n";
+		T.get_observations(pop, env, "trait_pop.dat");
+		//T.get_observations(pop, env, "trait.dat", "genotypes.dat");
+
+		std::cout << "Creating groups:"<<"\n";
+		evogen::Group G, G2;
+		std::cout<<"G size: "<<G.size()<<"\n";
+
+		std::cout << "Adding pop to G:"<<"\n";
+		G.add(pop);
+		std::cout<<"G size: "<<G.size()<<", size at: "<<G.size_at(0)<<"\n";
+		
+		std::cout << "Make observations on G:"<<"\n";
+		T.get_observations(G, env, "trait_G_from_pop.dat");
+		
+		std::cout << "Show pop:"<<"\n";
+		pop.show_pop();
+
+		std::cout<<"pop size: "<<pop.size()<<", capacity: "<<pop.capacity()<<"\n";
+
+		std::cout << "Select in pop ids < 500000000 to G2:"<<"\n";
+		std::cout<<"group G2 size: "<<G2.size_at(0)<<"... before selection."<<"\n";
+		size_t count = 0;
+		for (size_t i = 0; i < pop.size(); i++)
+		{
+			if (pop.id_at(i) < 500000000)
+			{
+				count++;
+				std::cout<<"selecting ids: "<<pop.id_at(i)<<"\n";
+				G2.add(pop, i);
+			}
+		}
+
+		std::cout<<"Number of selected ids: "<<count<<"\n";
+		std::cout<<"group G2 size: "<<G2.size_at(0)<<"\n";
+		
+		std::cout << "Testing G2.remove()"<<"\n";
+		//G2.remove();
+		//pop.show_pop();
+
+		//pop.clear();		
+		//G.clear();
+		std::cout<<"group G size: "<<G.size_at(0)<<"\n";
+		
+		for (size_t i =0; i < pop.size(); i++)
+			std::cout<<"all pop ids: "<<pop.id_at(i)<<", active: "<<pop.alive_at(i)<<"\n";
+
+		std::cout<<"Create empty population pop2:"<<"\n";
+		evogen::Population pop2;
+
+		std::cout << "Show pop2:"<<"\n";
+		pop2.show_pop();
+
+		std::cout<<"pop2 size: "<<pop2.size()<<", capacity: "<<pop2.capacity()<<"\n";
+		
+		T.get_observations(G2, env, "trait_G2.dat");
+		T.get_observations(G2, env);
+		std::cout<<"Move the content of G2 into pop2, moved ids should dissapiar from pop and G2 should be empty.:"<<"\n";
+		G2.move(pop2);
+		
+		std::cout<<"pop2 size: "<<pop2.size()<<", capacity: "<<pop2.capacity()<<"\n";
+		std::cout<<"pop size: "<<pop.size()<<", capacity: "<<pop.capacity()<<"\n";
+		std::cout<<"group G2 size: "<<G2.size()<<", size_at: "<<G2.size_at(0)<<"\n";
+
+		std::cout << "Show pop:"<<"\n";
+		pop.show_pop();
+
+		std::cout<<"The conteent of pop:"<<"\n";
+		for (size_t i =0; i < pop.size(); i++)
+			std::cout<<"pop ids: "<<pop.id_at(i)<<", active: "<<pop.alive_at(i)<<"\n";
+
+		std::cout << "Show pop2:"<<"\n";
+		pop2.show_pop();
+
+		std::cout<<"The conteent of pop2:"<<"\n";
+		for (size_t i =0; i < pop2.size(); i++)
+			std::cout<<"pop2 ids: "<<pop2.id_at(i)<<", active: "<<pop2.alive_at(i)<<"\n";
+
+		std::cout<<"Reshaping the pop:"<<"\n";
+		pop.reshape();
+
+		std::cout<<"The conteent of pop after reshaping:"<<"\n";
+		std::cout << "Show pop:"<<"\n";
+		pop.show_pop();
+
+		std::cout << "Show pop2:"<<"\n";
+		pop2.show_pop();
+
+		std::cout<<"pop size: "<<pop.size()<<", capacity: "<<pop.capacity()<<"\n";
+		std::cout<<"pop2 size: "<<pop2.size()<<", capacity: "<<pop2.capacity()<<"\n";
+		
+		std::cout << "After reshaping. Calculating trait in pop2:"<<"\n";
+		T.get_observations(pop2, env, "trait_pop2.dat");
+		
+		std::cout << "After reshaping. Calculating trait in pop:"<<"\n";
+		T.get_observations(pop, env, "trait_pop_reduced.dat");
+		
+		T.get_observations(pop, env);
+		std::cout << "Check recorded traits at each individual in pop:"<<"\n";
+
+		for (size_t i = 0; i < pop.size(); i++)
+		{
+			std::vector<double> tr = pop.phenotype_at(i);
+			for (size_t j = 0; j < tr.size(); j++)
+				std::cout<<tr[j]<<" ";
+			std::cout<<"\n";
+		}
+
+		std::cout << "Check recorded traits at each individual in pop2 (recalculated, should equal with G2):"<<"\n";
+
+		for (size_t i = 0; i < pop2.size(); i++)
+		{
+			std::vector<double> tr = pop2.phenotype_at(i);
+			for (size_t j = 0; j < tr.size(); j++)
+				std::cout<<tr[j]<<" ";
+			std::cout<<"\n";
+		}
+
+		T.clear();/**/
+
 
 	}
 	catch (const std::exception &e)

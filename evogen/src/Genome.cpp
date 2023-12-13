@@ -14,6 +14,38 @@ namespace evogen
 
     //===============================================================================================================
 
+    void Genome::clear()
+    {
+        try
+        {
+            markers.clear();
+            markers.shrink_to_fit();
+            structure.clear();
+            structure.shrink_to_fit();
+            snp_table.clear();
+            snp_table.shrink_to_fit();
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Genome::clear()." << '\n';
+            std::cerr << e.what() << '\n';
+            throw e;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Genome::clear()." << '\n';
+            std::cerr <<"Reason: "<< e << '\n';
+            throw e;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Genome::clear()." << '\n';
+            throw;
+        }
+    }
+
+    //===============================================================================================================
+
     void Genome::def_snp_table()
     {
         try
@@ -51,13 +83,17 @@ namespace evogen
             throw;
         }
     }
+
     //===============================================================================================================
 
     std::vector<std::vector<unsigned long>> Genome::get_snp_table()
     {
         try
         {
-            return snp_table;
+            if ( !markers.empty() )
+                return snp_table;
+            else
+                throw std::string("The genome for this individual is empty!");
         }
         catch (const std::exception &e)
         {
@@ -74,6 +110,76 @@ namespace evogen
         catch (...)
         {
             std::cerr << "Exception in Genome::get_snp_table()." << '\n';
+            throw;
+        }
+    }
+
+    //===============================================================================================================
+
+    std::vector<std::vector<unsigned long>> Genome::get_genome_structure()
+    {
+        try
+        {
+            if ( !markers.empty() )
+                return structure;
+            else
+                throw std::string("The genome for this individual is empty!");
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Genome::get_genome_structure()." << '\n';
+            std::cerr << e.what() << '\n';
+            throw e;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Genome::get_genome_structure()." << '\n';
+            std::cerr <<"Reason: "<< e << '\n';
+            throw e;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Genome::get_genome_structure()." << '\n';
+            throw;
+        }
+    }
+
+    //===============================================================================================================
+
+    std::vector<short> Genome::get_genome()
+    {
+        try
+        {
+            if ( markers.empty() )
+                throw std::string("The genome for this individual is empty!");
+            
+            std::vector<short> out;
+            size_t strands = markers.size();
+            for ( size_t i = 0; i < markers[0].size(); i++ )
+            {
+                short strand_j = 0;
+                for (size_t j = 0; j < strands; j++){
+                    strand_j += (short)markers[j][i];
+                }
+                out.push_back( strand_j );
+            }
+            return out;
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Genome::get_genome()." << '\n';
+            std::cerr << e.what() << '\n';
+            throw e;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Genome::get_genome()." << '\n';
+            std::cerr <<"Reason: "<< e << '\n';
+            throw e;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Genome::get_genome()." << '\n';
             throw;
         }
     }
@@ -211,6 +317,9 @@ namespace evogen
 
         try
         {
+            if ( markers.empty() )
+                throw std::string("The genome for this individual is empty!");
+
             ploidy = markers.size();
         }
         catch (const std::exception &e)
@@ -230,40 +339,13 @@ namespace evogen
 
     //===============================================================================================================
 
-    /*size_t Genome::get_nmarkers()
-    {
-        try
-        {
-            if ( markers.size() >= 2 )
-                return markers[0].size();
-            else
-                throw std::string("The genome is empty, cannot retreat the markers number!");
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Exception in Genome::get_nmarkers()." << '\n';
-            std::cerr << e.what() << '\n';
-            throw e;
-        }
-        catch (const std::string &e)
-        {
-            std::cerr << "Exception in Genome::get_nmarkers()." << '\n';
-            std::cerr <<"Reason: "<< e << '\n';
-            throw e;
-        }
-        catch (...)
-        {
-            std::cerr << "Exception in Genome::get_nmarkers()." << '\n';
-            throw;
-        }
-    }*/
-
-    //===============================================================================================================
-
     std::vector<short> Genome::get_genome_at(size_t locus)
     {
         try
         {
+            if ( markers.empty() )
+                throw std::string("The genome for this individual is empty!");
+
             if ( markers.size() < 2 )
                 throw std::string("The genome is empty, cannot retreat the markers values!");
 
@@ -301,6 +383,9 @@ namespace evogen
     {
         try
         {
+            if ( markers.empty() )
+                throw std::string("The genome for this individual is empty!");
+
             size_t n_chr = structure.size();
 
             std::cout << "n. chromosomes = " << n_chr << "\n";
@@ -350,6 +435,9 @@ namespace evogen
     {
         try
         {
+            if ( markers.empty() )
+                throw std::string("The genome for this individual is empty!");
+
             haplotypes = markers;
             gstructure = structure;
         }
@@ -368,13 +456,16 @@ namespace evogen
 
     //===============================================================================================================
 
-    void Genome::get_reproduction_gamete(size_t cross_per_chr, size_t mut_per_genome, std::vector<bool> &out_gamete, short &out_sex_chr_id)
+    void Genome::get_reproduction_gamete(std::vector<std::vector<bool>> &out_gamete, size_t cross_per_chr, size_t mut_per_genome)
     {
         /* out_sex_chr_id: for each produced gamete indicates where does sex chromosome (the last one) comes from in the gamete: 0 - paternal, 1 - maternal. */
 
         try
         {
-            recombination(out_gamete, out_sex_chr_id, cross_per_chr);
+            if ( markers.empty() )
+                throw std::string("The genome for this individual is empty!");
+
+            recombination(out_gamete, cross_per_chr);
             mutation(out_gamete, mut_per_genome);
         }
         catch (const std::exception &e)
@@ -392,191 +483,207 @@ namespace evogen
 
     //===============================================================================================================
 
-    void Genome::mutation(std::vector<bool> &in_gamete, size_t events_genome)
+    void Genome::mutation(std::vector<std::vector<bool>> &in_gamete, size_t events_genome)
     {
         try
         {
-            // Sample mutation points
-            Utilites u;
-            std::vector<size_t> locations = u.get_uni_rand(events_genome, (size_t)0, in_gamete.size() - 1, false);
-
-            for (size_t i = 0; i < events_genome; i++)
+            for (size_t i_set = 0; i_set < in_gamete.size(); i_set++)
             {
-                size_t point = locations[i];
-                std::cout << "Mutation point: " << point << "; current val: " << in_gamete[point] << "; obtained val: ";
-                if (in_gamete[point] == 0)
-                    in_gamete[point] = 1;
-                else
-                    in_gamete[point] = 0;
-                std::cout << in_gamete[point] << "\n";
+                // Sample mutation points
+                Utilites u;
+                std::vector<size_t> locations = u.get_uni_rand(events_genome, (size_t)0, in_gamete.size() - 1, false);
+
+                for (size_t i = 0; i < events_genome; i++)
+                {
+                    size_t point = locations[i];
+                    std::cout << "Mutation point: " << point << "; current val: " << in_gamete[i_set][point] << "; obtained val: ";
+                    if (in_gamete[i_set][point] == 0)
+                        in_gamete[i_set][point] = 1;
+                    else
+                        in_gamete[i_set][point] = 0;
+                    std::cout << in_gamete[i_set][point] << "\n";
+                }
             }
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Genome::mutation( std::vector<bool> &, size_t )." << '\n';
+            std::cerr << "Exception in Genome::mutation( std::vector<std::vector<bool>> &, size_t )" << '\n';
             std::cerr << e.what() << '\n';
             throw e;
         }
         catch (...)
         {
-            std::cerr << "Exception in Genome::mutation( std::vector<bool> &, size_t )." << '\n';
+            std::cerr << "Exception in Genome::mutation( std::vector<std::vector<bool>> &, size_t )" << '\n';
             throw;
         }
     }
 
     //===============================================================================================================
 
-    void Genome::recombination(std::vector<bool> &out_gamete, short &out_sex_chr_id, size_t n_crosses)
+    void Genome::recombination(std::vector<std::vector<bool>> &out_gamete, size_t n_crosses)
     {
         try
         {
-            Utilites u;
-
-            size_t n_chr = structure.size();
-
-            //......................................................
-
-            /* Random table of 2 cols to select between paternal and maternal chromosomes
-               which alogned (distributed) between two cells after crossing over. Two produced cells
-               will consist of mixture of paternal and maternal chromosomes, among which
-               there are one - original, and one - crossed.
-            */
-
-            std::vector<std::vector<short>> is_paternal;
-
-            for (size_t i = 0; i < n_chr; i++)
+            size_t i_set = 0;
+            for (size_t n_sets = 0; n_sets < markers.size()/2; n_sets++) // loop over ploidy sets of DNA pairs
             {
-                // Utilites u;
+                Utilites u;
 
-                std::vector<short> i_chr;
+                size_t n_chr = structure.size();
 
-                int rnum = u.get_randi(1, 100);
+                //......................................................
 
-                short paternal = 0;
-                short maternal = 1;
+                /* Table A.
+                Random table of 2 cols to select between paternal and maternal chromosomes
+                which aligned (distributed) between two cells after crossing over. Two produced cells
+                will consist of mixture of paternal and maternal chromosomes, among which
+                there are one - original, and one - crossed.
+                */
 
-                if (rnum >= 50)
+                std::vector<std::vector<short>> is_paternal;
+
+                for (size_t i = 0; i < n_chr; i++)
                 {
-                    paternal = 1;
-                    maternal = 0;
-                }
-                i_chr.push_back(paternal);
-                i_chr.push_back(maternal);
+                    std::vector<short> i_chr;
 
-                is_paternal.push_back(i_chr);
-            }
-
-            //......................................................
-
-            /* Random table of 4 cols to select between original and crossed chromosoms
-               distributed among 4 gamete cells. Two cells will consist original (paternal or maternal)
-               chromosomes, and two other cells will consist crossed chromosomes.
-            */
-
-            std::vector<std::vector<short>> is_crossed;
-
-            for (size_t i = 0; i < n_chr; i++)
-            {
-                // Utilites u;
-
-                std::vector<short> i_chr;
-
-                for (size_t j = 0; j < 2; j++)
-                {
                     int rnum = u.get_randi(1, 100);
 
-                    short crossed_0 = 0;
-                    short crossed_1 = 1;
+                    short paternal = 0;
+                    short maternal = 1;
 
                     if (rnum >= 50)
                     {
-                        crossed_0 = 1;
-                        crossed_1 = 0;
+                        paternal = 1;
+                        maternal = 0;
                     }
-                    i_chr.push_back(crossed_0);
-                    i_chr.push_back(crossed_1);
+                    i_chr.push_back(paternal);
+                    i_chr.push_back(maternal);
+
+                    is_paternal.push_back(i_chr);
                 }
 
-                is_crossed.push_back(i_chr);
-            }
-            //......................................................
-            // Sample which cols from the previous two tables will be used:
-            //......................................................
+                //......................................................
 
-            /* among 4 final gamete cells define (sample) which cell is selected for reproduction;
-               the variable which_cell will be used as index in the table is_crossed.
-            */
+                /* Table B.
+                Random table of 4 cols to select between original and crossed chromosoms
+                distributed among 4 gamete cells. Two cells will consist original (paternal or maternal)
+                chromosomes, and two other cells will consist crossed chromosomes.
+                */
 
-            short which_cell = 0;
-            // Utilites u;
-            int sample_cell = u.get_randi(1, 100);
+                std::vector<std::vector<short>> is_crossed;
 
-            if (sample_cell <= 25)
-                which_cell = 1;
-            if (sample_cell > 25 && sample_cell <= 50)
-                which_cell = 2;
-            if (sample_cell > 50 && sample_cell <= 75)
-                which_cell = 3;
-            if (sample_cell > 75 && sample_cell <= 100)
-                which_cell = 0;
+                for (size_t i = 0; i < n_chr; i++)
+                {
+                    // Utilites u;
 
-            //......................................................
+                    std::vector<short> i_chr;
 
-            /* among 2 pre-gamete cells define (sample) which cell line
-               should be used (is selected) for reproduction;
-               the var which_pat will be used as index in the table is_paternal.
-            */
+                    for (size_t j = 0; j < 2; j++)
+                    {
+                        int rnum = u.get_randi(1, 100);
 
-            short which_pat = 0;
-            int sample_pat = u.get_randi(1, 100);
+                        short crossed_0 = 0;
+                        short crossed_1 = 1;
 
-            if (sample_pat <= 50)
-                which_pat = 1;
-            if (sample_pat > 50)
-                which_pat = 0;
+                        if (rnum >= 50)
+                        {
+                            crossed_0 = 1;
+                            crossed_1 = 0;
+                        }
+                        i_chr.push_back(crossed_0);
+                        i_chr.push_back(crossed_1);
+                    }
 
-            //......................................................
-            /* Here we know where does sex chromosome will come: from sire or dame */
+                    is_crossed.push_back(i_chr);
+                }
+                //......................................................
+                // Sample which cols from the previous two tables will be used:
+                //......................................................
 
-            out_sex_chr_id = is_paternal[n_chr - 1][which_pat];
+                /* Sample the col of the table B:
+                among 4 final gamete cells define (sample) which cell is selected for reproduction;
+                the variable which_cell will be used as index in the table is_crossed.
+                */
 
-            //......................................................
+                short which_cell = 0;
+                // Utilites u;
+                int sample_cell = u.get_randi(1, 100);
 
-            for (size_t i = 0; i < n_chr; i++)
-            {
-                std::vector<bool> chromatide;
-                short apply_cross = is_crossed[i][which_cell];  // defines the sequence of original/crossed chromosomes
-                short which_strand = is_paternal[i][which_pat]; // defines the sequence of chromosome origin: paternal/maternal
+                if (sample_cell <= 25)
+                    which_cell = 1;
+                if (sample_cell > 25 && sample_cell <= 50)
+                    which_cell = 2;
+                if (sample_cell > 50 && sample_cell <= 75)
+                    which_cell = 3;
+                if (sample_cell > 75 && sample_cell <= 100)
+                    which_cell = 0;
 
-                /* the values of which_cell & which_pat are constant for a specific gamete, and expected to be different for every new generated gamete. */
+                //......................................................
 
-                std::cout << "chr.no: " << i << "; apply_cross & which strand: " << apply_cross << ", " << which_strand << "; which_pat & which_cell: " << which_pat << ", " << which_cell << "\n";
+                /* Sample the col of the table A:
+                among 2 pre-gamete cells define (sample) which cell line
+                should be used (is selected) for reproduction;
+                the var which_pat will be used as index in the table is_paternal.
+                */
 
-                if (apply_cross)
-                    chromatide = crossover(i, which_strand, n_crosses);
-                else
-                    chromatide = get_chromatide(i, which_strand);
+                short which_pat = 0;
+                int sample_pat = u.get_randi(1, 100);
 
-                for (size_t i = 0; i < chromatide.size(); i++)
-                    out_gamete.push_back(chromatide[i]);
+                if (sample_pat <= 50)
+                    which_pat = 1;
+                if (sample_pat > 50)
+                    which_pat = 0;
+
+                //......................................................
+                /* Here we know where does sex chromosome will come: from sire or dame */
+
+                //out_sex_chr_id = is_paternal[n_chr - 1][which_pat];
+
+                //......................................................
+
+                std::vector<bool> gamete;
+
+                for (size_t i = 0; i < n_chr; i++)
+                {
+                    std::vector<bool> chromatide;
+                    short apply_cross = is_crossed[i][which_cell];  // defines the sequence of original/crossed chromosomes
+                    short which_strand = is_paternal[i][which_pat]; // defines the sequence of chromosome origin: paternal/maternal
+
+                    /* the values of which_cell & which_pat are constant for a specific gamete, and expected to be different for every new generated gamete. */
+
+                    std::cout << "chr.no: " << i << "; apply_cross & which strand: " << apply_cross << ", " << which_strand << "; which_pat & which_cell: " << which_pat << ", " << which_cell << "\n";
+
+                    if (apply_cross)
+                        chromatide = crossover(i, which_strand, n_crosses, i_set);
+                    else
+                        chromatide = get_chromatide(i, which_strand, i_set);
+
+                    for (size_t i = 0; i < chromatide.size(); i++)
+                        gamete.push_back(chromatide[i]);
+                }
+
+                out_gamete.push_back(gamete);
+
+                i_set = i_set + 2; // select the next set of DNA strands, for ploidy > 2
+
             }
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Genome::recombination( std::vector<bool> &, short &, size_t )." << '\n';
+            std::cerr << "Exception in Genome::recombination( std::vector<std::vector<bool>> &, short &, size_t )." << '\n';
             std::cerr << e.what() << '\n';
             throw e;
         }
         catch (...)
         {
-            std::cerr << "Exception in Genome::recombination( std::vector<bool> &out_gamete, short &, size_t )." << '\n';
+            std::cerr << "Exception in Genome::recombination( std::vector<std::vector<bool>> &, short &, size_t )." << '\n';
             throw;
         }
     }
 
     //===============================================================================================================
 
-    std::vector<bool> Genome::crossover(size_t in_chr, size_t out_strand, size_t n_crossovers)
+    std::vector<bool> Genome::crossover(size_t in_chr, size_t out_strand, size_t n_crossovers, size_t which_strands_set)
     {
         std::vector<bool> chromatide;
 
@@ -661,8 +768,8 @@ namespace evogen
 
             for (size_t i = first_snp; i <= last_snp; i++)
             {
-                chromatide_pat.push_back(markers[0][i]);
-                chromatide_mat.push_back(markers[1][i]);
+                chromatide_pat.push_back(markers[0 + which_strands_set][i]);
+                chromatide_mat.push_back(markers[1 + which_strands_set][i]);
             }
 
             for (size_t i = 0; i < cross_locations.size(); i++)
@@ -688,13 +795,13 @@ namespace evogen
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Genome::crossover(size_t, size_t)." << '\n';
+            std::cerr << "Exception in Genome::crossover(size_t, size_t, size_t)" << '\n';
             std::cerr << e.what() << '\n';
             throw e;
         }
         catch (...)
         {
-            std::cerr << "Exception in Genome::crossover(size_t, size_t)." << '\n';
+            std::cerr << "Exception in Genome::crossover(size_t, size_t, size_t)" << '\n';
             throw;
         }
 
@@ -703,7 +810,7 @@ namespace evogen
 
     //===============================================================================================================
 
-    std::vector<bool> Genome::get_chromatide(size_t which_chr, size_t which_strand)
+    std::vector<bool> Genome::get_chromatide(size_t which_chr, size_t which_strand, size_t which_strands_set)
     {
         std::vector<bool> chromatide;
 
@@ -713,18 +820,18 @@ namespace evogen
             size_t last_snp = snp_table[which_chr][1];
             for (size_t i = first_snp; i <= last_snp; i++)
             {
-                chromatide.push_back(markers[which_strand][i]);
+                chromatide.push_back(markers[which_strand + which_strands_set][i]);
             }
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Genome::get_chromatide(size_t, size_t)." << '\n';
+            std::cerr << "Exception in Genome::get_chromatide(size_t, size_t, size_t)" << '\n';
             std::cerr << e.what() << '\n';
             throw e;
         }
         catch (...)
         {
-            std::cerr << "Exception in Genome::get_chromatide(size_t, size_t)." << '\n';
+            std::cerr << "Exception in Genome::get_chromatide(size_t, size_t, size_t)" << '\n';
             throw;
         }
 
@@ -735,28 +842,29 @@ namespace evogen
 
     void Genome::show_recombination()
     {
-
         try
         {
-            std::vector<bool> chromatide;
-            short which_sex_chr = 0;
+            if ( markers.empty() )
+                throw std::string("The genome for this individual is empty!");
 
-            get_reproduction_gamete(3, 2, chromatide, which_sex_chr);
+            std::vector<std::vector<bool>> chromatide;
+
+            get_reproduction_gamete(chromatide, 3, 2);
 
             std::cout << "\n";
 
-            std::cout << "showing gamete:"
-                      << "\n";
+            std::cout << "showing gamete with "<<chromatide.size()<<" strands:"<< "\n";
 
-            size_t snps = std::min((size_t)100, chromatide.size());
-
-            for (size_t i = 0; i < snps; i++)
+            for (size_t j = 0; j < chromatide.size(); j++)
             {
-                std::cout << chromatide[i] << " ";
+                size_t snps = std::min((size_t)100, chromatide[j].size());
+
+                for (size_t i = 0; i < snps; i++)
+                {
+                    std::cout << chromatide[j][i] << " ";
+                }
+                std::cout << "\n";
             }
-            std::cout << "\n";
-            std::cout << "sex chromosome from: " << which_sex_chr
-                      << "\n";
         }
         catch (const std::exception &e)
         {
@@ -770,6 +878,9 @@ namespace evogen
             throw;
         }
     }
+
+    //===============================================================================================================
+
 
     //===============================================================================================================
 

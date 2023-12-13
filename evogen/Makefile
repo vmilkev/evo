@@ -33,7 +33,7 @@ ifeq ($(UNAME_OS),Darwin) # using apple's Accelerate
 	CFLAGS_APP := -I$(SRCDIR) -I$(EXTSRC)
 	CFLAGS_PYLIB := -DPYBIND $(PYBINDINCL) -I$(EXTSRC)
 
-	EXTRA_CFLAGS := -Wall -Wextra -pedantic -Wno-c99-extensions -D UTEST -O3 -Xpreprocessor -fopenmp -I/opt/homebrew/opt/openblas/include -I/opt/homebrew/opt/libomp/include -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -std=c++14
+	EXTRA_CFLAGS := -Wall -Wextra -pedantic -Wno-c99-extensions -D UTEST -O3 -Xpreprocessor -fopenmp -I/opt/homebrew/opt/openblas/include -I/opt/homebrew/opt/libomp/include -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -std=c++17
 
 	LIBFLAGS_PY := -undefined dynamic_lookup -shared -lpthread -lm -lomp -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -L/opt/homebrew/opt/libomp/lib -L/opt/homebrew/opt/openblas/lib -lopenblas
 	LIBFLAGS_TEST := -undefined dynamic_lookup -lpthread -lm -lomp -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -L/opt/homebrew/opt/libomp/lib -L/opt/homebrew/opt/openblas/lib -lopenblas

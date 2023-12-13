@@ -63,11 +63,12 @@ namespace evolm
 
         /* METHODS */
 
-        T &at(size_t atRow, size_t atCol);            /* Get/put element from/in a matrix. */
-        void resize(size_t row, size_t col);          /* Resizes/allocates memmory for A. */
-        void resize(size_t lda);                      /* Resizes/allocates memmory for A; overloaded method for symmetrical matrix. */
-        void print(std::string whiichMatrix);         /* Prints part of a matrix into a LOG file. */
-        void printf(std::string whiichMatrix);        /* Prints all of a matrix into a specified file file name. */
+        T &at(size_t atRow, size_t atCol);    /* Get/put element from/in a matrix. */
+        void resize(size_t row, size_t col);  /* Resizes/allocates memmory for A. */
+        void resize(size_t lda);              /* Resizes/allocates memmory for A; overloaded method for symmetrical matrix. */
+        void print(std::string whiichMatrix); /* Prints part of a matrix into a LOG file. */
+        void printf(std::string whiichMatrix,
+                    bool append);                     /* Prints all of a matrix into a specified file file name. */
         void scale(T val);                            /* Scaling matrix by scalar: A = A*val. */
         size_t size() const;                          /* Gives total number of elements in a matrix. */
         size_t capacity();                            /* Gives total number of allocated elements in a matrix. */
@@ -188,7 +189,7 @@ namespace evolm
 
                     sz = numRow;
 
-                    if ( sz != sz_vect )
+                    if (sz != sz_vect)
                         throw std::string("The size of post-allocated Matrix is not the same as the size of the input vector. matrix<T>::from_vect(std::vector<T> &)");
 
                     for (size_t i = 0; i < sz; i++)
@@ -225,21 +226,25 @@ namespace evolm
                 {
                     if (!compact)
                         sz = numRow * numCol;
-                    else {
+                    else
+                    {
                         symtorec();
                         resize(numRow, numCol);
                         sz = numRow * numCol;
                     }
 
-                    if (sz != sz_vect*sz_vect2)
+                    if (sz != sz_vect * sz_vect2)
                         throw std::string("The size of allocated Matrix is not the same as the size of the input vector. matrix<T>::from_vect2d(std::vector<std::vector<T>> &)");
 
                     size_t l = 0;
                     for (size_t i = 0; i < sz_vect; i++)
-                        for (size_t j = 0; j < sz_vect2; j++) {
+                    {
+                        for (size_t j = 0; j < sz_vect2; j++)
+                        {
                             A[l] = vect[i][j];
                             l = l + 1;
                         }
+                    }
                 }
                 else
                 {
@@ -247,15 +252,18 @@ namespace evolm
 
                     sz = numRow * numCol;
 
-                    if ( sz != sz_vect*sz_vect2 )
+                    if (sz != sz_vect * sz_vect2)
                         throw std::string("The size of allocated Matrix is not the same as the size of the input vector. matrix<T>::from_vect2d(std::vector<std::vector<T>> &)");
 
                     size_t l = 0;
                     for (size_t i = 0; i < sz_vect; i++)
-                        for (size_t j = 0; j < sz_vect2; j++) {
+                    {
+                        for (size_t j = 0; j < sz_vect2; j++)
+                        {
                             A[l] = vect[i][j];
                             l = l + 1;
                         }
+                    }
                 }
             }
             catch (const std::exception &e)
@@ -271,6 +279,52 @@ namespace evolm
             catch (...)
             {
                 std::cerr << "Exception in matrix<T>::from_vector2d(std::vector<std::vector<T>> &)" << '\n';
+                throw;
+            }
+        };
+
+        void to_vector2d(std::vector<std::vector<T>> &vect)
+        {
+            try
+            {
+                if (allocated)
+                {
+                    if (compact)
+                    {
+                        symtorec();
+                        resize(numRow, numCol);
+                    }
+
+                    size_t l = 0;
+                    for (size_t i = 0; i < numRow; i++)
+                    {
+                        std::vector<T> v0;
+                        for (size_t j = 0; j < numCol; j++)
+                        {
+                            v0.push_back(A[l]);
+                            l = l + 1;
+                        }
+                        vect.push_back(v0);
+                    }
+                }
+                else
+                {
+                    throw std::string("The array to be copied to 2d std::vector is not allocated!");
+                }
+            }
+            catch (const std::exception &e)
+            {
+                std::cerr << e.what() << " in matrix<T>::to_vector2d(std::vector<std::vector<T>> &)" << '\n';
+                throw e;
+            }
+            catch (const std::string &e)
+            {
+                std::cerr << e << " in matrix<T>::to_vector2d(std::vector<std::vector<T>> &)" << '\n';
+                throw e;
+            }
+            catch (...)
+            {
+                std::cerr << "Exception in matrix<T>::to_vector2d(std::vector<std::vector<T>> &)" << '\n';
                 throw;
             }
         };
@@ -293,15 +347,15 @@ namespace evolm
 
         /* OPERATORS */
 
-        matrix operator+(const matrix &rhs);            /* Overloaded '+' operator to add two matrix objects. */
+        matrix operator+(const matrix &rhs); /* Overloaded '+' operator to add two matrix objects. */
         matrix operator+(const T &val);
-        matrix operator<<(const matrix &rhs);           /* Overloaded '<<' operator to combine two matrix objects, without transpose. */
-        matrix operator>>(const matrix &rhs);           /* Overloaded '<<' operator to combine two matrix objects, with transpose. */
-        matrix operator-(const matrix &rhs);            /* Overloaded '-' operator to substract two matrix objects. */
-        matrix operator-(const T val);                  /* Overloaded '-' operator to substitute a scalar from a matrix object. */
-        matrix operator^(const int val);                /* Overloaded '^' operator to multiply matrix by itself and find inversion. */
-        matrix operator^(const char *val);              /* Overloaded '^' operator to transpose matrix. */
-        matrix operator*(const matrix &rhs);            /* Overloaded '*' operator to multiply two matrix objects. */
+        matrix operator<<(const matrix &rhs); /* Overloaded '<<' operator to combine two matrix objects, without transpose. */
+        matrix operator>>(const matrix &rhs); /* Overloaded '<<' operator to combine two matrix objects, with transpose. */
+        matrix operator-(const matrix &rhs);  /* Overloaded '-' operator to substract two matrix objects. */
+        matrix operator-(const T val);        /* Overloaded '-' operator to substitute a scalar from a matrix object. */
+        matrix operator^(const int val);      /* Overloaded '^' operator to multiply matrix by itself and find inversion. */
+        matrix operator^(const char *val);    /* Overloaded '^' operator to transpose matrix. */
+        matrix operator*(const matrix &rhs);  /* Overloaded '*' operator to multiply two matrix objects. */
         matrix operator*(const T &val);
         bool operator==(const matrix &rhs);             /* Compare complete equality of two matrix objects. */
         matrix &operator=(const matrix &rhs);           /* Overloaded assignment '=' operator. */
@@ -820,7 +874,7 @@ namespace evolm
             }
             else
             {
-                int status = allocate(lda);                
+                int status = allocate(lda);
                 if (status != 0)
                 {
                     failbit = true;
@@ -921,7 +975,7 @@ namespace evolm
 #ifdef intelmkl
         A = (T *)mkl_malloc(sz * sizeof(T), sizeof(T) * 8);
 #else
-        //A = (T *)aligned_alloc(sizeof(T) * 8, sz * sizeof(T));
+        // A = (T *)aligned_alloc(sizeof(T) * 8, sz * sizeof(T));
         A = (T *)malloc(sz * sizeof(T));
 #endif
         if (A == NULL)
@@ -958,7 +1012,7 @@ namespace evolm
 #ifdef intelmkl
         A = (T *)mkl_malloc(row * col * sizeof(T), sizeof(T) * 8);
 #else
-        //A = (T *)aligned_alloc(sizeof(T) * 8, row * col * sizeof(T));
+        // A = (T *)aligned_alloc(sizeof(T) * 8, row * col * sizeof(T));
         A = (T *)malloc(row * col * sizeof(T));
 #endif
         if (A == NULL)
@@ -2144,70 +2198,70 @@ namespace evolm
     template <typename T>
     matrix<T> matrix<T>::operator*(const T &val)
     {
-            /*
-                Overloaded '*' operator to multiply matrix by scalar.
+        /*
+            Overloaded '*' operator to multiply matrix by scalar.
 
-                Return value: matrix object.
+            Return value: matrix object.
 
-                Example:
+            Example:
 
-                    matrix <double> obj;    // empty matrix
-                    matrix <double> M(n,m); // M is (n,m) matrix initialized by 0.
+                matrix <double> obj;    // empty matrix
+                matrix <double> M(n,m); // M is (n,m) matrix initialized by 0.
 
-                    for (auto i = 0; i < M.size(); i++)
-                        M[i] = 1.0;
+                for (auto i = 0; i < M.size(); i++)
+                    M[i] = 1.0;
 
-                    obj = M * (-2.0); // obj become (n,m) matrix where all elements are -2.0;
-                                      // M remains unchanged (all elements of the matrix are 1.0)
-            */
+                obj = M * (-2.0); // obj become (n,m) matrix where all elements are -2.0;
+                                  // M remains unchanged (all elements of the matrix are 1.0)
+        */
 
-            if (ondisk)
-                throw std::string("Matrix is empty. Use fread() to relocate data to memory. matrix<T>::operator*");
+        if (ondisk)
+            throw std::string("Matrix is empty. Use fread() to relocate data to memory. matrix<T>::operator*");
 
-            matrix<T> C;
-            if (!compact)
+        matrix<T> C;
+        if (!compact)
+        {
+            int status = C.allocate(numRow, numCol);
+            if (status != 0)
             {
-                int status = C.allocate(numRow, numCol);
-                if (status != 0)
-                {
-                    C.failbit = true;
-                    throw std::string("Memory allocation error: matrix<T>::operator*");
-                }
-
-                C.allocated = true;
-                C.resizedElements = numRow * numCol;
-                C.numCol = numCol;
-                C.numRow = numRow;
-            }
-            else
-            {
-                int status = C.allocate(numRow);
-                if (status != 0)
-                {
-                    C.failbit = true;
-                    throw std::string("Memory allocation error: matrix<T>::operator*");
-                }
-
-                C.allocated = true;
-                C.resizedElements = (numRow * numRow + numRow) / 2;
-                C.numCol = numRow;
-                C.numRow = numRow;
+                C.failbit = true;
+                throw std::string("Memory allocation error: matrix<T>::operator*");
             }
 
-            auto n_threads = std::thread::hardware_concurrency();
-            auto block_size = static_cast<unsigned int>(C.size() / (n_threads));
-
-            if (block_size < worksize)
+            C.allocated = true;
+            C.resizedElements = numRow * numCol;
+            C.numCol = numCol;
+            C.numRow = numRow;
+        }
+        else
+        {
+            int status = C.allocate(numRow);
+            if (status != 0)
             {
-                block_size = static_cast<unsigned int>(C.size());
-                n_threads = 1;
+                C.failbit = true;
+                throw std::string("Memory allocation error: matrix<T>::operator*");
             }
 
-            // #pragma omp parallel for schedule(static, block_size) num_threads(n_threads)
-            for (size_t i = 0; i < C.size(); i++)
-                C.A[i] = A[i] * val;
+            C.allocated = true;
+            C.resizedElements = (numRow * numRow + numRow) / 2;
+            C.numCol = numRow;
+            C.numRow = numRow;
+        }
 
-            return matrix(C);
+        auto n_threads = std::thread::hardware_concurrency();
+        auto block_size = static_cast<unsigned int>(C.size() / (n_threads));
+
+        if (block_size < worksize)
+        {
+            block_size = static_cast<unsigned int>(C.size());
+            n_threads = 1;
+        }
+
+        // #pragma omp parallel for schedule(static, block_size) num_threads(n_threads)
+        for (size_t i = 0; i < C.size(); i++)
+            C.A[i] = A[i] * val;
+
+        return matrix(C);
     }
 
     //===============================================================================================================
@@ -2215,70 +2269,70 @@ namespace evolm
     template <typename T>
     matrix<T> matrix<T>::operator+(const T &val)
     {
-            /*
-                Overloaded '+' operator to add scalar to matrix.
+        /*
+            Overloaded '+' operator to add scalar to matrix.
 
-                Return value: matrix object.
+            Return value: matrix object.
 
-                Example:
+            Example:
 
-                    matrix <double> obj;    // empty matrix
-                    matrix <double> M(n,m); // M is (n,m) matrix initialized by 0.
+                matrix <double> obj;    // empty matrix
+                matrix <double> M(n,m); // M is (n,m) matrix initialized by 0.
 
-                    for (auto i = 0; i < M.size(); i++)
-                        M[i] = 1.0;
+                for (auto i = 0; i < M.size(); i++)
+                    M[i] = 1.0;
 
-                    obj = M + (-2.0); // obj become (n,m) matrix where all elements are -2.0;
-                                      // M remains unchanged (all elements of the matrix are 1.0)
-            */
+                obj = M + (-2.0); // obj become (n,m) matrix where all elements are -2.0;
+                                  // M remains unchanged (all elements of the matrix are 1.0)
+        */
 
-            if (ondisk)
-                throw std::string("Matrix is empty. Use fread() to relocate data to memory. matrix<T>::operator*");
+        if (ondisk)
+            throw std::string("Matrix is empty. Use fread() to relocate data to memory. matrix<T>::operator*");
 
-            matrix<T> C;
-            if (!compact)
+        matrix<T> C;
+        if (!compact)
+        {
+            int status = C.allocate(numRow, numCol);
+            if (status != 0)
             {
-                int status = C.allocate(numRow, numCol);
-                if (status != 0)
-                {
-                    C.failbit = true;
-                    throw std::string("Memory allocation error: matrix<T>::operator*");
-                }
-
-                C.allocated = true;
-                C.resizedElements = numRow * numCol;
-                C.numCol = numCol;
-                C.numRow = numRow;
-            }
-            else
-            {
-                int status = C.allocate(numRow);
-                if (status != 0)
-                {
-                    C.failbit = true;
-                    throw std::string("Memory allocation error: matrix<T>::operator*");
-                }
-
-                C.allocated = true;
-                C.resizedElements = (numRow * numRow + numRow) / 2;
-                C.numCol = numRow;
-                C.numRow = numRow;
+                C.failbit = true;
+                throw std::string("Memory allocation error: matrix<T>::operator*");
             }
 
-            auto n_threads = std::thread::hardware_concurrency();
-            auto block_size = static_cast<unsigned int>(C.size() / (n_threads));
-
-            if (block_size < worksize)
+            C.allocated = true;
+            C.resizedElements = numRow * numCol;
+            C.numCol = numCol;
+            C.numRow = numRow;
+        }
+        else
+        {
+            int status = C.allocate(numRow);
+            if (status != 0)
             {
-                block_size = static_cast<unsigned int>(C.size());
-                n_threads = 1;
+                C.failbit = true;
+                throw std::string("Memory allocation error: matrix<T>::operator*");
             }
 
-            // #pragma omp parallel for schedule(static, block_size) num_threads(n_threads)
-            for (size_t i = 0; i < C.size(); i++)
-                C.A[i] = A[i] + val;
+            C.allocated = true;
+            C.resizedElements = (numRow * numRow + numRow) / 2;
+            C.numCol = numRow;
+            C.numRow = numRow;
+        }
 
-            return matrix(C);
+        auto n_threads = std::thread::hardware_concurrency();
+        auto block_size = static_cast<unsigned int>(C.size() / (n_threads));
+
+        if (block_size < worksize)
+        {
+            block_size = static_cast<unsigned int>(C.size());
+            n_threads = 1;
+        }
+
+        // #pragma omp parallel for schedule(static, block_size) num_threads(n_threads)
+        for (size_t i = 0; i < C.size(); i++)
+            C.A[i] = A[i] + val;
+
+        return matrix(C);
     }
 
     //===============================================================================================================
@@ -4449,7 +4503,7 @@ namespace evolm
 #ifdef intelmkl
         ipiv = (lapack_int *)mkl_malloc(row * sizeof(lapack_int), sizeof(T) * 8);
 #else
-        //ipiv = (lapack_int *)aligned_alloc(sizeof(T) * 8, row * sizeof(lapack_int));
+        // ipiv = (lapack_int *)aligned_alloc(sizeof(T) * 8, row * sizeof(lapack_int));
         ipiv = (lapack_int *)malloc(row * sizeof(lapack_int));
 #endif
         if (ipiv == NULL)
@@ -4523,7 +4577,7 @@ namespace evolm
 #ifdef intelmkl
         ipiv = (lapack_int *)mkl_malloc(row * sizeof(lapack_int), sizeof(T) * 8);
 #else
-        //ipiv = (lapack_int *)aligned_alloc(sizeof(T) * 8, row * sizeof(lapack_int));
+        // ipiv = (lapack_int *)aligned_alloc(sizeof(T) * 8, row * sizeof(lapack_int));
         ipiv = (lapack_int *)malloc(row * sizeof(lapack_int));
 #endif
         if (ipiv == NULL)
@@ -4686,7 +4740,7 @@ namespace evolm
             throw std::string("Matrix is not square. matrix<T>::invert()");
         }
     }
-        //===============================================================================================================
+    //===============================================================================================================
 
     template <typename T>
     void matrix<T>::lchol()
@@ -4721,11 +4775,11 @@ namespace evolm
                     get_lchol(A, numRow, numCol);
 
                     // put zeros on the upper part of matrix:
-                    for (size_t i = 0; i < numRow-1; i++){
-                        for (size_t j = i+1; j < numCol; j++)
-                            A[i*numRow+j] = 0.0;
+                    for (size_t i = 0; i < numRow - 1; i++)
+                    {
+                        for (size_t j = i + 1; j < numCol; j++)
+                            A[i * numRow + j] = 0.0;
                     }
-
                 }
                 catch (std::string err)
                 {
@@ -4980,10 +5034,10 @@ namespace evolm
     //===============================================================================================================
 
     template <typename T>
-    void matrix<T>::printf(std::string whiichMatrix)
+    void matrix<T>::printf(std::string whiichMatrix, bool append)
     {
         /*
-            Prints part of a matrix into the 'whiichMatrix' file.
+            Prints all the matrix into the 'whiichMatrix' file.
 
             Return value: none.
         */
@@ -5002,17 +5056,16 @@ namespace evolm
             isInt = true;
 
         FILE *dbgFile;
-        dbgFile = fopen(whiichMatrix.c_str(), "w");
+        if (append)
+            dbgFile = fopen(whiichMatrix.c_str(), "a");
+        else
+            dbgFile = fopen(whiichMatrix.c_str(), "w");
 
         if (dbgFile == NULL)
             throw std::string("There is problem with opening file in void matrix<T>::printf(std::string)!");
 
-        //size_t maxRows = 20;
-        //fprintf(dbgFile, "%s", whiichMatrix.c_str());
         if (rectangular)
         {
-            //fprintf(dbgFile, "%s%s", ", Rectangular matrix, of type ", typeid(A[0]).name());
-            //fprintf(dbgFile, "\n\n");
             for (size_t i = 0; i < numRow; i++)
             {
                 for (size_t j = 0; j < numCol; j++)
@@ -5027,8 +5080,6 @@ namespace evolm
         }
         else if (symetric)
         {
-            //fprintf(dbgFile, "%s%s", ", symetric matrix, of type ", typeid(A[0]).name());
-            //fprintf(dbgFile, "\n\n");
             for (size_t i = 0; i < numRow; i++)
             {
                 for (size_t j = 0; j <= i; j++)
@@ -5041,8 +5092,6 @@ namespace evolm
                 fprintf(dbgFile, "\n");
             }
         }
-        //fprintf(dbgFile, "\n");
-        //fprintf(dbgFile, "\n");
 
         fclose(dbgFile);
     }
