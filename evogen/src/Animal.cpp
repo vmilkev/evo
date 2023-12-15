@@ -128,11 +128,11 @@ namespace evogen
 
     //===============================================================================================================
 
-    void Animal::set_sire(unsigned long id)
+    void Animal::set_sire(unsigned long sire)
     {
         try
         {
-            properties.sire = id;
+            properties.sire = sire;
         }
         catch (const std::exception &e)
         {
@@ -155,11 +155,11 @@ namespace evogen
 
     //===============================================================================================================
 
-    void Animal::set_dame(unsigned long id)
+    void Animal::set_dame(unsigned long dame)
     {
         try
         {
-            properties.dame = id;
+            properties.dame = dame;
         }
         catch (const std::exception &e)
         {
@@ -186,7 +186,7 @@ namespace evogen
     {
         try
         {
-            properties.dame = age;
+            properties.age = age;
         }
         catch (const std::exception &e)
         {

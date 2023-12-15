@@ -58,6 +58,43 @@ namespace evogen
 
     //===============================================================================================================
 
+    Trait::Trait(Population &pop,
+                 std::vector<double> &trmean,
+                 std::vector<double> &qtl_prop_chrom,
+                 std::vector<std::vector<double>> &corr_g,
+                 std::vector<double> &varr_g,
+                 std::vector<std::vector<double>> &corr_e,
+                 std::vector<double> &varr_e,
+                 std::vector<double> &envr,
+                 size_t dist_model,
+                 std::vector<double> &dist_par)
+    {
+        try
+        {
+            cleared = true;
+            set_trait(pop, trmean, qtl_prop_chrom, corr_g, varr_g, corr_e, varr_e, envr, dist_model, dist_par);
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Trait::Trait(...overloaded...)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Trait::Trait(...overloaded...)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Trait::Trait(...overloaded...)" << '\n';
+            throw;
+        }
+    }
+
+    //===============================================================================================================
+
     void Trait::set_trait(Population &pop,
                           std::vector<double> &trmean,
                           std::vector<double> &qtl_prop_chrom,
@@ -129,7 +166,7 @@ namespace evogen
             sample_genes(n_qtl_in_chr, snp_table, qtl_prop_chrom);
 
             // qtls.print("sampled genes"); // debugging
-            //std::cout << "n_snps in pop: " << n_all_snps << ", n_qtls in pop: " << n_all_qtls << "\n";
+            // std::cout << "n_snps in pop: " << n_all_snps << ", n_qtls in pop: " << n_all_qtls << "\n";
 
             // --------- Calculate upper Cholesky decomposition of correlation matrices -------
 
@@ -373,7 +410,7 @@ namespace evogen
 
     //===============================================================================================================
 
-    /*bool Trait::is_cleared()
+    bool Trait::is_cleared()
     {
         try
         {
@@ -396,7 +433,7 @@ namespace evogen
             std::cerr << "Exception in Trait::is_cleared()" << '\n';
             throw;
         }
-    }*/
+    }
 
     //===============================================================================================================
 
@@ -1004,9 +1041,9 @@ namespace evogen
                 std::vector<double> obs;
                 for (size_t j = 0; j < n_traits; j++)
                 {
-                    obs.push_back( t(i,j) );
+                    obs.push_back(t(i, j));
                 }
-                in_pop.phenotype_at(i,obs);
+                in_pop.phenotype_at(i, obs);
             }
 
             ta.clear();
@@ -1075,9 +1112,9 @@ namespace evogen
                 std::vector<double> obs;
                 for (size_t j = 0; j < n_traits; j++)
                 {
-                    obs.push_back( t(i,j) );
+                    obs.push_back(t(i, j));
                 }
-                in_pop.phenotype_at(i,obs);
+                in_pop.phenotype_at(i, obs);
             }
 
             t.to_vector2d(out_t);
@@ -1150,9 +1187,9 @@ namespace evogen
                 std::vector<double> obs;
                 for (size_t j = 0; j < n_traits; j++)
                 {
-                    obs.push_back( t(i,j) );
+                    obs.push_back(t(i, j));
                 }
-                in_pop.phenotype_at(i,obs);
+                in_pop.phenotype_at(i, obs);
             }
 
             t.printf(out_t, false); // not in append mode
@@ -1161,7 +1198,9 @@ namespace evogen
             te.clear();
             t.clear();
 
-            fremove(out_g);
+            Utilites u;
+            u.fremove(out_g);
+
             in_pop.get_all_genotypes(out_g);
         }
         catch (const std::exception &e)
@@ -1226,9 +1265,9 @@ namespace evogen
                 std::vector<double> obs;
                 for (size_t j = 0; j < n_traits; j++)
                 {
-                    obs.push_back( t(i,j) );
+                    obs.push_back(t(i, j));
                 }
-                in_pop.phenotype_at(i,obs);
+                in_pop.phenotype_at(i, obs);
             }
 
             t.printf(out_t, false); // not in append mode
@@ -1299,9 +1338,9 @@ namespace evogen
                 std::vector<double> obs;
                 for (size_t j = 0; j < n_traits; j++)
                 {
-                    obs.push_back( t(i,j) );
+                    obs.push_back(t(i, j));
                 }
-                in_pop.phenotype_at(i,obs);
+                in_pop.phenotype_at(i, obs);
             }
 
             t.to_vector2d(out_t);
@@ -1329,473 +1368,6 @@ namespace evogen
         }
     }
 
-    //===============================================================================================================
-
-    void Trait::get_observations(Group &in_group, std::vector<double> &env)
-    {
-        try
-        {
-            if (cleared)
-                throw std::string("The trait is configured, hence the call of set_trait() is required!");
-
-            evolm::matrix<size_t> shape(2, 1);
-            shape = a.shape();
-
-            size_t gr_size = in_group.size();
-
-            if (gr_size < 1)
-                throw std::string("Cannot provide observation on empty group!");
-
-            for (size_t g = 0; g < gr_size; g++)
-            {
-                Population in_pop = in_group.get_population(g);
-                std::vector<size_t> individuals_list = in_group.get_individuals(g);
-
-                size_t n_individuals = individuals_list.size();
-
-                if (n_individuals < 1)
-                    throw std::string("Cannot provide observation on empty group => there are no selected individuals in the group!");
-
-                size_t n_traits = shape[1];
-
-                if (env.size() != n_traits)
-                    throw std::string("The demension of the array ENV array does not correspond to the number of traits!");
-
-                if (base_genome_structure != in_pop.get_genome_structure())
-                    throw std::string("The genome structure of the base population is not the same as in the population being observed!");
-
-                realloc_traits(n_individuals, n_traits);
-
-                calculate_trait(in_pop, individuals_list, env, n_traits);
-
-                evolm::matrix<double> t(n_individuals, n_traits);
-
-                for (size_t i = 0; i < n_traits; i++)
-                {
-                    for (size_t j = 0; j < n_individuals; j++)
-                    {
-                        t(j, i) = ta(j, i) + te(j, i) + t_mean(i, 0);
-                    }
-                }
-
-                // register the observed phenotypes for corresponding individual
-                for (size_t i = 0; i < n_individuals; i++)
-                {
-                    std::vector<double> obs;
-                    for (size_t j = 0; j < n_traits; j++)
-                    {
-                        obs.push_back( t(i,j) );
-                    }
-                    in_pop.phenotype_at(individuals_list[i],obs);
-                }
-
-                ta.clear();
-                te.clear();
-                t.clear();
-            }
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Exception in Trait::get_observations(Group &, std::vector<double> &)" << '\n';
-            std::cerr << e.what() << '\n';
-            throw;
-        }
-        catch (const std::string &e)
-        {
-            std::cerr << "Exception in Trait::get_observations(Group &, std::vector<double> &)" << '\n';
-            std::cerr << "Reason: " << e << '\n';
-            throw;
-        }
-        catch (...)
-        {
-            std::cerr << "Exception in Trait::get_observations(Group &, std::vector<double> &)" << '\n';
-            throw;
-        }
-    }
-
-    //===============================================================================================================
-
-    void Trait::get_observations(Group &in_group, std::vector<double> &env, const std::string &out_t)
-    {
-        try
-        {
-            if (cleared)
-                throw std::string("The trait is configured, hence the call of set_trait() is required!");
-
-            fremove(out_t);
-
-            evolm::matrix<size_t> shape(2, 1);
-            shape = a.shape();
-
-            size_t gr_size = in_group.size();
-
-            if (gr_size < 1)
-                throw std::string("Cannot provide observation on empty group!");
-
-            for (size_t g = 0; g < gr_size; g++)
-            {
-                Population in_pop = in_group.get_population(g);
-                std::vector<size_t> individuals_list = in_group.get_individuals(g);
-
-                size_t n_individuals = individuals_list.size();
-
-                if (n_individuals < 1)
-                    throw std::string("Cannot provide observation on empty group => there are no selected individuals in the group!");
-
-                size_t n_traits = shape[1];
-
-                if (env.size() != n_traits)
-                    throw std::string("The demension of the array ENV array does not correspond to the number of traits!");
-
-                if (base_genome_structure != in_pop.get_genome_structure())
-                    throw std::string("The genome structure of the base population is not the same as in the population being observed!");
-
-                realloc_traits(n_individuals, n_traits);
-
-                calculate_trait(in_pop, individuals_list, env, n_traits);
-
-                evolm::matrix<double> t(n_individuals, n_traits);
-
-                for (size_t i = 0; i < n_traits; i++)
-                {
-                    for (size_t j = 0; j < n_individuals; j++)
-                    {
-                        t(j, i) = ta(j, i) + te(j, i) + t_mean(i, 0);
-                    }
-                }
-
-                // register the observed phenotypes for corresponding individual
-                for (size_t i = 0; i < n_individuals; i++)
-                {
-                    std::vector<double> obs;
-                    for (size_t j = 0; j < n_traits; j++)
-                    {
-                        obs.push_back( t(i,j) );
-                    }
-                    in_pop.phenotype_at(individuals_list[i],obs);
-                }
-
-                t.printf(out_t, true); // in append mode
-
-                ta.clear();
-                te.clear();
-                t.clear();
-            }
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Exception in Trait::get_observations(Group &, std::vector<double> &, const std::string &)" << '\n';
-            std::cerr << e.what() << '\n';
-            throw;
-        }
-        catch (const std::string &e)
-        {
-            std::cerr << "Exception in Trait::get_observations(Group &, std::vector<double> &, const std::string &)" << '\n';
-            std::cerr << "Reason: " << e << '\n';
-            throw;
-        }
-        catch (...)
-        {
-            std::cerr << "Exception in Trait::get_observations(Group &, std::vector<double> &, const std::string &)" << '\n';
-            throw;
-        }
-    }
-
-    //===============================================================================================================
-
-    void Trait::get_observations(Group &in_group, std::vector<double> &env, const std::string &out_trvalues, const std::string &out_genotypes)
-    {
-        try
-        {
-            if (cleared)
-                throw std::string("The trait is configured, hence the call of set_trait() is required!");
-
-            fremove(out_trvalues);
-            fremove(out_genotypes);
-
-            evolm::matrix<size_t> shape(2, 1);
-            shape = a.shape();
-
-            size_t gr_size = in_group.size();
-
-            if (gr_size < 1)
-                throw std::string("Cannot provide observation on empty group!");
-
-            for (size_t g = 0; g < gr_size; g++)
-            {
-                Population in_pop = in_group.get_population(g);
-                std::vector<size_t> individuals_list = in_group.get_individuals(g);
-
-                size_t n_individuals = individuals_list.size();
-
-                if (n_individuals < 1)
-                    throw std::string("Cannot provide observation on empty group => there are no selected individuals in the group!");
-
-                size_t n_traits = shape[1];
-
-                if (env.size() != n_traits)
-                    throw std::string("The demension of the array ENV array does not correspond to the number of traits!");
-
-                if (base_genome_structure != in_pop.get_genome_structure())
-                    throw std::string("The genome structure of the base population is not the same as in the population being observed!");
-
-                realloc_traits(n_individuals, n_traits);
-
-                calculate_trait(in_pop, individuals_list, env, n_traits);
-
-                evolm::matrix<double> t(n_individuals, n_traits);
-
-                for (size_t i = 0; i < n_traits; i++)
-                {
-                    for (size_t j = 0; j < n_individuals; j++)
-                    {
-                        t(j, i) = ta(j, i) + te(j, i) + t_mean(i, 0);
-                    }
-                }
-
-                // register the observed phenotypes for corresponding individual
-                for (size_t i = 0; i < n_individuals; i++)
-                {
-                    std::vector<double> obs;
-                    for (size_t j = 0; j < n_traits; j++)
-                    {
-                        obs.push_back( t(i,j) );
-                    }
-                    in_pop.phenotype_at(individuals_list[i],obs);
-                }
-
-                t.printf(out_trvalues, true); // in append mode
-
-                ta.clear();
-                te.clear();
-                t.clear();
-
-                in_pop.get_all_genotypes(out_genotypes); // in append mode
-            }
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Exception in Trait::get_observations(Group &, std::vector<double> &, const std::string &, const std::string &)" << '\n';
-            std::cerr << e.what() << '\n';
-            throw;
-        }
-        catch (const std::string &e)
-        {
-            std::cerr << "Exception in Trait::get_observations(Group &, std::vector<double> &, const std::string &, const std::string &)" << '\n';
-            std::cerr << "Reason: " << e << '\n';
-            throw;
-        }
-        catch (...)
-        {
-            std::cerr << "Exception in Trait::get_observations(Group &, std::vector<double> &, const std::string &, const std::string &)" << '\n';
-            throw;
-        }
-    }
-
-    //===============================================================================================================
-
-    void Trait::get_observations(Group &in_group, std::vector<double> &env, std::vector<std::vector<double>> &out_trvalues, std::vector<std::vector<short>> &out_genotypes)
-    {
-        try
-        {
-            if (cleared)
-                throw std::string("The trait is configured, hence the call of set_trait() is required!");
-
-            evolm::matrix<size_t> shape(2, 1);
-            shape = a.shape();
-
-            size_t gr_size = in_group.size();
-
-            if (gr_size < 1)
-                throw std::string("Cannot provide observation on empty group!");
-
-            for (size_t g = 0; g < gr_size; g++)
-            {
-                Population in_pop = in_group.get_population(g);
-                std::vector<size_t> individuals_list = in_group.get_individuals(g);
-                ;
-
-                size_t n_individuals = individuals_list.size();
-
-                if (n_individuals < 1)
-                    throw std::string("Cannot provide observation on empty group => there are no selected individuals in the group!");
-
-                size_t n_traits = shape[1];
-
-                if (env.size() != n_traits)
-                    throw std::string("The demension of the array ENV array does not correspond to the number of traits!");
-
-                if (base_genome_structure != in_pop.get_genome_structure())
-                    throw std::string("The genome structure of the base population is not the same as in the population being observed!");
-
-                realloc_traits(n_individuals, n_traits);
-
-                calculate_trait(in_pop, individuals_list, env, n_traits);
-
-                evolm::matrix<double> t(n_individuals, n_traits);
-
-                for (size_t i = 0; i < n_traits; i++)
-                {
-                    for (size_t j = 0; j < n_individuals; j++)
-                    {
-                        t(j, i) = ta(j, i) + te(j, i) + t_mean(i, 0);
-                    }
-                }
-
-                // register the observed phenotypes for corresponding individual
-                for (size_t i = 0; i < n_individuals; i++)
-                {
-                    std::vector<double> obs;
-                    for (size_t j = 0; j < n_traits; j++)
-                    {
-                        obs.push_back( t(i,j) );
-                    }
-                    in_pop.phenotype_at(individuals_list[i],obs);
-                }
-
-                t.to_vector2d(out_trvalues);
-
-                ta.clear();
-                te.clear();
-                t.clear();
-
-                in_pop.get_all_genotypes(out_genotypes);
-            }
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Exception in Trait::get_observations(Group &, std::vector<double> &, std::vector<std::vector<double>> &, std::vector<std::vector<short>> &)" << '\n';
-            std::cerr << e.what() << '\n';
-            throw;
-        }
-        catch (const std::string &e)
-        {
-            std::cerr << "Exception in Trait::get_observations(Group &, std::vector<double> &, std::vector<std::vector<double>> &, std::vector<std::vector<short>> &)" << '\n';
-            std::cerr << "Reason: " << e << '\n';
-            throw;
-        }
-        catch (...)
-        {
-            std::cerr << "Exception in Trait::get_observations(Group &, std::vector<double> &, std::vector<std::vector<double>> &, std::vector<std::vector<short>> &)" << '\n';
-            throw;
-        }
-    }
-
-    //===============================================================================================================
-
-    void Trait::get_observations(Group &in_group, std::vector<double> &env, std::vector<std::vector<double>> &out_t)
-    {
-        try
-        {
-            if (cleared)
-                throw std::string("The trait is configured, hence the call of set_trait() is required!");
-
-            evolm::matrix<size_t> shape(2, 1);
-            shape = a.shape();
-
-            size_t gr_size = in_group.size();
-
-            if (gr_size < 1)
-                throw std::string("Cannot provide observation on empty group!");
-
-            for (size_t g = 0; g < gr_size; g++)
-            {
-                Population in_pop = in_group.get_population(g);
-                std::vector<size_t> individuals_list = in_group.get_individuals(g);
-
-                size_t n_individuals = individuals_list.size();
-
-                if (n_individuals < 1)
-                    throw std::string("Cannot provide observation on empty group => there are no selected individuals in the group!");
-
-                size_t n_traits = shape[1];
-
-                if (env.size() != n_traits)
-                    throw std::string("The demension of the array ENV array does not correspond to the number of traits!");
-
-                if (base_genome_structure != in_pop.get_genome_structure())
-                    throw std::string("The genome structure of the base population is not the same as in the population being observed!");
-
-                realloc_traits(n_individuals, n_traits);
-
-                calculate_trait(in_pop, individuals_list, env, n_traits);
-
-                evolm::matrix<double> t(n_individuals, n_traits);
-
-                for (size_t i = 0; i < n_traits; i++)
-                {
-                    for (size_t j = 0; j < n_individuals; j++)
-                    {
-                        t(j, i) = ta(j, i) + te(j, i) + t_mean(i, 0);
-                    }
-                }
-
-                // register the observed phenotypes for corresponding individual
-                for (size_t i = 0; i < n_individuals; i++)
-                {
-                    std::vector<double> obs;
-                    for (size_t j = 0; j < n_traits; j++)
-                    {
-                        obs.push_back( t(i,j) );
-                    }
-                    in_pop.phenotype_at(individuals_list[i],obs);
-                }
-
-                t.to_vector2d(out_t);
-
-                ta.clear();
-                te.clear();
-                t.clear();
-            }
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Exception in Trait::get_observations(Group &, std::vector<double> &, std::vector<std::vector<double>> &)" << '\n';
-            std::cerr << e.what() << '\n';
-            throw;
-        }
-        catch (const std::string &e)
-        {
-            std::cerr << "Exception in Trait::get_observations(Group &, std::vector<double> &, std::vector<std::vector<double>> &)" << '\n';
-            std::cerr << "Reason: " << e << '\n';
-            throw;
-        }
-        catch (...)
-        {
-            std::cerr << "Exception in Trait::get_observations(Group &, std::vector<double> &, std::vector<std::vector<double>> &)" << '\n';
-            throw;
-        }
-    }
-
-    //===============================================================================================================
-
-    void Trait::fremove(std::string file_name)
-    {
-        try
-        {
-            std::filesystem::remove(file_name);
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Exception in Trait::fremove(std::string)" << '\n';
-            std::cerr << e.what() << '\n';
-            throw;
-        }
-        catch (const std::string &e)
-        {
-            std::cerr << "Exception in Trait::fremove(std::string)" << '\n';
-            std::cerr << "Reason: " << e << '\n';
-            throw;
-        }
-        catch (...)
-        {
-            std::cerr << "Exception in Trait::fremove(std::string)" << '\n';
-            throw;
-        }
-    }
-
-    //===============================================================================================================
-    //===============================================================================================================
     //===============================================================================================================
 
     /*

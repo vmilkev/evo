@@ -2,6 +2,7 @@
 #define group_hpp__
 
 #include "Population.hpp"
+#include "Trait.hpp"
 #include <vector>
 #include <functional>
 
@@ -19,19 +20,52 @@ namespace evogen
         void clear();
         void remove();
         void move(Population &pop);
-        void add(Population &pop); // add entire population to the group
-        void add(Population &pop, size_t which_one);
+        void add(Population &pop);          // add entire population to the group
+        void add(Population &pop,
+                 size_t which_one);
         void add(Group &grp);
+        void mate();                        // default: sexual reproduction, 1 - offspring with 1.0 success rate
+        void mate(bool sexual_reproduction, // true - sexual, false - asexsual;
+                  int max_offspring,        // max number of offspring from the same mating event
+                  double success_rate);     // probability of getting max_offspring value (binomial distribution)
+        void regroup_newborn(Group &grp);
 
-        friend class Trait;
+        void aging(int delta_t);
+        void genotype();
+        void kill();
+
+        void make_observation(Trait &trt,
+                              std::vector<double> &env);
+
+        void make_observation(Trait &trt,
+                              std::vector<double> &env,
+                              const std::string &out_trvalues);
+
+        void make_observation(Trait &trt,
+                              std::vector<double> &env,
+                              const std::string &out_trvalues,
+                              const std::string &out_genotypes);
+
+        void make_observation(Trait &trt,
+                              std::vector<double> &env,
+                              std::vector<std::vector<double>> &out_trvalues);
+
+        void make_observation(Trait &trt,
+                              std::vector<double> &env,
+                              std::vector<std::vector<double>> &out_trvalues,
+                              std::vector<std::vector<short>> &out_genotypes);
 
     private:
-        std::vector< std::reference_wrapper<Population> > pop_list;
-        std::vector< std::vector<size_t> > individuals_list;
+        std::vector<std::reference_wrapper<Population>> pop_list;
+        std::vector<std::vector<size_t>> individuals_list;
 
-        Population & get_population( size_t which_pop );
-        std::vector<size_t> get_individuals( size_t which_pop );
-        
+        std::vector<std::reference_wrapper<Population>> pop_list_newborn;
+        std::vector<std::vector<size_t>> individuals_list_newborn;
+
+        Population &get_population(size_t which_pop);
+        std::vector<size_t> get_individuals(size_t which_pop);
+        void add_newborn(Population &pop, size_t which_one);
+
     protected:
     };
 

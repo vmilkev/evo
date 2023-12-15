@@ -79,13 +79,20 @@ namespace evogen
         {
             for (size_t i = 0; i < individuals.size(); i++)
             {
-                std::cout<<"from individuals: i = "<<i<<", id = "<<individuals[i].get_id()<<", active = "<<individuals[i].get_active()<<"\n";
+                std::cout<<"from individuals: i = "<<i
+                         <<", id = "<<individuals[i].get_id()
+                         <<", active = "<<individuals[i].get_active()
+                         <<", sex = "<<individuals[i].get_sex()
+                         <<", sire = "<<individuals[i].get_sire()
+                         <<", dame = "<<individuals[i].get_dame()
+                         <<", age = "<<individuals[i].get_age()
+                         <<"\n";
             }
             std::cout<<"\n";
-            for (size_t i = 0; i < active_individuals.size(); i++)
+            /*for (size_t i = 0; i < active_individuals.size(); i++)
             {
                 std::cout<<"from active_individuals: i = "<<i<<", value = "<<active_individuals[i]<<"\n";
-            }
+            }*/
         }
 
     private:

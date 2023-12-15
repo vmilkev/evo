@@ -4,6 +4,7 @@
 #include <iostream>
 #include <random>
 #include <chrono>
+#include <filesystem>
 
 namespace evogen
 {
@@ -41,6 +42,13 @@ namespace evogen
                                            T alpha,
                                            T beta,
                                            bool reset); /* returns a vector of gamma distributed random floating point values */
+
+        std::vector<int> get_bin_rand(size_t n_values,
+                                           int n,
+                                           double p,
+                                           bool reset); /* returns a vector of gamma distributed random floating point values */
+
+        void fremove(std::string file_name);
 
     private:
         // std::mt19937 generator;

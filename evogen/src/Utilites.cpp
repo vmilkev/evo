@@ -272,4 +272,76 @@ namespace evogen
 
     //===============================================================================================================
 
+    std::vector<int> Utilites::get_bin_rand(size_t n_values, int n, double p, bool reset)
+    {
+        /*
+           n_values - number of random numbers generated;
+           n - number of trials, n > 0;
+           p - probability of success, 0 <= p <= 1;
+           reset - resets the distribution, if true - all the numbers will be from different distributions )
+                   independent, if false - all numbers are from the same distribution.
+        */
+
+        std::vector<int> rnum_vect;
+
+        try
+        {
+            std::random_device rd;
+            std::mt19937 generator(rd());
+
+            std::binomial_distribution<int> distribution(n, p);
+
+            for (size_t i = 0; i < n_values; i++)
+            {
+                if (reset)
+                    distribution.reset();
+
+                int number = distribution(generator);
+                rnum_vect.push_back(number);
+            }
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Utilites::get_bin_rand(size_t, int, double, bool)." << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Utilites::get_bin_rand(size_t, int, double, bool)." << '\n';
+            throw;
+        }
+
+        return rnum_vect;
+    }
+
+    //===============================================================================================================
+
+    void Utilites::fremove(std::string file_name)
+    {
+        try
+        {
+            std::filesystem::remove(file_name);
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Trait::fremove(std::string)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Trait::fremove(std::string)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Trait::fremove(std::string)" << '\n';
+            throw;
+        }
+    }
+
+    //===============================================================================================================
+
 }

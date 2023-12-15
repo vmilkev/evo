@@ -1,18 +1,23 @@
 clear;
 
-x = 0:0.1:10;
+x = 0:0.01:5;
 a = 1; % expected number of events/crossovers; shape parameter
-mu = 2/max(x); % average intensity
+%mu = 2/max(x); % average intensity, events per chromosome
+mu = 2;
 
 y = gampdf(x, a, 1/mu);
 
 pd = makedist('Gamma','a',a,'b',1/mu);
+pd2 = makedist('Binomial','N',2,'p',0.09);
+
 rng('default')  % For reproducibility
-r = random(pd,10000,1);
+r = random(pd2,10000,1);
 
 clf;
 figure(1);
-plot(x./max(x),y, 'o-');
+%plot(x./max(x),y, 'o-');
+%plot(x,y, 'o-');
+histogram(r)
 hold on;
 %histogram(r,100,'Normalization','pdf');
 hold off;
@@ -50,7 +55,7 @@ for i = 1:sim_rounds
 end
 %%
 figure(2);
-plot(chromosome_g(:,16), '*-');
+plot(chromosome_g(:,10), '*-');
 %%
 % freq for interval L = 1
 for i = 1:intervals

@@ -496,12 +496,12 @@ namespace evogen
                 for (size_t i = 0; i < events_genome; i++)
                 {
                     size_t point = locations[i];
-                    std::cout << "Mutation point: " << point << "; current val: " << in_gamete[i_set][point] << "; obtained val: ";
+                    //std::cout << "Mutation point: " << point << "; current val: " << in_gamete[i_set][point] << "; obtained val: ";
                     if (in_gamete[i_set][point] == 0)
                         in_gamete[i_set][point] = 1;
                     else
                         in_gamete[i_set][point] = 0;
-                    std::cout << in_gamete[i_set][point] << "\n";
+                    //std::cout << in_gamete[i_set][point] << "\n";
                 }
             }
         }
@@ -651,7 +651,7 @@ namespace evogen
 
                     /* the values of which_cell & which_pat are constant for a specific gamete, and expected to be different for every new generated gamete. */
 
-                    std::cout << "chr.no: " << i << "; apply_cross & which strand: " << apply_cross << ", " << which_strand << "; which_pat & which_cell: " << which_pat << ", " << which_cell << "\n";
+                    //std::cout << "chr.no: " << i << "; apply_cross & which strand: " << apply_cross << ", " << which_strand << "; which_pat & which_cell: " << which_pat << ", " << which_cell << "\n";
 
                     if (apply_cross)
                         chromatide = crossover(i, which_strand, n_crosses, i_set);
@@ -750,6 +750,7 @@ namespace evogen
 
             std::sort(cross_locations.begin(), cross_locations.end());
 
+            /*
             std::cout << "\n";
             std::cout << "cross locations in chromosome " << in_chr << ": ";
             for (size_t i = 0; i < cross_locations.size(); i++)
@@ -757,6 +758,7 @@ namespace evogen
                 std::cout << cross_locations[i] << " ";
             }
             std::cout << "\n";
+            */
 
             // .........................................................
             // Staring exchnging of sections of chromosome

@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
 
 		d.show_animals(10, 50);
 
-		std::cout << "Random numbers" << std::endl;
+		/*std::cout << "Random numbers" << std::endl;
 		evogen::Utilites u;
 
 		std::ofstream myfile_u("tests/data/uniform_random.txt");
@@ -70,7 +70,7 @@ int main(int argc, char *argv[])
 			// std::vector<int> uni_numbers = u2.get_uni_rand(1, 1, 100, false);
 			// myfile_u2 << uni_numbers[0] << "\n";
 			myfile_g << gamma_numbers[i] << "\n";
-		}
+		}*/
 
 		// ---------------------------------------------------------------
 		std::cout << "\n";
@@ -81,7 +81,7 @@ int main(int argc, char *argv[])
 
 		evogen::Population pop; // simulated
 
-		pop.set_population(10, "tests/data/struct_haplotypes_pop3.dat", 0.7, 4); // (1) population
+		pop.set_population(20, "tests/data/struct_haplotypes_pop3.dat", 0.7, 4); // (1) population
 
 		std::cout << "pop is ready."<<"\n";
 
@@ -118,8 +118,8 @@ int main(int argc, char *argv[])
 		size_t which_model = 1;
 
 		std::cout << "Setting trait:"<<"\n";
-		evogen::Trait T;
-		T.set_trait(pop, tr_mean, qtl_prop, cor_g, var_g, cor_e, var_e, env, which_model, k_range_U);
+		evogen::Trait T(pop, tr_mean, qtl_prop, cor_g, var_g, cor_e, var_e, env, which_model, k_range_U);
+		//T.set_trait(pop, tr_mean, qtl_prop, cor_g, var_g, cor_e, var_e, env, which_model, k_range_U);
 
 		std::cout << "Make observations on pop:"<<"\n";
 		T.get_observations(pop, env, "trait_pop.dat");
@@ -134,7 +134,9 @@ int main(int argc, char *argv[])
 		std::cout<<"G size: "<<G.size()<<", size at: "<<G.size_at(0)<<"\n";
 		
 		std::cout << "Make observations on G:"<<"\n";
-		T.get_observations(G, env, "trait_G_from_pop.dat");
+		
+		//T.get_observations(G, env, "trait_G_from_pop.dat");
+		G.make_observation(T,env);
 		
 		std::cout << "Show pop:"<<"\n";
 		pop.show_pop();
@@ -176,8 +178,8 @@ int main(int argc, char *argv[])
 
 		std::cout<<"pop2 size: "<<pop2.size()<<", capacity: "<<pop2.capacity()<<"\n";
 		
-		T.get_observations(G2, env, "trait_G2.dat");
-		T.get_observations(G2, env);
+		//T.get_observations(G2, env, "trait_G2.dat");
+		//T.get_observations(G2, env);
 		std::cout<<"Move the content of G2 into pop2, moved ids should dissapiar from pop and G2 should be empty.:"<<"\n";
 		G2.move(pop2);
 		
@@ -219,25 +221,66 @@ int main(int argc, char *argv[])
 		T.get_observations(pop, env, "trait_pop_reduced.dat");
 		
 		T.get_observations(pop, env);
-		std::cout << "Check recorded traits at each individual in pop:"<<"\n";
+		
+		G.clear();
+		G2.clear();
 
-		for (size_t i = 0; i < pop.size(); i++)
+		pop.aging(3);
+		pop2.aging(5);
+
+		G.add(pop);
+		G.add(pop2);
+
+		G.mate();
+		//G.mate(false, 2, 0.8);
+
+		pop.show_pop();
+		pop2.show_pop();
+
+		std::cout<<"\n";
+		std::cout<<"Relocating new-borns:"<<"\n";
+
+		evogen::Group G_newborn,G3;
+		evogen::Population pop_newborn, pop3;
+		
+		G.regroup_newborn(G_newborn);
+
+		std::cout<<"new-borns group, size:"<<G_newborn.size()<<"\n";
+		for (size_t i = 0; i < G_newborn.size(); i++)
 		{
-			std::vector<double> tr = pop.phenotype_at(i);
-			for (size_t j = 0; j < tr.size(); j++)
-				std::cout<<tr[j]<<" ";
-			std::cout<<"\n";
+			std::cout<<"new-borns group, size at:"<<i<<", "<<G_newborn.size_at(i)<<"\n";
 		}
 
-		std::cout << "Check recorded traits at each individual in pop2 (recalculated, should equal with G2):"<<"\n";
+		G_newborn.aging(4);
+		G_newborn.genotype();
+		G_newborn.kill();
 
-		for (size_t i = 0; i < pop2.size(); i++)
-		{
-			std::vector<double> tr = pop2.phenotype_at(i);
-			for (size_t j = 0; j < tr.size(); j++)
-				std::cout<<tr[j]<<" ";
-			std::cout<<"\n";
-		}
+		G_newborn.move(pop_newborn);
+
+		std::cout<<"\n";
+		std::cout<<"Showing populations:"<<"\n";
+		std::cout<<"Showing pop:"<<"\n";
+		pop.show_pop();
+		std::cout<<"Showing pop2:"<<"\n";
+		pop2.show_pop();
+		std::cout<<"Showing newborn_pop:"<<"\n";
+		pop_newborn.show_pop();
+
+		G3.add(pop);
+		G3.add(pop2);
+		G3.add(pop_newborn);
+		G3.move(pop3);
+
+		std::cout<<"\n";
+		std::cout<<"Showing populations:"<<"\n";
+		std::cout<<"Showing pop:"<<"\n";
+		pop.show_pop();
+		std::cout<<"Showing pop2:"<<"\n";
+		pop2.show_pop();
+		std::cout<<"Showing newborn_pop:"<<"\n";
+		pop_newborn.show_pop();
+		std::cout<<"Showing pop3:"<<"\n";
+		pop3.show_pop();
 
 		T.clear();/**/
 
