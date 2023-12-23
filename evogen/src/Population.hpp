@@ -115,6 +115,6 @@ namespace evogen
         return std::addressof(rhs) != std::addressof(lhs);
     }
 
-} // end of namespace evo
+} // end of namespace evogen
 
 #endif // population_hpp__

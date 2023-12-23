@@ -200,9 +200,9 @@ namespace evogen
 
             // a.print("a2"); // debugging
             // e.print("e"); // debugging
-            a.printf("a.dat", false); // debugging
-            e.printf("e.dat", false); // debugging
-            k.printf("k.dat", false); // debugging
+            //a.printf("a.dat", false); // debugging
+            //e.printf("e.dat", false); // debugging
+            //k.printf("k.dat", false); // debugging
 
             // --------- Allocating memory for traits values containers ----------------------
 
@@ -235,14 +235,14 @@ namespace evogen
 
             calculate_trait(pop, envr, n_trait);
 
-            ta.printf("ta2.dat", false); // debugging
-            te.printf("te2.dat", false); // debugging
+            //ta.printf("ta2.dat", false); // debugging
+            //te.printf("te2.dat", false); // debugging
 
             // --------- Calculate current mean of traits -------------------------------------
 
             calculate_correction_mean(trmean);
 
-            t_mean.printf("tmean.dat", false);
+            //t_mean.printf("tmean.dat", false); // debugging
 
             // --------- Clean some arrays ----------------------------------------------------
 

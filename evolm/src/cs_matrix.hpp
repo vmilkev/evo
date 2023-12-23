@@ -2355,8 +2355,12 @@ namespace evolm
         if ((rhs.compact && !compact) || (!rhs.compact && compact))
             return false;
 
-        // return std::equal(std::begin(A), std::end(A), std::begin(rhs.A));
-        return std::equal(A, A + sizeof(A) / sizeof(*A), rhs.A);
+        for (size_t i = 0; i < size(); i++)
+            if ( A[i] != rhs.A[i] )
+                return false;
+        
+        return true;
+        //return std::equal(A, A + sizeof A / sizeof *A, rhs.A);
     }
 
     //===============================================================================================================

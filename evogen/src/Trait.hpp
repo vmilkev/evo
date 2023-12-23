@@ -1,7 +1,6 @@
 #ifndef trait_hpp__
 #define trait_hpp__
 
-#include "Genome.hpp"
 #include "Population.hpp"
 #include "cs_matrix.hpp"
 #include "Utilites.hpp"
