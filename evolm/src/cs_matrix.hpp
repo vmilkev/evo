@@ -4497,6 +4497,21 @@ namespace evolm
 
             Return value: none.
         */
+    // -------------------------------------
+    std::cout<<" (01) _A matrix, numRow, numCol: "<<numRow<<", "<<numCol<<"\n";
+    size_t l = 0;
+    for (size_t i = 0; i < rowA; i++)
+    {
+        for (size_t j = 0; j < colA; j++)
+        {
+            std::cout<<_A[l]<<" ";
+            l++;
+        }
+        std::cout<<"\n";
+    }
+    std::cout<<"\n";
+    // -------------------------------------
+
         lapack_int info = 0;
         lapack_int row = rowA;
         lapack_int col = colA;
@@ -4507,7 +4522,6 @@ namespace evolm
 #ifdef intelmkl
         ipiv = (lapack_int *)mkl_malloc(row * sizeof(lapack_int), sizeof(T) * 8);
 #else
-        // ipiv = (lapack_int *)aligned_alloc(sizeof(T) * 8, row * sizeof(lapack_int));
         ipiv = (lapack_int *)malloc(row * sizeof(lapack_int));
 #endif
         if (ipiv == NULL)
@@ -4520,10 +4534,54 @@ namespace evolm
             failbit = true;
             throw std::string("Memory allocation error. matrix<T>::inv_rec(...)");
         }
+
         for (lapack_int i = 0; i < (row); i++)
             ipiv[i] = 1;
 
         info = LAPACKE_dgetrf(matrix_order, row, col, _A, col, ipiv);
+        //info = LAPACKE_dsytrf( matrix_order, 'L', row, _A, col, ipiv ); // Bunch-Kaufman factorization
+    
+    // -------------------------------------
+double _AA[] = {1.0447, -0.53818, 0.63471, -0.32742, 0.26935, -0.39388, -0.83894, -0.48137, 0.55758, 
+-0.515153, 1.26976, -0.649557, -0.453391, -0.762144, 0.0422917, 0.305688, -0.185191, 0.483219, 
+0.607552, -0.511561, 0.472992, 0.0827774, -0.00388734, -0.193752, -0.060322, -0.018749, -0.273513, 
+0.533723, 0.380561, -0.578261, -0.419419, -0.366074, -0.206351, -0.444963, -0.0599374, 1.47685, 
+0.257825, -0.600229, -0.00821862, 0.287725, 0.826091, -0.0993231, 0.0821637, -0.0274343, -0.791001, 
+-0.377027, 0.0333069, -0.409632, 0.131939, -0.133637, 0.447204, 0.132994, -0.0423296, -0.506913, 
+-0.460773, -0.145848, -0.0396392, 0.11521, -0.00303146, -0.0516516, -0.120596, 0.40824, -0.258667, 
+-0.313411, -0.35707, 0.175008, -0.857816, -0.526215, -0.636432, -0.18663, -0.0649229, 0.0603206, 
+-0.803044, 0.240745, -0.127533, -0.658831, -0.347473, -0.239616, -0.741898, -0.997034, -4.64268e-05};
+
+    std::cout<<" (02) _A matrix, info: "<<info<<", row, col: "<<row<<", "<<col<<"\n";
+    l = 0;
+    for (size_t i = 0; i < row; i++)
+    {
+        for (size_t j = 0; j < col; j++)
+        {
+            std::cout<<_A[l]<<" ";
+            l++;
+        }
+        std::cout<<"\n";
+    }
+    std::cout<<"\n";
+    std::cout<<" (02) _AA matrix: "<<info<<"\n";
+    l = 0;
+    for (size_t i = 0; i < rowA; i++)
+    {
+        for (size_t j = 0; j < colA; j++)
+        {
+            std::cout<<_AA[l]<<" ";
+            l++;
+        }
+        std::cout<<"\n";
+    }
+    std::cout<<"\n";
+    std::cout<<"ipv:"<<"\n";
+    for (lapack_int i = 0; i < (row); i++)
+        std::cout<<ipiv[i]<<" ";
+    std::cout<<"\n";
+    // -------------------------------------
+
         if (info != 0)
         {
 #ifdef intelmkl
@@ -4535,6 +4593,41 @@ namespace evolm
         }
 
         info = LAPACKE_dgetri(matrix_order, row, _A, row, ipiv);
+        info = LAPACKE_dgetri(matrix_order, row, _AA, row, ipiv);
+        //info = LAPACKE_dsytri ( matrix_order, 'L', row, _A, col, ipiv ); // due to Bunch-Kaufman factorization
+
+    // -------------------------------------
+    std::cout<<" (03) _A matrix: "<<info<<", row, col: "<<row<<", "<<col<<"\n";
+    l = 0;
+    for (size_t i = 0; i < row; i++)
+    {
+        for (size_t j = 0; j < col; j++)
+        {
+            std::cout<<_A[l]<<" ";
+            l++;
+        }
+        std::cout<<"\n";
+    }
+    std::cout<<"\n";
+
+    std::cout<<" (03) _AA matrix: "<<info<<"\n";
+    l = 0;
+    for (size_t i = 0; i < row; i++)
+    {
+        for (size_t j = 0; j < col; j++)
+        {
+            std::cout<<_AA[l]<<" ";
+            l++;
+        }
+        std::cout<<"\n";
+    }
+    std::cout<<"\n";
+    std::cout<<"ipv:"<<"\n";
+    for (lapack_int i = 0; i < (row); i++)
+        std::cout<<ipiv[i]<<" ";
+    std::cout<<"\n";
+    // -------------------------------------
+
         if (info != 0)
         {
 #ifdef intelmkl
@@ -4570,7 +4663,6 @@ namespace evolm
 
             Return value: none.
         */
-
         lapack_int info = 0;
         lapack_int row = rowA;
         lapack_int col = colA;
@@ -4598,6 +4690,7 @@ namespace evolm
             ipiv[i] = 1;
 
         info = LAPACKE_sgetrf(matrix_order, row, col, _A, col, ipiv);
+
         if (info != 0)
         {
 #ifdef intelmkl
@@ -4609,6 +4702,7 @@ namespace evolm
         }
 
         info = LAPACKE_sgetri(matrix_order, row, _A, row, ipiv);
+
         if (info != 0)
         {
 #ifdef intelmkl
@@ -4645,7 +4739,8 @@ namespace evolm
         {
             failbit = true;
             failinfo = (int)info;
-            throw std::string("Error during computationof  the Cholesky factorization of a symmetric (Hermitian) positive-definite matrix using packed storage. matrix<T>::inv_sym(double *, MKL_INT)");
+            std::cerr<<"info output from LAPACKE_dpptrf: "<<info<<"\n";
+            throw std::string("Error during computation of the Cholesky factorization of a symmetric (Hermitian) positive-definite matrix using packed storage. matrix<T>::inv_sym(double *, MKL_INT)");
         }
 
         info = LAPACKE_dpptri(matrix_order, 'L', colA, _A);
