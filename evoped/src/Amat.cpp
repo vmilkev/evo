@@ -30,219 +30,230 @@ namespace evoped
 
     //===============================================================================================================
 
-    Amat::Amat(const std::string &ped_file)
+    Amat::~Amat()
     {
         try
         {
-            pedigree_file = ped_file;
-
-            fread_pedigree(ped_file);
-            trace_pedigree();
+            clear();
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Amat::Amat(std::string &)" << '\n';
+            std::cerr << "Exception in Amat::Amat()" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Amat::Amat(std::string &)" << '\n';
+            std::cerr << "Exception in Amat::Amat()" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Amat::Amat(std::string &)" << '\n';
+            std::cerr << "Exception in Amat::Amat()" << '\n';
             throw;
         }
     }
 
     //===============================================================================================================
 
-    Amat::Amat(const std::string &ped_file, const std::string &g_file)
+    void Amat::map_to_matr(std::map<PedPair, double> &amap, std::vector<std::int64_t> &ids, bool use_ainv)
     {
         try
         {
-            pedigree_file = ped_file;
-            genotyped_file = g_file;
+            std::map<std::int64_t, std::int64_t> rid_map;
 
-            fread_pedigree(ped_file);
-            fread_genotyped_id(g_file);
-            trace_pedigree();
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Exception in Amat::Amat(std::string &, std::string &)" << '\n';
-            std::cerr << e.what() << '\n';
-            throw;
-        }
-        catch (const std::string &e)
-        {
-            std::cerr << "Exception in Amat::Amat(std::string &, std::string &)" << '\n';
-            std::cerr << "Reason: " << e << '\n';
-            throw;
-        }
-        catch (...)
-        {
-            std::cerr << "Exception in Amat::Amat(std::string &, std::string &)" << '\n';
-            throw;
-        }
-    }
+            if ( ids.empty() )
+                throw std::string("Empty traced pedigree IDs!");
 
-    //===============================================================================================================
+            size_t limit = 0.5*(ids.size()-1)*ids.size()+ids.size();
+            if ( !use_ainv )
+                limit = ids.size() * ids.size();
 
-    void Amat::get_ainv()
-    {
-        try
-        {
-            if ( !pedigree.empty() )
+            if ( limit < amap.size() )
+                throw std::string("The number of elements in calculated A(-1) matrix is higher than the number of traced IDs!!");
+
+            get_RecodedIdMap(rid_map, ids);
+
+            if (rid_map.empty())
+                throw std::string("Recoded IDs map is empty!");
+
+            if ( !A.empty())
+                A.clear();
+            
+            A.resize(ids.size());
+
+//#pragma omp parallel for
+            for (auto const &elem : amap)
             {
+                std::int64_t g_row = elem.first.val_1;
+                std::int64_t g_col = elem.first.val_2;
+                double g_val = elem.second;
+
+                size_t r = rid_map[ g_row ];
+                size_t c = rid_map[ g_col ];
+                size_t ind = r * (r - 1) / 2 + c - 1;
+                if (c > r)
+                    ind = c * (c - 1) / 2 + r - 1;
+                A[ind] = g_val;
+            }
+
+            rid_map.clear();
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Amat::map_to_matr(std::map<PedPair, double> &, std::vector<std::int64_t> &, bool)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Amat::map_to_matr(std::map<PedPair, double> &, std::vector<std::int64_t> &, bool)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Amat::map_to_matr(std::map<PedPair, double> &, std::vector<std::int64_t> &, bool)" << '\n';
+            throw;
+        }
+    }
+
+    //===============================================================================================================
+
+    void Amat::make_matrix(const std::string &ped_file, bool use_ainv)
+    {
+        // Making A or A(-1) based on full pedigree
+        try
+        {
+            std::vector<std::int64_t> pedID;
+            std::map<PedPair, PedPair> pedigree_from_file;
+            std::map<PedPair, PedPair> pedigree;
+
+            fread_pedigree(ped_file, pedigree_from_file, pedID);
+
+            if (pedID.empty())
+                throw std::string("Empty pedigree IDs!");
+
+            if (pedigree_from_file.empty())
+                throw std::string("File provided pedigree is empty!");
+
+            if (!traced_pedID.empty())
+                traced_pedID.erase(traced_pedID.begin(), traced_pedID.end());
+
+            trace_pedigree(pedigree_from_file, pedigree, pedID); // tracing full pedigree
+
+            if ( !inbrF.empty() )
+                inbrF.erase(inbrF.begin(), inbrF.end());
+
+            std::map<PedPair, double> ainv;
+
+            if ( use_ainv )
                 get_ainv(pedigree, ainv, true);
-                pedigree.clear();
-            }
-            else if ( !pedigree_file.empty() )
-            {
-                if ( !genotyped_file.empty() )
-                {
-                    fread_pedigree(pedigree_file);
-                    fread_genotyped_id(genotyped_file);
-                    trace_pedigree();
-                    get_ainv(pedigree, ainv, true);
-                    get_ainv(r_pedigree, r_ainv, true);
-                    pedigree.clear();
-                    r_pedigree.clear();
-                    return;
-                }
-                else
-                {
-                    fread_pedigree(pedigree_file);
-                    trace_pedigree();
-                    get_ainv(pedigree, ainv, true);
-                    pedigree.clear();
-                }
-            }
             else
-                throw std::string("The pedigree is empty!");
+                get_a(pedigree, ainv);
+ 
+            pedigree.clear();
+            pedigree_from_file.clear();
+            birth_id_map.clear();
+            pedID.clear();
+            pedID.shrink_to_fit();
 
-            if ( !r_pedigree.empty() )
-            {
-                get_ainv(r_pedigree, r_ainv, true);
-                r_pedigree.clear();
-            }
-            else if ( !genotyped_file.empty() )
-            {
-                fread_genotyped_id(genotyped_file);
-                if ( pedigree.empty() && !pedigree_file.empty() )
-                    fread_pedigree(pedigree_file);
-                else
-                    return;
-                
-                trace_pedigree();
-                get_ainv(r_pedigree, r_ainv, true);
-                r_pedigree.clear();
-            }
+            map_to_matr(ainv, traced_pedID, use_ainv); // converting ainv map to A or A(-1) matrix
 
+            ainv.clear();
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Amat::get_ainv()" << '\n';
+            std::cerr << "Exception in Amat::make_matrix(std::string &, bool)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Amat::get_ainv()" << '\n';
+            std::cerr << "Exception in Amat::make_matrix(std::string &, bool)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Amat::get_ainv()" << '\n';
+            std::cerr << "Exception in Amat::make_matrix(std::string &, bool)" << '\n';
             throw;
         }
     }
 
     //===============================================================================================================
 
-    void Amat::get_ainv(const std::string &ped_file)
+    void Amat::make_matrix(const std::string &ped_file, const std::string &g_file, bool use_ainv)
     {
+        // Making A(-1) based on reduced pedigree traced on IDs in the file 'g_file'
         try
         {
-            pedigree_file = ped_file;
+            std::vector<std::int64_t> pedID;
+            std::vector<std::int64_t> genotypedID;
+            std::map<PedPair, PedPair> pedigree_from_file;
+            std::map<PedPair, PedPair> r_pedigree;
+            
+            fread_pedigree(ped_file, pedigree_from_file, pedID);
 
-            fread_pedigree(ped_file);
+            if (pedigree_from_file.empty())
+                throw std::string("File provided pedigree is empty!");
 
-            trace_pedigree();
+            fread_genotyped_id(g_file, genotypedID);
 
-            get_ainv(pedigree, ainv, true);
+            if (genotypedID.empty())
+                throw std::string("Cannot trace the reduced pedigree: ID's vector is empty!");
+            
+            if (!traced_pedID.empty())
+                traced_pedID.erase(traced_pedID.begin(), traced_pedID.end());
 
-            pedigree.clear();
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Exception in Amat::get_ainv(std::string &)" << '\n';
-            std::cerr << e.what() << '\n';
-            throw;
-        }
-        catch (const std::string &e)
-        {
-            std::cerr << "Exception in Amat::get_ainv(std::string &)" << '\n';
-            std::cerr << "Reason: " << e << '\n';
-            throw;
-        }
-        catch (...)
-        {
-            std::cerr << "Exception in Amat::get_ainv(std::string &)" << '\n';
-            throw;
-        }
-    }
+            trace_pedigree(pedigree_from_file, r_pedigree, genotypedID); // tracing reduced pedigree for genotyped individuals
 
-    //===============================================================================================================
+            if ( !inbrF.empty() )
+                inbrF.erase(inbrF.begin(), inbrF.end());
 
-    void Amat::get_ainv(const std::string &ped_file, const std::string &g_file)
-    {
-        try
-        {
-            pedigree_file = ped_file;
-            genotyped_file = g_file;
+            std::map<PedPair, double> r_ainv;
 
-            fread_pedigree(ped_file);
-            fread_genotyped_id(g_file);
+            if ( use_ainv )
+                get_ainv(r_pedigree, r_ainv, true);
+            else
+                get_a(r_pedigree, r_ainv);
 
-            trace_pedigree();
-
-            get_ainv(pedigree, ainv, true);
-            get_ainv(r_pedigree, r_ainv, true);
-
-            pedigree.clear();
             r_pedigree.clear();
+            pedigree_from_file.clear();
+            birth_id_map.clear();
+            genotypedID.clear();
+            genotypedID.shrink_to_fit();
+            pedID.clear();
+            pedID.shrink_to_fit();
+
+            map_to_matr(r_ainv, traced_pedID, use_ainv); // converting r_ainv map to A(-1) matrix
+
+            r_ainv.clear();
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Amat::get_ainv(std::string &, std::string &)" << '\n';
+            std::cerr << "Exception in Amat::make_matrix(std::string &, std::string &, bool)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Amat::get_ainv(std::string &, std::string &)" << '\n';
+            std::cerr << "Exception in Amat::make_matrix(std::string &, std::string &, bool)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Amat::get_ainv(std::string &, std::string &)" << '\n';
+            std::cerr << "Exception in Amat::make_matrix(std::string &, std::string &, bool)" << '\n';
             throw;
         }
     }
 
     //===============================================================================================================
 
-    void Amat::fread_pedigree(const std::string &ped_file)
+    void Amat::fread_pedigree(const std::string &ped_file, std::map<PedPair, PedPair> &out_ped, std::vector<std::int64_t> &out_ids)
     {
-        std::ifstream ped;
-
         try
         {
             std::string line;
@@ -253,72 +264,60 @@ namespace evoped
             const char *p;
             std::vector<double> tmp_list;
 
-            ped.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+            std::ifstream ped;
             ped.open(ped_file, std::fstream::in);
 
-            if (ped)
+            if ( !ped.good() )
+                throw std::string("Cannot open pedigree file!");
+            
+            while (getline(ped, line))
             {
-                while (getline(ped, line))
+                p = line.c_str();
+                for (double f = std::strtod(p, &end); p != end; f = std::strtod(p, &end))
                 {
-                    p = line.c_str();
-                    for (double f = std::strtod(p, &end); p != end; f = std::strtod(p, &end))
+                    p = end;
+                    if (errno == ERANGE)
                     {
-                        p = end;
-                        if (errno == ERANGE)
-                        {
-                            errno = 0;
-                            throw std::string("Range error during reading pedigree file");
-                        }
-                        tmp_list.push_back(f);
+                        errno = 0;
+                        throw std::string("Range error during reading pedigree file");
                     }
-
-                    if (tmp_list.size() > 0)
-                    {
-                        key.val_1 = static_cast<std::int64_t>(tmp_list[3]);
-                        key.val_2 = static_cast<std::int64_t>(tmp_list[0]);
-                        id_pair.val_1 = static_cast<std::int64_t>(tmp_list[1]);
-                        id_pair.val_2 = static_cast<std::int64_t>(tmp_list[2]);
-                        pedigree_from_file[key] = id_pair;
-                        birth_id_map[static_cast<std::int64_t>(tmp_list[0])] = static_cast<std::int64_t>(tmp_list[3]);
-                        pedID.push_back(static_cast<std::int64_t>(tmp_list[0]));
-
-                        tmp_list.erase(tmp_list.begin(), tmp_list.end());
-                    }
-
-                    if (ped.eof())
-                    {
-                        ped.close();
-                        if (!is_unique(pedID))
-                            pedID.erase(unique(pedID.begin(), pedID.end()), pedID.end()); // here the vector should be sorted and unique
-                        return;
-                    }
+                    tmp_list.push_back(f);
                 }
 
-                ped.close();
-                if (!is_unique(pedID))
-                    pedID.erase(unique(pedID.begin(), pedID.end()), pedID.end()); // here the vector should be sorted and unique
+                if (tmp_list.size() > 0)
+                {
+                    key.val_1 = static_cast<std::int64_t>(tmp_list[3]);
+                    key.val_2 = static_cast<std::int64_t>(tmp_list[0]);
+                    id_pair.val_1 = static_cast<std::int64_t>(tmp_list[1]);
+                    id_pair.val_2 = static_cast<std::int64_t>(tmp_list[2]);
+                    out_ped[key] = id_pair;
+                    birth_id_map[static_cast<std::int64_t>(tmp_list[0])] = static_cast<std::int64_t>(tmp_list[3]);
+                    out_ids.push_back(static_cast<std::int64_t>(tmp_list[0]));
+
+                    tmp_list.erase(tmp_list.begin(), tmp_list.end());
+                }
             }
-            else
-                throw std::string("Cannot open pedigree file!");
+
+            ped.close();
+
+            if (!is_unique(out_ids))
+                out_ids.erase(unique(out_ids.begin(), out_ids.end()), out_ids.end()); // here the vector should be sorted and unique
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Amat::fread_pedigree(const std::string &)" << '\n';
+            std::cerr << "Exception in Amat::fread_pedigree(const std::string &, std::map<PedPair, PedPair> &, std::vector<std::int64_t> &)" << '\n';
             std::cerr << e.what() << '\n';
-            if (ped.eof())
-                std::cerr << "Check for empty line(s) at the endd of the file!"
-                          << "\n";
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Amat::fread_pedigree(const std::string &)" << '\n';
+            std::cerr << "Exception in Amat::fread_pedigree(const std::string &, std::map<PedPair, PedPair> &, std::vector<std::int64_t> &)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Amat::fread_pedigree(const std::string &)" << '\n';
+            std::cerr << "Exception in Amat::fread_pedigree(const std::string &, std::map<PedPair, PedPair> &, std::vector<std::int64_t> &)" << '\n';
             throw;
         }
     }
@@ -356,14 +355,11 @@ namespace evoped
 
     //===============================================================================================================
 
-    void Amat::fread_genotyped_id(const std::string &g_file)
+    void Amat::fread_genotyped_id(const std::string &g_file, std::vector<std::int64_t> &out_ids)
     {
-        std::ifstream ped;
-
+        // reads genotyped and core IDs from typed file into the vectors: genotyped, core
         try
         {
-            /* reads genotyped and core IDs from typed file into the vectors: genotyped, core */
-
             std::string line;
             std::int64_t t_gtyp, t_gcor;
             t_gtyp = t_gcor = 0;
@@ -372,85 +368,65 @@ namespace evoped
             const char *p;
             std::vector<double> tmp_list;
 
-            ped.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+            std::ifstream ped;
             ped.open(g_file, std::fstream::in);
 
-            if (ped)
+            if ( !ped.good() )
+                throw std::string("Cannot open genotyped ids file!");
+            
+            while (std::getline(ped, line))
             {
-                while (std::getline(ped, line))
+                p = line.c_str();
+
+                for (double f = std::strtod(p, &end); p != end; f = std::strtod(p, &end))
                 {
-                    p = line.c_str();
-
-                    for (double f = std::strtod(p, &end); p != end; f = std::strtod(p, &end))
+                    p = end;
+                    if (errno == ERANGE)
                     {
-                        p = end;
-                        if (errno == ERANGE)
-                        {
-                            errno = 0;
-                            throw std::string("Range error during reading genotyped IDs file");
-                        }
-                        tmp_list.push_back(f);
+                        errno = 0;
+                        throw std::string("Range error during reading genotyped IDs file");
                     }
-
-                    if (tmp_list.size() > 0)
-                    {
-                        if (static_cast<std::int64_t>(tmp_list[0]) != 0 && static_cast<std::int64_t>(tmp_list[0]) != t_gtyp)
-                            genotypedID.push_back(static_cast<std::int64_t>(tmp_list[0]));
-
-                        if (static_cast<std::int64_t>(tmp_list[1]) != 0 && static_cast<std::int64_t>(tmp_list[0]) != t_gtyp)
-                            coreID.push_back(static_cast<std::int64_t>(tmp_list[0]));
-
-                        t_gtyp = static_cast<std::int64_t>(tmp_list[0]);
-                        t_gcor = static_cast<std::int64_t>(tmp_list[1]);
-
-                        tmp_list.erase(tmp_list.begin(), tmp_list.end());
-                    }
-
-                    if (ped.eof())
-                    {
-                        ped.close();
-
-                        if (!is_unique(genotypedID))
-                            genotypedID.erase(unique(genotypedID.begin(), genotypedID.end()), genotypedID.end());
-
-                        if (!is_unique(coreID))
-                            coreID.erase(unique(coreID.begin(), coreID.end()), coreID.end());
-
-                        return;
-                    }
+                    tmp_list.push_back(f);
                 }
 
-                ped.close();
+                if (tmp_list.size() > 0)
+                {
+                    if (static_cast<std::int64_t>(tmp_list[0]) != 0 && static_cast<std::int64_t>(tmp_list[0]) != t_gtyp)
+                        out_ids.push_back(static_cast<std::int64_t>(tmp_list[0]));
 
-                if (!is_unique(genotypedID))
-                    genotypedID.erase(unique(genotypedID.begin(), genotypedID.end()), genotypedID.end());
+                    //if (static_cast<std::int64_t>(tmp_list[1]) != 0 && static_cast<std::int64_t>(tmp_list[0]) != t_gtyp)
+                    //    coreID.push_back(static_cast<std::int64_t>(tmp_list[0]));
 
-                if (!is_unique(coreID))
-                    coreID.erase(unique(coreID.begin(), coreID.end()), coreID.end());
+                    t_gtyp = static_cast<std::int64_t>(tmp_list[0]);
+                    //t_gcor = static_cast<std::int64_t>(tmp_list[1]);
 
-                return;
+                    tmp_list.erase(tmp_list.begin(), tmp_list.end());
+                }
             }
-            else
-                throw std::string("Cannot open genotyped ids file!");
+
+            ped.close();
+
+            if (!is_unique(out_ids))
+                out_ids.erase(unique(out_ids.begin(), out_ids.end()), out_ids.end());
+
+            //if (!is_unique(coreID))
+            //    coreID.erase(unique(coreID.begin(), coreID.end()), coreID.end());
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Amat::fread_genotyped_id(const std::string &)" << '\n';
+            std::cerr << "Exception in Amat::fread_genotyped_id(const std::string &, std::vector<std::int64_t> &)" << '\n';
             std::cerr << e.what() << '\n';
-            if (ped.eof())
-                std::cerr << "Check for empty line(s) at the endd of the file!"
-                          << "\n";
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Amat::fread_genotyped_id(const std::string &)" << '\n';
+            std::cerr << "Exception in Amat::fread_genotyped_id(const std::string &, std::vector<std::int64_t> &)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Amat::fread_genotyped_id(const std::string &)" << '\n';
+            std::cerr << "Exception in Amat::fread_genotyped_id(const std::string &, std::vector<std::int64_t> &)" << '\n';
             throw;
         }
     }
@@ -530,7 +506,7 @@ namespace evoped
                         id_pair.val_2 = dame[i];
 
                         if ((birth_id_map[sire[i]] >= days[i]) || (birth_id_map[dame[i]] >= days[i]))
-                            throw std::string("Amat is not correct: parents born before offspring!");
+                            throw std::string("Pedigree is not correct: parents born before offspring!");
 
                         key.val_1 = days[i];
                         key.val_2 = elem_v;
@@ -564,6 +540,11 @@ namespace evoped
                 iter_v++;
 
             } while (iter_v < gen_pedID.size());
+            
+            if ( is_unique(gen_pedID) ) // Check if no repeated IDs appiar in the list of traced IDs
+                traced_pedID = gen_pedID;
+            else
+                throw std::string("In the traced pedigree some IDs appiar more then one time!");
 
             gen_pedID.clear();
             days.clear();
@@ -586,56 +567,6 @@ namespace evoped
         catch (...)
         {
             std::cerr << "Exception in Amat::trace_pedigree(std::map<PedPair, PedPair> &, std::map<PedPair, PedPair> &, std::vector<std::int64_t> &)" << '\n';
-            throw;
-        }
-    }
-
-    //===============================================================================================================
-
-    void Amat::trace_pedigree()
-    {
-        // requires fread_pedigree(file) call first, and, possibly, fread_genotyped_id(file) call as well
-        try
-        {
-            if (!pedigree_from_file.empty())
-            {
-                if (pedID.empty())
-                    throw std::string("Empty pedigree IDs.");
-
-                if (!pedigree.empty())
-                    pedigree.clear();
-
-                trace_pedigree(pedigree_from_file, pedigree, pedID); // tracing full pedigree
-
-                if (!genotypedID.empty())
-                {
-                    if (!r_pedigree.empty())
-                        r_pedigree.clear();
-
-                    trace_pedigree(pedigree_from_file, r_pedigree, genotypedID); // tracing reduced pedigree for genotyped individuals
-                }
-            }
-            else
-                throw std::string("There is no base pedigree which needs to be traced.");
-
-            pedigree_from_file.clear();
-            birth_id_map.clear();
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Exception in Amat::trace_pedigree()" << '\n';
-            std::cerr << e.what() << '\n';
-            throw;
-        }
-        catch (const std::string &e)
-        {
-            std::cerr << "Exception in Amat::trace_pedigree()" << '\n';
-            std::cerr << "Reason: " << e << '\n';
-            throw;
-        }
-        catch (...)
-        {
-            std::cerr << "Exception in Amat::trace_pedigree()" << '\n';
             throw;
         }
     }
@@ -793,29 +724,28 @@ namespace evoped
                             }
                         }
 
-                        for (j = 1; j <= MIP; ++j)
-                        { // trace forth the reduced pedigree
+                        for (j = 1; j <= MIP; ++j) // trace forth the reduced pedigree
+                        {
                             x[j] += (x[rPed[j][0]] + x[rPed[j][1]]) * 0.5;
                         }
 
-                        for (; i <= n; ++i)
-                        { // obtain F for progeny of the current sire
+                        for (; i <= n; ++i) // obtain F for progeny of the current sire
+                        {
                             if ((int)S != Ped[SId[i]][0])
                                 break;
                             else
                                 F[SId[i]] = x[Link[Ped[SId[i]][1]]] * 0.5;
                         }
 
-                        for (j = 1; j <= MIP; ++j)
+                        for (j = 1; j <= MIP; ++j) // set to 0 for next evaluation of sire
                         {
-                            x[j] = 0.0; // set to 0 for next evaluation of sire
+                            x[j] = 0.0;
                         }
                     }
                 }
 
                 for (size_t i = 1; i <= n; i++)
                 {
-
                     auto s = Ped[i][0];
                     auto d = Ped[i][1];
 
@@ -1016,108 +946,198 @@ namespace evoped
 
     //===============================================================================================================
 
-    std::vector<std::int64_t> Amat::get_genotyped_ids()
+    void Amat::get_a(std::map<PedPair, PedPair> &in_ped, std::map<PedPair, double> &out_a)
     {
+        // Calculates A matrix (as map representation)
         try
         {
-            return genotypedID;
+            std::vector<std::int64_t> id;
+
+            for (auto const &e : in_ped)
+                id.push_back(e.first.val_2);
+
+            PedPair akey;
+            PedPair akey2;
+            PedPair bkey;
+            PedPair ckey;
+
+            for (size_t i = 0; i < id.size(); i++)
+            {
+                std::int64_t id1 = id[i];
+                
+                for (size_t j = i; j < id.size(); j++)
+                {
+                    std::int64_t id2 = id[j];
+
+                    akey2.val_1 = id2;
+                    akey2.val_2 = id1;
+
+                    akey.val_1 = id1;
+                    akey.val_2 = id2;
+
+                    auto begin = in_ped.begin();
+                    std::advance(begin, j);
+
+                    std::int64_t s2 = begin->second.val_1;
+                    std::int64_t d2 = begin->second.val_2;
+
+                    if ( s2 && d2 )
+                    {
+                        if ( id1 == id2 )
+                        {
+                            bkey.val_1 = s2;
+                            bkey.val_2 = d2;
+                            if (s2 > d2)
+                            {
+                                bkey.val_1 = d2;
+                                bkey.val_2 = s2;
+                            }
+                            out_a[akey] = 1.0 + 0.5 * out_a[bkey];
+                        }
+                        else
+                        {
+                            bkey.val_1 = id1;
+                            bkey.val_2 = s2;
+                            if (id1 > s2)
+                            {
+                                bkey.val_1 = s2;
+                                bkey.val_2 = id1;
+                            }
+
+                            ckey.val_1 = id1;
+                            ckey.val_2 = d2;
+                            if (id1 > d2)
+                            {
+                                ckey.val_1 = d2;
+                                ckey.val_2 = id1;
+                            }
+                            out_a[akey] = 0.5 * ( out_a[bkey] + out_a[ckey] );
+                            out_a[akey2] = out_a[akey];
+                        }
+                    }
+                    if ( !s2 && !d2 )
+                    {
+                        if ( id1 == id2 )
+                        {
+                            out_a[akey] = 1.0;
+                        }
+                        else
+                        {
+                            out_a[akey] = 0.0;
+                            out_a[akey2] = out_a[akey];
+                        }
+                    }
+                    if ( s2 && !d2 )
+                    {
+                        if ( id1 == id2 )
+                        {
+                            out_a[akey] = 1.0;
+                        }
+                        else
+                        {
+                            bkey.val_1 = id1;
+                            bkey.val_2 = s2;
+                            if (id1 > s2)
+                            {
+                                bkey.val_1 = s2;
+                                bkey.val_2 = id1;
+                            }
+                            out_a[akey] = 0.5 * out_a[bkey];
+                            out_a[akey2] = out_a[akey];
+                        }
+                    }
+                    if ( !s2 && d2 )
+                    {
+                        if ( id1 == id2 )
+                        {
+                            out_a[akey] = 1.0;
+                        }
+                        else
+                        {
+                            ckey.val_1 = id1;
+                            ckey.val_2 = d2;
+                            if (id1 > d2)
+                            {
+                                ckey.val_1 = d2;
+                                ckey.val_2 = id1;
+                            }
+                            out_a[akey] = 0.5 * out_a[ckey];
+                            out_a[akey2] = out_a[akey];
+                        }
+                    }
+
+                }
+            }
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Amat::get_genotyped_ids()" << '\n';
+            std::cerr << "Exception in Amat::get_a(std::map<PedPair, PedPair> &, std::map<PedPair, double> &)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Amat::get_genotyped_ids()" << '\n';
+            std::cerr << "Exception in Amat::get_a(std::map<PedPair, PedPair> &, std::map<PedPair, double> &)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Amat::get_genotyped_ids()" << '\n';
+            std::cerr << "Exception in Amat::get_a(std::map<PedPair, PedPair> &, std::map<PedPair, double> &)" << '\n';
             throw;
         }
     }
 
     //===============================================================================================================
 
-    std::vector<std::int64_t> Amat::get_core_ids()
+    void Amat::get_ids(std::vector<std::int64_t> &out)
     {
         try
         {
-            return coreID;
+            out = traced_pedID;
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Amat::get_core_ids()" << '\n';
+            std::cerr << "Exception in Amat::get_ids(std::vector<std::int64_t> &)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Amat::get_core_ids()" << '\n';
+            std::cerr << "Exception in Amat::get_ids(std::vector<std::int64_t> &)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Amat::get_core_ids()" << '\n';
+            std::cerr << "Exception in Amat::get_ids(std::vector<std::int64_t> &)" << '\n';
             throw;
         }
     }
 
     //===============================================================================================================
 
-    std::vector<std::int64_t> Amat::get_pedigree_ids()
+    void Amat::get_inbreeding(std::vector<double> &out)
     {
         try
         {
-            return pedID;
+            out = inbrF;
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Amat::get_pedigree_ids()" << '\n';
+            std::cerr << "Exception in Amat::get_inbreeding(std::vector<double> &)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Amat::get_pedigree_ids()" << '\n';
+            std::cerr << "Exception in Amat::get_inbreeding(std::vector<double> &)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Amat::get_pedigree_ids()" << '\n';
-            throw;
-        }
-    }
-
-    //===============================================================================================================
-
-    std::vector<double> Amat::get_inbreeding()
-    {
-        try
-        {
-            return inbrF;
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Exception in Amat::get_inbreeding()" << '\n';
-            std::cerr << e.what() << '\n';
-            throw;
-        }
-        catch (const std::string &e)
-        {
-            std::cerr << "Exception in Amat::get_inbreeding()" << '\n';
-            std::cerr << "Reason: " << e << '\n';
-            throw;
-        }
-        catch (...)
-        {
-            std::cerr << "Exception in Amat::get_inbreeding()" << '\n';
+            std::cerr << "Exception in Amat::get_inbreeding(std::vector<double> &)" << '\n';
             throw;
         }
     }
@@ -1128,10 +1148,13 @@ namespace evoped
         {
             try
             {
-                pedigree_from_file.clear();
                 birth_id_map.clear();
-                pedigree.clear();
-                r_pedigree.clear();
+                A.clear();
+                A.fclear();
+                traced_pedID.clear();
+                traced_pedID.shrink_to_fit();
+                inbrF.clear();
+                inbrF.shrink_to_fit();
             }
             catch (const std::exception &e)
             {
@@ -1151,7 +1174,151 @@ namespace evoped
                 throw;
             }
         }
-    
+
+    //===============================================================================================================
+
+    void Amat::get_matrix(evolm::matrix<double> &arr)
+    {
+        // Note, we operate with L-stored format, hence return lower triangular part
+        try
+        {
+            arr = A;
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Amat::get_matrix(evolm::matrix<double> &)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Amat::get_matrix(evolm::matrix<double> &)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Amat::get_matrix(evolm::matrix<double> &)" << '\n';
+            throw;
+        }
+    }
+
+    //===============================================================================================================
+
+    void Amat::get_matrix(std::vector<double> &arr)
+    {
+        // This method is for Python interfacing;
+        // Note, we operate with L-stored format, hence return lower triangular part
+        try
+        {
+            A.to_vector(arr);
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Amat::get_matrix(std::vector<double> &)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Amat::get_matrix(std::vector<double> &)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Amat::get_matrix(std::vector<double> &)" << '\n';
+            throw;
+        }
+    }
+
+    //===============================================================================================================
+
+    void Amat::bin_write()
+    {
+        try
+        {
+            A.fwrite();
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Amat::bin_write()" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Amat::bin_write()" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Amat::bin_write()" << '\n';
+            throw;
+        }
+    }
+
+    //===============================================================================================================
+
+    void Amat::bin_read()
+    {
+        try
+        {
+            A.fread();
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Amat::bin_read()" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Amat::bin_read()" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Amat::bin_read()" << '\n';
+            throw;
+        }
+    }
+
+    //===============================================================================================================
+
+    void Amat::get_RecodedIdMap(std::map<std::int64_t, std::int64_t> &id_map,
+                                std::vector<std::int64_t> &idVect)
+    {
+        try
+        {
+            size_t code_id = 1;
+            for (auto const &elem : idVect)
+            {
+                id_map[elem] = code_id;
+                code_id++;
+            }
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Amat::get_RecodedIdMap(std::map<std::int64_t, std::int64_t> &, std::vector<std::int64_t> &)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Amat::get_RecodedIdMap(std::map<std::int64_t, std::int64_t> &, std::vector<std::int64_t> &)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Amat::get_RecodedIdMap(std::map<std::int64_t, std::int64_t> &, std::vector<std::int64_t> &)" << '\n';
+            throw;
+        }
+    }
+
     //===============================================================================================================
 
 } // end of namespace evoped

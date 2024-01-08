@@ -20,17 +20,24 @@ namespace evoped
 
         void read_matrix(const std::string &gmat_file);
         void make_matrix(const std::string &fname);
+        void make_matrix(const std::string &fname, const std::string &fname_ids);
+        void scale_genotypes(const std::string &fname);
+        void scale_genotypes(const std::string &fname, const std::string &fname_ids);        
+        void scale_matrix(double scale_coef);        
+        void scale_matrix(std::vector<double>& scale_matr, double scaling_weight);
+        void scale_matrix(evolm::matrix<double>& scale_matr, double scaling_weight);
         void invert_matrix();
-        void invert_matrix(std::vector<std::int64_t>& core_id); // sparse inverse (APY)
+        void invert_matrix(bool full_store);        
+        void invert_matrix(std::vector<std::int64_t>& core_id); // sparse inverse (APY)        
         void bin_write();
         void bin_read();
         void get_matrix(evolm::matrix<double>& arr);
+        void get_matrix(std::vector<double>& arr);
+        void get_ids(std::vector<std::int64_t>& ids);
         void clear();
 
     private:
-        evolm::matrix<double> G;          // G or inv. of G matrix container
-        //evolm::matrix<double> invG;       // inversed G matrix container
-        
+        evolm::matrix<double> G;          // G or inv. of G matrix, permanent object container        
         evolm::matrix<double> Z;          // Z (snp) matrix, temporal
         std::vector<std::int64_t> gmatID; // container for the list of G matrix IDs, initiated while reading pre-built G-matrix from file
         double freq;
@@ -41,8 +48,8 @@ namespace evoped
                                std::vector<std::int64_t> &whereIidList,
                                std::vector<std::int64_t> &whatIdList);      // not sure if this is needed
         void get_RecodedIdMap(std::map<std::int64_t, std::int64_t> &id_map,
-                              std::vector<std::int64_t> &idVect);           // not sure if this is needed
-        size_t find_invect(std::vector<std::int64_t> &where,
+                              std::vector<std::int64_t> &idVect);
+        int find_invect(std::vector<std::int64_t> &where,
                            std::int64_t what);                              // was find_invect2
         bool is_unique(std::vector<std::int64_t> &x);
         template <typename T>
@@ -50,8 +57,9 @@ namespace evoped
                          std::vector<std::int64_t> &col,
                          std::vector<T> &val,
                          double diag_val);             // expected to be usefull in the Hmat class
-        void get_gids(std::vector<std::int64_t> &ids); // expected to be usefull in the Hmat class
+        //void get_gids(std::vector<std::int64_t> &ids); // expected to be usefull in the Hmat class
         void read_snp(const std::string &snp_file);
+        void read_snp(const std::string &snp_file, const std::string& ids_file);
         void parse_string(std::string &snp_str, std::vector<int> &markers);
         void make_zmatrix();
         void make_matrix();

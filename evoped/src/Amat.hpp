@@ -7,6 +7,8 @@
 #include <fstream>
 #include <algorithm>
 
+#include "cs_matrix.hpp"
+
 namespace evoped
 {
     class Amat
@@ -14,19 +16,19 @@ namespace evoped
     public:
 
         Amat();
-        Amat(const std::string &ped_file);
-        Amat(const std::string &ped_file, const std::string &g_file);
+        ~Amat();
 
-        void get_ainv(); // format of the output ainv ???
-        void get_ainv(const std::string &ped_file); // format of the output ainv ???
-        void get_ainv(const std::string &ped_file, const std::string &g_file); // format of the output ainv ???
-
-        std::vector<std::int64_t> get_genotyped_ids();
-        std::vector<std::int64_t> get_core_ids();
-        std::vector<std::int64_t> get_pedigree_ids();
-        std::vector<double> get_inbreeding();
-
+        void make_matrix(const std::string &ped_file, bool use_ainv);
+        void make_matrix(const std::string &ped_file, const std::string &g_file, bool use_ainv);
+        void get_ids(std::vector<std::int64_t> &out);
+        void get_inbreeding(std::vector<double> &out);
+        void get_matrix(evolm::matrix<double>& arr);
+        void get_matrix(std::vector<double>& arr);
+        void bin_write();
+        void bin_read();
         void clear();
+        
+    private:
 
         struct PedPair
         {
@@ -41,53 +43,40 @@ namespace evoped
                     return this->val_2 < rhs.val_2;
             }
         };
-        
-        //int get_A22(std::map<PedPair, PedPair> &ped, float *A22);        
-        //int getA22vector(std::vector<float> &w, std::vector<std::int64_t> &v, std::vector<std::vector<std::int64_t>> &Ped);        
-        //std::map<PedPair, float> a; // A matrix container
 
-    private:
+        std::map<std::int64_t, std::int64_t> birth_id_map; // the map which holds <animal_id, birth_day>, used when check correctness of pedigree
+        evolm::matrix<double> A;                           // A or A(-1) matrix container
+        std::vector<std::int64_t> traced_pedID;            // traced pedigree IDs
+        std::vector<double> inbrF;                         // inbreeding coeffecients
 
-        std::string pedigree_file;
-        std::string genotyped_file;
-
-        // ------- temporal pedigree storages -------------
-        std::map<PedPair, PedPair> pedigree_from_file;        /* original pedigree from red file. will be deleted after use */
-        std::map<std::int64_t, std::int64_t> birth_id_map; /* the map which holds <animal_id, birth_day>, used when check correctness of pedigree */
-
-        std::map<PedPair, PedPair> pedigree;   /* traced back original pedigree */
-        std::map<PedPair, PedPair> r_pedigree; /* reduced pedigree container, sorted by day order during initialization */
-        // ------------------------------------------------
-        
-        // ------ A(-1) matrix container ------------------
-        std::map<PedPair, double> ainv;
-        std::map<PedPair, double> r_ainv;
-        // ------------------------------------------------
-
-        std::vector<std::int64_t> genotypedID; /* container for genotyped IDs (from 'typed' file) */
-        std::vector<std::int64_t> coreID;      /* container for core IDs (from 'typed' file) */
-        std::vector<std::int64_t> pedID;       /* container for the list of pedigree IDs */
-        std::vector<double> inbrF;             /* inbreeding coeffecients */
-
-        void fread_pedigree(const std::string &ped_file);
-        void fread_genotyped_id(const std::string &g_file);
-        void trace_pedigree();
-        
+        void fread_pedigree(const std::string &ped_file,
+                            std::map<PedPair, PedPair> &out_ped,
+                            std::vector<std::int64_t> &out_ids);
+        void fread_genotyped_id(const std::string &g_file,
+                                std::vector<std::int64_t> &out_ids);        
         void get_ainv(std::map<PedPair, PedPair> &ped,
                       std::map<PedPair, double> &ai,
                       bool inbreed);
 
+        void get_a(std::map<PedPair, PedPair> &in_ped,
+                   std::map<PedPair, double> &out_a);
+
         void trace_pedigree(std::map<PedPair, PedPair> &in_ped,
                             std::map<PedPair, PedPair> &out_ped,
                             std::vector<std::int64_t> &traced_id);
-
         void get_dinv(std::map<PedPair, PedPair> &ped,
                       std::vector<double> &dinv,
                       bool inbreed);
-
-        bool is_invect(std::vector<std::int64_t> &where, std::int64_t what); // was find_invect
-        std::int64_t pos_inped(std::map<std::int64_t, std::int64_t> &codemap, std::int64_t id);
+        bool is_invect(std::vector<std::int64_t> &where,
+                       std::int64_t what);               // was find_invect
+        std::int64_t pos_inped(std::map<std::int64_t,std::int64_t> &codemap,
+                               std::int64_t id);
         bool is_unique(std::vector<std::int64_t> &x);
+        void get_RecodedIdMap(std::map<std::int64_t,std::int64_t> &id_map,
+                              std::vector<std::int64_t> &idVect);
+        void map_to_matr(std::map<PedPair, double> &amap,
+                         std::vector<std::int64_t> &ids,
+                         bool use_ainv);
     };
 
 } // end of namespace evoped
