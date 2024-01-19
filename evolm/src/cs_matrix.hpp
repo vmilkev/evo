@@ -688,7 +688,11 @@ namespace evolm
         if (!compact)
             return A[atRow * numCol + atCol];
         else
+        {
+            if ( atCol > atRow )
+                throw std::string("The column value is greater than the row value. This is not allowed for symmetric matrix in compact (L-store) format!");
             return A[atRow * (atRow + 1) / 2 + atCol];
+        }
     }
 
     //===============================================================================================================
@@ -1124,8 +1128,8 @@ namespace evolm
 
         std::random_device rd;
         srand(rd());
-
         int iNum = rand() % 100000;
+
         binFilename = "matrix_" + std::to_string(iNum);
 
         allocated = false;
@@ -1744,7 +1748,7 @@ namespace evolm
                     {
                         for (size_t j = 0; j <= (i - numRow); j++)
                             C(j + numRow, i - numRow) = rhs.A[(i - numRow) * ((i - numRow) + 1) / 2 + j];
-                    } /**/
+                    }
                 }
             }
         }
@@ -2402,9 +2406,6 @@ namespace evolm
             Return value: none.
         */
 
-        //if (ondisk)
-            //fclear();
-
         if (allocated)
         {
 #ifdef intelmkl
@@ -2418,6 +2419,15 @@ namespace evolm
             resizedElements = 0;
             numRow = numCol = 0;
         }
+
+        // rename file name:
+        binFilename.clear();
+        std::random_device rd;
+        srand(rd());
+        int iNum = rand() % 100000;
+        binFilename = "matrix_" + std::to_string(iNum);
+
+        ondisk = false;
     }
 
     //===============================================================================================================
@@ -2427,9 +2437,12 @@ namespace evolm
     {
         /*
             Removes a binary file (if exists) associated with A.
+            Note: this shouldbe called before clear() becaause
+            the last call changes the name of associated binary file!
 
             Return value: none.
         */
+
         std::ifstream f(binFilename.c_str());
         if (f.good())
             remove(binFilename.c_str());
@@ -2459,10 +2472,9 @@ namespace evolm
     {
         /*
             Overloaded assignment operator.
-        */
 
-        /*if (ondisk || rhs.ondisk)
-            throw std::string("One of the matrices is empty. Use fread() to relocate data to memory.");*/
+            Procedure: (1) Copy rhs to tmpObj; (2) Swaps lhs with tmpObj.
+        */
 
         matrix<T> tmpObj(rhs);
         std::swap(compact, tmpObj.compact);
@@ -2474,7 +2486,10 @@ namespace evolm
         std::swap(numCol, tmpObj.numCol);
         std::swap(numRow, tmpObj.numRow);
         std::swap(resizedElements, tmpObj.resizedElements);
-        std::swap(binFilename, tmpObj.binFilename);
+        
+        if ( ondisk ) // exchange file names only if rhs is not on memory!
+            std::swap(binFilename, tmpObj.binFilename);
+        
         std::swap(allocated, tmpObj.allocated);
         std::swap(A, tmpObj.A);
 
@@ -2564,7 +2579,6 @@ namespace evolm
             }
             else
             {
-
                 sz = (numCol * numCol + numCol) / 2;
 
                 int status = allocate(numCol);
@@ -2580,6 +2594,8 @@ namespace evolm
 
             ondisk = false;
         }
+        else
+            throw std::string("matrix<T>::fread() => Cannot open the binary file to read from!");
     }
 
     //===============================================================================================================
@@ -4905,7 +4921,7 @@ namespace evolm
             Class destructor.
         */
 
-        /*std::ifstream f( binFilename.c_str() );
+        /*std::ifstream f( binFilename.c_str() ); // this induce problems in evolm tests !
         if ( f.good() )
             remove( binFilename.c_str() );*/
 

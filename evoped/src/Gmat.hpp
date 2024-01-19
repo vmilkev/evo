@@ -36,6 +36,15 @@ namespace evoped
         void get_ids(std::vector<std::int64_t>& ids);
         void clear();
 
+#ifdef UTEST
+        void get_alpha_beta(double &alpha,
+                            double &beta,
+                            double &a_diag,
+                            double &a_ofd,
+                            double &g_diag,
+                            double &g_ofd);
+#endif
+
     private:
         evolm::matrix<double> G;          // G or inv. of G matrix, permanent object container        
         evolm::matrix<double> Z;          // Z (snp) matrix, temporal
@@ -65,6 +74,16 @@ namespace evoped
         void make_matrix();
         template <typename T>
         void read_matrix(const std::string &gmat_file, std::vector<std::int64_t> &g_row, std::vector<std::int64_t> &g_col, std::vector<T> &g_val);
+
+#ifdef UTEST
+        double scaling_a;
+        double scaling_b;
+        double scaling_a_diag;
+        double scaling_a_ofd;
+        double scaling_g_diag;
+        double scaling_g_ofd;
+#endif
+
     };
 
 } // end of namespace evoped

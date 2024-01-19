@@ -27,20 +27,8 @@ namespace evoped
                          std::vector<std::int64_t>& a_red_ids,
                          evolm::matrix<double>& g_matr,
                          std::vector<std::int64_t>& g_ids);
-
-        void get_submatrix(std::vector<double>& full_matr,
-                           std::vector<std::int64_t>& matr_ids,
-                           std::vector<std::int64_t>& selected_ids,
-                           bool use_invverse);
-        void get_submatrix(evolm::matrix<double>& full_matr,
-                           std::vector<std::int64_t>& matr_ids,
-                           std::vector<std::int64_t>& selected_ids,
-                           bool use_invverse);
-        void bin_write();
-        void bin_read();
-        void get_matrix(evolm::matrix<double>& arr);
-        void get_matrix(std::vector<double>& arr);
-        void get_ids(std::vector<std::int64_t>& ids);
+        void get_matrix(evolm::matrix<double>& arr, std::vector<std::int64_t>& ids, bool keep_ondisk);
+        void get_matrix(std::vector<double>& arr, std::vector<std::int64_t>& ids, bool keep_ondisk);
         void clear();
 
     private:

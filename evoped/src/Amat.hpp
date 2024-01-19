@@ -18,16 +18,24 @@ namespace evoped
         Amat();
         ~Amat();
 
-        void make_matrix(const std::string &ped_file, bool use_ainv);
-        void make_matrix(const std::string &ped_file, const std::string &g_file, bool use_ainv);
-        void get_ids(std::vector<std::int64_t> &out);
-        void get_inbreeding(std::vector<double> &out);
-        void get_matrix(evolm::matrix<double>& arr);
-        void get_matrix(std::vector<double>& arr);
-        void bin_write();
-        void bin_read();
+        void make_matrix(const std::string &ped_file,
+                         bool use_ainv);
+        void make_matrix(const std::string &ped_file,
+                         const std::string &g_file,
+                         bool use_ainv);
+        void make_all(const std::string &ped_file,
+                      const std::string &g_file);
+        void get_inbreeding(std::vector<double> &out);        
+        void get_matrix(const std::string &name,
+                        evolm::matrix<double>& arr,
+                        std::vector<std::int64_t> &out,
+                        bool keep_ondisk);
+        void get_matrix(const std::string &name,
+                        std::vector<double>& arr,
+                        std::vector<std::int64_t> &out,
+                        bool keep_ondisk);
         void clear();
-        
+ 
     private:
 
         struct PedPair
@@ -49,6 +57,14 @@ namespace evoped
         std::vector<std::int64_t> traced_pedID;            // traced pedigree IDs
         std::vector<double> inbrF;                         // inbreeding coeffecients
 
+        evolm::matrix<double> iA;
+        evolm::matrix<double> irA;
+        evolm::matrix<double> iA22;
+        evolm::matrix<double> A22;
+        std::vector<std::int64_t> id_iA;
+        std::vector<std::int64_t> id_irA;
+        std::vector<std::int64_t> id_A22;
+
         void fread_pedigree(const std::string &ped_file,
                             std::map<PedPair, PedPair> &out_ped,
                             std::vector<std::int64_t> &out_ids);
@@ -69,6 +85,8 @@ namespace evoped
                       bool inbreed);
         bool is_invect(std::vector<std::int64_t> &where,
                        std::int64_t what);               // was find_invect
+        int find_invect(std::vector<std::int64_t> &where,
+                           std::int64_t what);          // was find_invect2
         std::int64_t pos_inped(std::map<std::int64_t,std::int64_t> &codemap,
                                std::int64_t id);
         bool is_unique(std::vector<std::int64_t> &x);
@@ -77,6 +95,19 @@ namespace evoped
         void map_to_matr(std::map<PedPair, double> &amap,
                          std::vector<std::int64_t> &ids,
                          bool use_ainv);
+        void get_A22(std::map <PedPair, PedPair> &ped,
+                           std::vector<std::int64_t> &genotypedID);
+        void getA22vector(std::vector <double> &w,
+                          std::vector <std::int64_t> &v,
+                          std::vector<std::vector<std::int64_t> > &Ped);
+        void get_iA22(evolm::matrix<double>& full_matr,
+                      std::vector<std::int64_t>& matr_ids,
+                      std::vector<std::int64_t>& selected_ids);
+        bool is_value_in_vect(std::vector<std::int64_t> &where_tocheck,
+                              std::vector<std::int64_t> &what_tocheck);
+        void check_id(std::vector<std::int64_t> &id_list,
+                      std::vector<std::int64_t> &checked_id,
+                      std::vector<std::int64_t> &missing_id);
     };
 
 } // end of namespace evoped

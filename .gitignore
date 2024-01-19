@@ -5,3 +5,9 @@ evogen/tests/data/haplotypes_pop_large.dat
 evogen/tests/data/haplotypes_pop_large2.dat
 evogen/tests/data/struct_haplotypes_pop_large.dat
 evogen/tests/data/struct_haplotypes_pop_large2.dat
+evogen/trait_pop.dat
+evogen/trait_pop2.dat
+evogen/trait_pop_reduced.dat
+evoped/tests/data/.DS_Store
+evoped/tests/data/core.dat
+evoped/tests/data/sstep_050/

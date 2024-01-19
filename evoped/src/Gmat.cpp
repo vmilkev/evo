@@ -347,6 +347,12 @@ namespace evoped
 
         try
         {
+            if ( G.empty() )
+                throw std::string("There is no G matrix which needs to be inverted!");
+
+            if ( gmatID.empty() )
+                throw std::string("The vector of G matrix IDs is empty!");
+
             // Check if all IDs in the core_id vector are in the gmatID vector
 
             int is_invector;
@@ -384,7 +390,7 @@ namespace evoped
                 for (size_t j = 0; j <= i; j++)
                 {
                     size_t c = corePositions[core_id[j]];
-                    Gcc(i, j) = Gcc(j, i) = G(r, c); // for half-store Gf
+                    Gcc(i, j) = Gcc(j, i) = G(r-1, c-1); // for half-store Gf
                 }
             }
 
@@ -403,7 +409,6 @@ namespace evoped
             size_t r_gnc, c_gnc;
 
             r_gnc = gmatID.size() - core_id.size();
-            ;
             c_gnc = c_gcc;
 
             evolm::matrix<double> Gnc(r_gnc, c_gnc);
@@ -414,7 +419,7 @@ namespace evoped
             for (size_t i = 0; i < gmatID.size(); i++)
             {
                 std::int64_t id = gmatID[i];
-                if (!find_invect(core_id, id))
+                if ( find_invect(core_id, id) == -1 )
                     noncoreID.push_back(id);
             }
 
@@ -438,19 +443,25 @@ namespace evoped
             for (size_t i = 0; i < noncoreID.size(); i++)
             {
                 size_t r = corePositions[noncoreID[i]];
+
                 for (size_t j = 0; j < core_id.size(); j++)
                 {
                     size_t c = corePositions[core_id[j]];
-                    size_t ind;
+
+                     if ( r >= c )
+                        Gnc(i,j) = G(r-1,c-1);
+                    else
+                        Gnc(i,j) = G(c-1,r-1); 
+                   /*size_t ind;
                     if (noncoreID[i] >= core_id[j])
                         ind = r * (r - 1) / 2 + c - 1;
                     else
                         ind = c * (c - 1) / 2 + r - 1;
-                    Gnc[i * core_id.size() + j] = G[ind]; // for half-stored Gf
+
+                    Gnc[i * core_id.size() + j] = G[ind]; // for half-stored Gf*/
+
                 }
             }
-
-            coreNonCoreIDs.clear();
 
             // Write out Gnc to a file
             // Gnc.fwrite();
@@ -501,7 +512,10 @@ namespace evoped
             Gnnfull = GncGcc * Gcn;
 
             Gcn.fwrite();
-            GncGcc.fwrite();
+            
+            //GncGcc.fwrite();
+            GncGcc.fclear();
+            GncGcc.clear();
 
             size_t r_gnn, c_gnn;
             r_gnn = c_gnn = gmatID.size() - core_id.size();
@@ -521,8 +535,14 @@ namespace evoped
                 Gnn[i - 1] = 1.0 / (G[r * (r - 1) / 2 + r - 1] - Gnnfull[(i - 1) * r_gnc + (i - 1)]); // half-store case
             }
 
-            Gnnfull.fwrite();
-            G.fwrite();
+            //Gnnfull.fwrite();
+            Gnnfull.fclear();
+            Gnnfull.clear();
+
+            //G.fwrite();
+            G.fclear();
+            G.clear();
+
             Gnn.fwrite();
 
             // ----------------------------------------------
@@ -545,7 +565,9 @@ namespace evoped
             G12 = Gcc * Gcn;
 
             Gcc.fwrite();
-            Gcn.fwrite();
+            //Gcn.fwrite();
+            Gcn.fclear();
+            Gcn.clear();
 
             size_t r_g12 = r_gcc;
             size_t c_g12 = c_gnn;
@@ -584,7 +606,9 @@ namespace evoped
 
             G12_nc = G12 * Gnc;
 
-            Gnc.fwrite();
+            //Gnc.fwrite();
+            Gnc.fclear();
+            Gnc.clear();
 
             // complete making G12 by mult. by -1.
 #pragma omp parallel for
@@ -609,14 +633,19 @@ namespace evoped
 
             G11 = G12_nc * Gcc;
 
-            Gcc.fwrite();
-            G12_nc.fwrite();
+            //Gcc.fwrite();
+            //G12_nc.fwrite();
+            Gcc.fclear();
+            Gcc.clear();
+            G12_nc.fclear();
+            G12_nc.clear();
 
             // ----------------------------------------------
             //                 G(-1)
             // ----------------------------------------------
             evolm::matrix<double> G_11_12;
             evolm::matrix<double> G_21_22;
+            evolm::matrix<double> Gnn_full;
 
             G12.fread();
             
@@ -624,39 +653,44 @@ namespace evoped
             
             G_11_12.fwrite();
             
-            G11.clear();
             G11.fclear();
+            G11.clear();            
 
             G12.transpose();
             Gnn.fread();
 
-            G_21_22 = G12 << Gnn;
+            Gnn_full.resize( Gnn.size(),Gnn.size() );
 
-            G12.clear();
+            for(size_t i = 0; i < Gnn.size(); i++)
+                Gnn_full(i,i) = Gnn[i];
+
+            G_21_22 = G12 << Gnn_full;
+
             G12.fclear();
-            Gnn.clear();
+            G12.clear();
             Gnn.fclear();
-            G.clear();
-            G.fclear();
-            Gcc.clear();
-            Gcc.fclear();
-            Gcn.clear();
-            Gcn.fclear();
-            Gnc.clear();
-            Gnc.fclear();
+            Gnn.clear();
+            Gnn_full.fclear();
+            Gnn_full.clear();
+            
 
             G_11_12.fread();
             G.resize(gmatID.size(), gmatID.size());
 
             G = G_11_12 >> G_21_22;
 
-            G_11_12.clear();
             G_11_12.fclear();
-            G_21_22.clear();
+            G_11_12.clear();
             G_21_22.fclear();
+            G_21_22.clear();            
 
             G.rectosym();
 
+            gmatID.clear();
+            gmatID = coreNonCoreIDs;
+
+            coreNonCoreIDs.clear();
+            coreNonCoreIDs.shrink_to_fit();
         }
         catch (const std::exception &e)
         {
@@ -797,7 +831,7 @@ namespace evoped
             a_diag_mean = a_diag_mean / ((double)shapeofa[0]);
 
 #pragma omp parallel for reduction(+ : a_ofd_mean)
-            for (size_t i = 0; i < shapeofa[0]; i++)
+            for (size_t i = 1; i < shapeofa[0]; i++)
             {
                 for (size_t j = 0; j < i; j++)
                 {
@@ -805,8 +839,8 @@ namespace evoped
                 }
             }
 
-            a_all_mean = (a_all_mean + 2 * a_ofd_mean) / ((double)scale_matr.size());
-            a_ofd_mean = 2 * a_ofd_mean / ((double)scale_matr.size() - (double)shapeofa[0]);
+            a_all_mean = (a_all_mean + 2 * a_ofd_mean) / ( (double)shapeofa[0] * (double)shapeofa[0] );
+            a_ofd_mean = 2 * a_ofd_mean / ( (double)shapeofa[0] * (double)shapeofa[0] - (double)shapeofa[0] );
 
             // Get mean values of G matrix
 
@@ -824,7 +858,7 @@ namespace evoped
             }
 
 #pragma omp parallel for reduction(+ : g_ofd_mean)
-            for (size_t i = 0; i < shapeofg[0]; i++)
+            for (size_t i = 1; i < shapeofg[0]; i++)
             {
                 for (size_t j = 0; j < i; j++)
                 {
@@ -832,22 +866,39 @@ namespace evoped
                 }
             }
 
-            g_all_mean = (g_diag_mean + 2 * g_ofd_mean) / ((double)G.size());
+            g_all_mean = (g_diag_mean + 2 * g_ofd_mean) / ( (double)shapeofg[0] * (double)shapeofg[0] );
             g_diag_mean = g_diag_mean / ((double)shapeofg[0]);
 
             betha = (a_all_mean - a_diag_mean) / (g_all_mean - g_diag_mean);
             alpha = a_diag_mean - g_diag_mean * betha;
 
-            g_ofd_mean = 2 * g_ofd_mean / ((double)G.size() - (double)shapeofg[0]);
+            g_ofd_mean = 2 * g_ofd_mean / ( (double)shapeofg[0] * (double)shapeofg[0] - (double)shapeofg[0] );
 
             shapeofa.clear();
             shapeofg.clear();
 
-#pragma omp parallel for
-            for (size_t i = 0; i < G.size(); i++)
+#ifdef UTEST
+            scaling_a = alpha;
+            scaling_b = betha;
+            scaling_a_diag = a_diag_mean;
+            scaling_a_ofd = a_ofd_mean;
+            scaling_g_diag = g_diag_mean;
+            scaling_g_ofd = g_ofd_mean;
+#endif
+
+            if ( scaling_weight == 0.0 )
             {
-                G[i] = (G[i] * betha + alpha) * (1 - scaling_weight) + scale_matr[i] * scaling_weight;
+#pragma omp parallel for
+                for (size_t i = 0; i < G.size(); i++)
+                    G[i] = G[i] * betha + alpha;
             }
+            else
+            {
+#pragma omp parallel for
+                for (size_t i = 0; i < G.size(); i++)
+                    G[i] = (G[i] * betha + alpha) * (1 - scaling_weight) + scale_matr[i] * scaling_weight;
+            }
+
         }
         catch (const std::exception &e)
         {
@@ -901,10 +952,11 @@ namespace evoped
     {
         try
         {
-            G.clear();
             G.fclear();
-            Z.clear();
+            G.clear();
             Z.fclear();
+            Z.clear();
+            
             gmatID.clear();
             gmatID.shrink_to_fit();
             snp_map.clear();
@@ -966,7 +1018,7 @@ namespace evoped
                 g_col.push_back(static_cast<std::int64_t>(tmp_list[1]));
                 g_val.push_back(tmp_list[2]);
                 gmatID.push_back(int(tmp_list[0]));
-                gmatID.push_back(int(tmp_list[1]));
+                //gmatID.push_back(int(tmp_list[1]));
 
                 if (static_cast<std::int64_t>(tmp_list[0]) == static_cast<std::int64_t>(tmp_list[1]))
                     diagonals++;
@@ -1320,7 +1372,7 @@ namespace evoped
         try
         {
             for (size_t i = 0; i < whatIdList.size(); i++)
-                id_map[whatIdList[i]] = find_invect(whereIidList, whatIdList[i]) + 1;
+                id_map[ whatIdList[i] ] = find_invect( whereIidList, whatIdList[i] ) + 1; // +1 because we start indexing from 1
         }
         catch (const std::exception &e)
         {
@@ -1661,36 +1713,38 @@ namespace evoped
 
     //===============================================================================================================
 
-    /*void Gmat::get_gids(std::vector<std::int64_t> &ids)
+#ifdef UTEST
+    void Gmat::get_alpha_beta(double &alpha, double &beta, double &a_diag, double &a_ofd, double &g_diag, double &g_ofd)
     {
         try
         {
-            if (gmatID.empty())
-            {
-                for (const auto &id : anim_id_map)
-                    ids.push_back(id.second);
-            }
-            else
-                ids = gmatID;
+            alpha = scaling_a;
+            beta = scaling_b;
+            a_diag = scaling_a_diag;
+            a_ofd = scaling_a_ofd;
+            g_diag = scaling_g_diag;
+            g_ofd = scaling_g_ofd;
+
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Gmat::get_gids(std::vector <std::int64_t>&)" << '\n';
+            std::cerr << "Exception in Gmat::get_alpha_beta(double &, double &, double &, double &, double &, double &)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Gmat::get_gids(std::vector <std::int64_t>&)" << '\n';
+            std::cerr << "Exception in Gmat::get_alpha_beta(double &, double &, double &, double &, double &, double &)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Gmat::get_gids(std::vector <std::int64_t>&)" << '\n';
+            std::cerr << "Exception in Gmat::get_alpha_beta(double &, double &, double &, double &, double &, double &)" << '\n';
             throw;
         }
-    }*/
+    }
+#endif
 
     //===============================================================================================================
 }

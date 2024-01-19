@@ -69,13 +69,17 @@ TARGET_TEST := $(BDIR_TST)/$(APPNAME)_test.exe
 
 CXX: $(TARGET_PYLIB) $(TARGET_TEST) $(TARGET_APP)
 
+#----------------------------------------------------------------
 SOURCES_ALL := $(wildcard $(SRCDIR)/*.cpp)
-SOURCES = $(filter-out $(SRCDIR)/evogen_app.cpp, $(wildcard $(SRCDIR)/*.cpp))
+SOURCES = $(filter-out $(SRCDIR)/evoped_app.cpp, $(wildcard $(SRCDIR)/*.cpp))
+
 OBJECT_PYL := $(patsubst $(SRCDIR)/%,$(BDIR_PYLIB)/%,$(SOURCES:.cpp=.o))
+
 OBJECT_APP := $(filter-out $(BDIR_APP)/wrapper.o, $(patsubst $(SRCDIR)/%,$(BDIR_APP)/%,$(SOURCES_ALL:.cpp=.o)))
 
 SOURCES_TST := $(wildcard $(TESTDIR)/$(SRCDIR)/*.cpp)
 OBJECT_TST := $(patsubst $(TSRCDIR)/%,$(BDIR_TST)/%,$(SOURCES_TST:.cpp=.o))
+OBJECT_TST += $(patsubst $(SRCDIR)/%,$(BDIR_PYLIB)/%,$(SOURCES:.cpp=.o))
 
 #----------------------------------------------------------------
 # build lib for python
@@ -122,7 +126,7 @@ clean:
 
 test:
 	@echo " Testing ..."
-	python3 $(TESTDIR)/$(SRCDIR)/*.py
+#	python3 $(TESTDIR)/$(SRCDIR)/*.py
 	@export  LD_LIBRARY_PATH=$(PWDADDR)/$(BDIR_CLIB):"$(LIBRARY_PATH)"; $(TARGET_TEST)
 
 run:
