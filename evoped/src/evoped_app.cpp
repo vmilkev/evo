@@ -107,8 +107,7 @@ std::cout<<"getting A22"<<"\n";
     //std::vector<std::int64_t> core_id{ 18, 20, 22, 25 };
     //gmat.invert_matrix(core_id);
 
-    gmat.get_ids(g_id);
-    gmat.get_matrix(iG);
+    gmat.get_matrix(iG,g_id);
     //iG.print("sparse G(-1)");
 
     std::cout<<"n IDs in G: "<<g_id.size()<<"\n";

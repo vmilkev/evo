@@ -10,138 +10,59 @@ namespace evoped
 
     //===============================================================================================================
 
-    void Gmat::get_matrix(evolm::matrix<double> &arr)
+    void Gmat::get_matrix(evolm::matrix<double> &arr, std::vector<std::int64_t>& ids)
     {
         // Note, we operate with L-stored format, hence return lower triangular part
         try
         {
             arr = G;
+            ids = gmatID;
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Gmat::get_matrix(evolm::matrix<double> &)" << '\n';
+            std::cerr << "Exception in Gmat::get_matrix(evolm::matrix<double> &, std::vector<std::int64_t>&)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Gmat::get_matrix(evolm::matrix<double> &)" << '\n';
+            std::cerr << "Exception in Gmat::get_matrix(evolm::matrix<double> &, std::vector<std::int64_t>&)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Gmat::get_matrix(evolm::matrix<double> &)" << '\n';
+            std::cerr << "Exception in Gmat::get_matrix(evolm::matrix<double> &, std::vector<std::int64_t>&)" << '\n';
             throw;
         }
     }
 
     //===============================================================================================================
 
-    void Gmat::get_matrix(std::vector<double> &arr)
+    void Gmat::get_matrix(std::vector<double> &arr, std::vector<std::int64_t>& ids)
     {
         // This method is for Python interfacing;
         // Note, we operate with L-stored format, hence return lower triangular part
         try
         {
             G.to_vector(arr);
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Exception in Gmat::get_matrix(std::vector<double> &)" << '\n';
-            std::cerr << e.what() << '\n';
-            throw;
-        }
-        catch (const std::string &e)
-        {
-            std::cerr << "Exception in Gmat::get_matrix(std::vector<double> &)" << '\n';
-            std::cerr << "Reason: " << e << '\n';
-            throw;
-        }
-        catch (...)
-        {
-            std::cerr << "Exception in Gmat::get_matrix(std::vector<double> &)" << '\n';
-            throw;
-        }
-    }
-
-    //===============================================================================================================
-
-    void Gmat::get_ids(std::vector<std::int64_t> &ids)
-    {
-        try
-        {
             ids = gmatID;
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Gmat::get_ids(std::vector<std::int64_t>&)" << '\n';
+            std::cerr << "Exception in Gmat::get_matrix(std::vector<double> &, std::vector<std::int64_t>&)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Gmat::get_ids(std::vector<std::int64_t>&)" << '\n';
+            std::cerr << "Exception in Gmat::get_matrix(std::vector<double> &, std::vector<std::int64_t>&)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Gmat::get_ids(std::vector<std::int64_t>&)" << '\n';
-            throw;
-        }
-    }
-
-    //===============================================================================================================
-
-    void Gmat::bin_write()
-    {
-        try
-        {
-            G.fwrite();
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Exception in Gmat::bin_write()" << '\n';
-            std::cerr << e.what() << '\n';
-            throw;
-        }
-        catch (const std::string &e)
-        {
-            std::cerr << "Exception in Gmat::bin_write()" << '\n';
-            std::cerr << "Reason: " << e << '\n';
-            throw;
-        }
-        catch (...)
-        {
-            std::cerr << "Exception in Gmat::bin_write()" << '\n';
-            throw;
-        }
-    }
-
-    //===============================================================================================================
-
-    void Gmat::bin_read()
-    {
-        try
-        {
-            G.fread();
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Exception in Gmat::bin_read()" << '\n';
-            std::cerr << e.what() << '\n';
-            throw;
-        }
-        catch (const std::string &e)
-        {
-            std::cerr << "Exception in Gmat::bin_read()" << '\n';
-            std::cerr << "Reason: " << e << '\n';
-            throw;
-        }
-        catch (...)
-        {
-            std::cerr << "Exception in Gmat::bin_read()" << '\n';
+            std::cerr << "Exception in Gmat::get_matrix(std::vector<double> &, std::vector<std::int64_t>&)" << '\n';
             throw;
         }
     }
@@ -156,6 +77,7 @@ namespace evoped
             make_zmatrix();
             snp_map.clear();
             make_matrix();
+            Z.fclear();
             Z.clear();
         }
         catch (const std::exception &e)
@@ -187,6 +109,7 @@ namespace evoped
             make_zmatrix();
             snp_map.clear();
             make_matrix();
+            Z.fclear();
             Z.clear();
         }
         catch (const std::exception &e)
@@ -218,6 +141,7 @@ namespace evoped
             make_zmatrix();
             G = Z;
             snp_map.clear();
+            Z.fclear();
             Z.clear();
         }
         catch (const std::exception &e)
@@ -249,6 +173,7 @@ namespace evoped
             make_zmatrix();
             G = Z;
             snp_map.clear();
+            Z.fclear();
             Z.clear();
         }
         catch (const std::exception &e)
@@ -347,6 +272,8 @@ namespace evoped
 
         try
         {
+            Utilities2 u;
+
             if ( G.empty() )
                 throw std::string("There is no G matrix which needs to be inverted!");
 
@@ -358,7 +285,7 @@ namespace evoped
             int is_invector;
             for (size_t i = 0; i < core_id.size(); i++)
             {
-                is_invector = find_invect(gmatID, core_id[i]);
+                is_invector = u.find_invect(gmatID, core_id[i]);
                 if (is_invector == -1)
                 {
                     std::cerr << "Core ID: " << core_id[i] << "\n";
@@ -378,7 +305,7 @@ namespace evoped
             // make the list of positions of coreIDs in genotypedIDs
             std::map<std::int64_t, std::int64_t> corePositions;
 
-            find_RecodedIdMap(corePositions, gmatID, core_id);
+            u.find_RecodedIdMap(corePositions, gmatID, core_id);
 
             // n_threads = std::thread::hardware_concurrency();
             // block_size = static_cast<unsigned int> (coreID.size()/(1*n_threads));
@@ -419,7 +346,7 @@ namespace evoped
             for (size_t i = 0; i < gmatID.size(); i++)
             {
                 std::int64_t id = gmatID[i];
-                if ( find_invect(core_id, id) == -1 )
+                if ( u.find_invect(core_id, id) == -1 )
                     noncoreID.push_back(id);
             }
 
@@ -434,7 +361,7 @@ namespace evoped
 
             coreNonCoreIDs.insert(coreNonCoreIDs.end(), noncoreID.begin(), noncoreID.end());
 
-            find_RecodedIdMap(corePositions, gmatID, coreNonCoreIDs);
+            u.find_RecodedIdMap(corePositions, gmatID, coreNonCoreIDs);
 
             // n_threads = std::thread::hardware_concurrency();
             // block_size = static_cast<unsigned int> (noncoreID.size()/(1*n_threads));
@@ -988,6 +915,8 @@ namespace evoped
         // reads G matrix from gmat.dat file into the linked list container
         try
         {
+            Utilities2 u;
+
             std::string line;
 
             char *end;
@@ -1028,7 +957,7 @@ namespace evoped
 
             ped.close();
 
-            if (!is_unique(gmatID))
+            if (!u.is_unique(gmatID))
                 gmatID.erase(unique(gmatID.begin(), gmatID.end()), gmatID.end()); // here the vector should be sorted and unique
 
             if (diagonals != gmatID.size())
@@ -1065,6 +994,8 @@ namespace evoped
         //       only to the lower triangular part assuming the G matrix is always symmetric.
         try
         {
+            Utilities2 u;
+
             std::vector<std::int64_t> g_row;
             std::vector<std::int64_t> g_col;
             std::vector<double> g_val;
@@ -1075,7 +1006,7 @@ namespace evoped
             if (gmatID.empty())
                 throw std::string("Genotyped IDs vector is empty!");
 
-            get_RecodedIdMap(rid_map, gmatID); // here indexing starts from 1 (but not from 0) !
+            u.get_RecodedIdMap(rid_map, gmatID); // here indexing starts from 1 (but not from 0) !
 
             if (rid_map.empty())
                 throw std::string("Recoded IDs map is empty!");
@@ -1139,6 +1070,8 @@ namespace evoped
         */
         try
         {
+            Utilities2 u;
+
             std::string line;
             std::vector<std::string> data_list;
 
@@ -1195,7 +1128,7 @@ namespace evoped
             // Check if gmat IDs are unique
             std::vector<std::int64_t> t_gmatID(gmatID);
 
-            if (!is_unique(t_gmatID))
+            if (!u.is_unique(t_gmatID))
                 throw std::string("Thhere are repeated IDs in the processed SNPs file!");
 
             t_gmatID.clear();
@@ -1245,6 +1178,8 @@ namespace evoped
         */
         try
         {
+            Utilities2 u;
+
             std::string line;
             std::vector<std::string> data_list;
             std::ifstream snpF;
@@ -1271,7 +1206,7 @@ namespace evoped
             // Check if gmat IDs are unique
             std::vector<std::int64_t> t_gmatID(gmatID);
 
-            if (!is_unique(t_gmatID))
+            if (!u.is_unique(t_gmatID))
                 throw std::string("Thhere are repeated IDs in the processed SNPs file!");
 
             t_gmatID.clear();
@@ -1327,132 +1262,6 @@ namespace evoped
         catch (...)
         {
             std::cerr << "Exception in Gmat::read_snp(const std::string &, const std::string&)" << '\n';
-            throw;
-        }
-    }
-
-    //===============================================================================================================
-
-    int Gmat::find_invect(std::vector<std::int64_t> &where, std::int64_t what)
-    {
-        try
-        {
-            std::vector<std::int64_t>::iterator it;
-            it = find(where.begin(), where.end(), what);
-            if (it != where.end())
-                return it - where.begin();
-            else
-                return -1;
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Exception in Gmat::find_invect(std::vector<std::int64_t> &, std::int64_t)" << '\n';
-            std::cerr << e.what() << '\n';
-            throw;
-        }
-        catch (const std::string &e)
-        {
-            std::cerr << "Exception in Gmat::find_invect(std::vector<std::int64_t> &, std::int64_t)" << '\n';
-            std::cerr << "Reason: " << e << '\n';
-            throw;
-        }
-        catch (...)
-        {
-            std::cerr << "Exception in Gmat::find_invect(std::vector<std::int64_t> &, std::int64_t)" << '\n';
-            throw;
-        }
-    }
-
-    //===============================================================================================================
-
-    void Gmat::find_RecodedIdMap(std::map<std::int64_t, std::int64_t> &id_map,
-                                 std::vector<std::int64_t> &whereIidList,
-                                 std::vector<std::int64_t> &whatIdList)
-    {
-        try
-        {
-            for (size_t i = 0; i < whatIdList.size(); i++)
-                id_map[ whatIdList[i] ] = find_invect( whereIidList, whatIdList[i] ) + 1; // +1 because we start indexing from 1
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Exception in Gmat::find_RecodedIdMap(std::map<std::int64_t, std::int64_t> &, std::vector<std::int64_t> &, std::vector<std::int64_t> &)" << '\n';
-            std::cerr << e.what() << '\n';
-            throw;
-        }
-        catch (const std::string &e)
-        {
-            std::cerr << "Exception in Gmat::find_RecodedIdMap(std::map<std::int64_t, std::int64_t> &, std::vector<std::int64_t> &, std::vector<std::int64_t> &)" << '\n';
-            std::cerr << "Reason: " << e << '\n';
-            throw;
-        }
-        catch (...)
-        {
-            std::cerr << "Exception in Gmat::find_RecodedIdMap(std::map<std::int64_t, std::int64_t> &, std::vector<std::int64_t> &, std::vector<std::int64_t> &)" << '\n';
-            throw;
-        }
-    }
-
-    //===============================================================================================================
-
-    void Gmat::get_RecodedIdMap(std::map<std::int64_t, std::int64_t> &id_map,
-                                std::vector<std::int64_t> &idVect)
-    {
-        try
-        {
-            size_t code_id = 1;
-            for (auto const &elem : idVect)
-            {
-                id_map[elem] = code_id;
-                code_id++;
-            }
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Exception in Gmat::get_RecodedIdMap(std::map<std::int64_t, std::int64_t> &, std::vector<std::int64_t> &)" << '\n';
-            std::cerr << e.what() << '\n';
-            throw;
-        }
-        catch (const std::string &e)
-        {
-            std::cerr << "Exception in Gmat::get_RecodedIdMap(std::map<std::int64_t, std::int64_t> &, std::vector<std::int64_t> &)" << '\n';
-            std::cerr << "Reason: " << e << '\n';
-            throw;
-        }
-        catch (...)
-        {
-            std::cerr << "Exception in Gmat::get_RecodedIdMap(std::map<std::int64_t, std::int64_t> &, std::vector<std::int64_t> &)" << '\n';
-            throw;
-        }
-    }
-
-    //===============================================================================================================
-
-    bool Gmat::is_unique(std::vector<std::int64_t> &x)
-    {
-        try
-        {
-            bool out = false;
-            sort(x.begin(), x.end());
-            if (adjacent_find(x.begin(), x.end()) == x.end())
-                out = true;
-            return out;
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Exception in Gmat::is_unique(std::vector<std::int64_t> &)" << '\n';
-            std::cerr << e.what() << '\n';
-            throw;
-        }
-        catch (const std::string &e)
-        {
-            std::cerr << "Exception in Gmat::is_unique(std::vector<std::int64_t> &)" << '\n';
-            std::cerr << "Reason: " << e << '\n';
-            throw;
-        }
-        catch (...)
-        {
-            std::cerr << "Exception in Gmat::is_unique(std::vector<std::int64_t> &)" << '\n';
             throw;
         }
     }
@@ -1667,49 +1476,6 @@ namespace evoped
             throw;
         }
     }
-
-    //===============================================================================================================
-    // ??? not used so far !
-    template <typename T>
-    void Gmat::get_gvalues(std::vector<std::int64_t> &row, std::vector<std::int64_t> &col, std::vector<T> &val, double diag_val)
-    {
-        try
-        {
-            for (size_t i = 0; i < anim_id_map.size(); i++)
-            {
-                for (size_t j = 0; j <= i; j++)
-                {
-                    col.push_back(anim_id_map[j]);
-                    row.push_back(anim_id_map[i]);
-
-                    if (i == j)
-                        val.push_back(static_cast<T>(G(i, j) + diag_val));
-                    else
-                        val.push_back(static_cast<T>(G(i, j)));
-                }
-            }
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Exception in Gmat::get_gvalues(std::vector <std::int64_t>&, std::vector <std::int64_t>&, std::vector <T>&, double)" << '\n';
-            std::cerr << e.what() << '\n';
-            throw;
-        }
-        catch (const std::string &e)
-        {
-            std::cerr << "Exception in Gmat::get_gvalues(std::vector <std::int64_t>&, std::vector <std::int64_t>&, std::vector <T>&, double)" << '\n';
-            std::cerr << "Reason: " << e << '\n';
-            throw;
-        }
-        catch (...)
-        {
-            std::cerr << "Exception in Gmat::get_gvalues(std::vector <std::int64_t>&, std::vector <std::int64_t>&, std::vector <T>&, double)" << '\n';
-            throw;
-        }
-    }
-
-    template void Gmat::get_gvalues(std::vector<std::int64_t> &row, std::vector<std::int64_t> &col, std::vector<float> &val, double diag_val);
-    template void Gmat::get_gvalues(std::vector<std::int64_t> &row, std::vector<std::int64_t> &col, std::vector<double> &val, double diag_val);
 
     //===============================================================================================================
 

@@ -7,6 +7,7 @@
 #include <fstream>
 
 #include "cs_matrix.hpp"
+#include "Utilities2.hpp"
 
 #define workload 100000
 
@@ -29,11 +30,8 @@ namespace evoped
         void invert_matrix();
         void invert_matrix(bool full_store);        
         void invert_matrix(std::vector<std::int64_t>& core_id); // sparse inverse (APY)        
-        void bin_write();
-        void bin_read();
-        void get_matrix(evolm::matrix<double>& arr);
-        void get_matrix(std::vector<double>& arr);
-        void get_ids(std::vector<std::int64_t>& ids);
+        void get_matrix(evolm::matrix<double>& arr, std::vector<std::int64_t>& ids);
+        void get_matrix(std::vector<double>& arr, std::vector<std::int64_t>& ids);
         void clear();
 
 #ifdef UTEST
@@ -53,20 +51,6 @@ namespace evoped
         std::map<std::int64_t, std::string> snp_map; // initial markers data, temporal
         std::map<size_t, std::int64_t> anim_id_map;  // key: consecutive index, value: animal ID
 
-        void find_RecodedIdMap(std::map<std::int64_t, std::int64_t> &id_map,
-                               std::vector<std::int64_t> &whereIidList,
-                               std::vector<std::int64_t> &whatIdList);      // not sure if this is needed
-        void get_RecodedIdMap(std::map<std::int64_t, std::int64_t> &id_map,
-                              std::vector<std::int64_t> &idVect);
-        int find_invect(std::vector<std::int64_t> &where,
-                           std::int64_t what);                              // was find_invect2
-        bool is_unique(std::vector<std::int64_t> &x);
-        template <typename T>
-        void get_gvalues(std::vector<std::int64_t> &row,
-                         std::vector<std::int64_t> &col,
-                         std::vector<T> &val,
-                         double diag_val);             // expected to be usefull in the Hmat class
-        //void get_gids(std::vector<std::int64_t> &ids); // expected to be usefull in the Hmat class
         void read_snp(const std::string &snp_file);
         void read_snp(const std::string &snp_file, const std::string& ids_file);
         void parse_string(std::string &snp_str, std::vector<int> &markers);

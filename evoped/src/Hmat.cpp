@@ -94,10 +94,12 @@ namespace evoped
             if ( g_ids.size() > a_ids.size() )
                 throw std::string("The number of elements in the passed G(-1) maatrix is greater then the number of IDs in full A(-1) matrix!");
 
-            if ( !is_value_in_vect(a_red_ids, g_ids) )
+            Utilities2 u;
+
+            if ( !u.is_value_in_vect(a_red_ids, g_ids) )
                 throw std::string("There are IDs in G(-1) matrix which are not part of the reduced A(-1) matrix!");
 
-            if ( !is_value_in_vect(a_ids, g_ids) )
+            if ( !u.is_value_in_vect(a_ids, g_ids) )
                 throw std::string("There are IDs in G(-1) matrix which are not part of the A(-1) matrix!");
 
             evolm::matrix<double> amatr( a_ids.size() );
@@ -173,10 +175,12 @@ namespace evoped
             if ( g_ids.size() > a_ids.size() )
                 throw std::string("The number of elements in the passed G(-1) maatrix is greater then the number of IDs in full A(-1) matrix!");
 
-            if ( !is_value_in_vect(a_red_ids, g_ids) )
+            Utilities2 u;
+
+            if ( !u.is_value_in_vect(a_red_ids, g_ids) )
                 throw std::string("There are IDs in G(-1) matrix which are not part of the reduced A(-1) matrix!");
 
-            if ( !is_value_in_vect(a_ids, g_ids) )
+            if ( !u.is_value_in_vect(a_ids, g_ids) )
                 throw std::string("There are IDs in G(-1) matrix which are not part of the A(-1) matrix!");
 
             evolm::matrix<size_t> shapeofa;
@@ -209,7 +213,7 @@ namespace evoped
             std::vector<size_t> pos_map;
             for (size_t i = 0; i < g_ids.size(); i++)
             {
-                pos_map.push_back( find_invect( a_red_ids, g_ids[i] ) );
+                pos_map.push_back( u.find_invect( a_red_ids, g_ids[i] ) );
             }
 
 #pragma omp parallel for
@@ -237,7 +241,7 @@ namespace evoped
             pos_map.shrink_to_fit();
 
             for (size_t i = 0; i < g_ids.size(); i++)
-                pos_map.push_back( find_invect( a_ids, g_ids[i] ) );
+                pos_map.push_back( u.find_invect( a_ids, g_ids[i] ) );
 
 #pragma omp parallel for
             for (size_t i = 0; i < g_ids.size(); i++)
@@ -280,38 +284,6 @@ namespace evoped
         catch (...)
         {
             std::cerr << "Exception in Hmat::make_matrix(evolm::matrix<double>&, std::vector<std::int64_t>&, evolm::matrix<double>&, std::vector<std::int64_t>&, evolm::matrix<double>&, std::vector<std::int64_t>&)" << '\n';
-            throw;
-        }
-    }
-
-    //===============================================================================================================
-
-    int Hmat::find_invect(std::vector<std::int64_t> &where, std::int64_t what)
-    {
-        try
-        {
-            std::vector<std::int64_t>::iterator it;
-            it = find(where.begin(), where.end(), what);
-            if (it != where.end())
-                return it - where.begin();
-            else
-                return -1;
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Exception in Hmat::find_invect(std::vector<std::int64_t> &, std::int64_t)" << '\n';
-            std::cerr << e.what() << '\n';
-            throw;
-        }
-        catch (const std::string &e)
-        {
-            std::cerr << "Exception in Hmat::find_invect(std::vector<std::int64_t> &, std::int64_t)" << '\n';
-            std::cerr << "Reason: " << e << '\n';
-            throw;
-        }
-        catch (...)
-        {
-            std::cerr << "Exception in Hmat::find_invect(std::vector<std::int64_t> &, std::int64_t)" << '\n';
             throw;
         }
     }
@@ -391,78 +363,6 @@ namespace evoped
         catch (...)
         {
             std::cerr << "Exception in Hmat::get_matrix(std::vector<double> &, std::vector<std::int64_t>&, bool)" << '\n';
-            throw;
-        }
-    }
-
-    //===============================================================================================================
-
-    void Hmat::check_id(std::vector<std::int64_t> &id_list, std::vector<std::int64_t> &checked_id, std::vector<std::int64_t> &missing_id)
-    {
-        try
-        {
-            // id_list - vector of ids from where to check
-            // checked_id - vector of ids to check
-            // missing_id - vector of missing ids (whose not found in id vector)
-
-            for (size_t i = 0; i < checked_id.size(); i++)
-                if (!std::binary_search(id_list.begin(), id_list.end(), checked_id[i]))
-                    missing_id.push_back(checked_id[i]);
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Exception in Hmat::check_id(std::vector<std::int64_t> &, std::vector<std::int64_t> &, std::vector<std::int64_t> &)" << '\n';
-            std::cerr << e.what() << '\n';
-            throw;
-        }
-        catch (const std::string &e)
-        {
-            std::cerr << "Exception in Hmat::check_id(std::vector<std::int64_t> &, std::vector<std::int64_t> &, std::vector<std::int64_t> &)" << '\n';
-            std::cerr << "Reason: " << e << '\n';
-            throw;
-        }
-        catch (...)
-        {
-            std::cerr << "Exception in Hmat::check_id(std::vector<std::int64_t> &, std::vector<std::int64_t> &, std::vector<std::int64_t> &)" << '\n';
-            throw;
-        }
-    }
-
-    //===============================================================================================================
-
-    bool Hmat::is_value_in_vect(std::vector<std::int64_t> &where_tocheck, std::vector<std::int64_t> &what_tocheck)
-    {
-        // are values from what_tocheck in where_tocheck?
-        try
-        {
-            bool out = true;
-
-            std::vector<std::int64_t> missing;
-            check_id(where_tocheck, what_tocheck, missing);
-
-            if (!missing.empty())
-            {
-                out = false;
-                missing.clear();
-            }
-
-            return out;
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Exception in Hmat::is_value_in_vect(std::vector<std::int64_t> &, std::vector<std::int64_t> &)" << '\n';
-            std::cerr << e.what() << '\n';
-            throw;
-        }
-        catch (const std::string &e)
-        {
-            std::cerr << "Exception in Hmat::is_value_in_vect(std::vector<std::int64_t> &, std::vector<std::int64_t> &)" << '\n';
-            std::cerr << "Reason: " << e << '\n';
-            throw;
-        }
-        catch (...)
-        {
-            std::cerr << "Exception in Hmat::is_value_in_vect(std::vector<std::int64_t> &, std::vector<std::int64_t> &)" << '\n';
             throw;
         }
     }

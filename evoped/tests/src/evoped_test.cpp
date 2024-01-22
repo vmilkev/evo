@@ -705,8 +705,7 @@ TEST_CASE( "Testing Gmat class" )
             std::vector<std::int64_t> g_id;
 
             gmat.make_matrix("tests/data/allele.dat");
-            gmat.get_ids(g_id);
-            gmat.get_matrix(G);
+            gmat.get_matrix(G,g_id);
 
             std::vector<double> Gvect;
             for (size_t i = 0; i < g_id.size(); i++)
@@ -751,8 +750,7 @@ TEST_CASE( "Testing Gmat class" )
             std::vector<std::int64_t> g_id;
 
             gmat.read_matrix("tests/data/g_mat");
-            gmat.get_ids(g_id);
-            gmat.get_matrix(G);
+            gmat.get_matrix(G,g_id);
 
             std::vector<double> Gvect;
             for (size_t i = 0; i < g_id.size(); i++)
@@ -797,7 +795,6 @@ TEST_CASE( "Testing Gmat class" )
             std::vector<std::int64_t> g_id;
 
             gmat.read_matrix("tests/data/g_mat");
-            gmat.get_ids(g_id);
 
             evoped::Amat ap;
             evolm::matrix<double> A22;
@@ -807,7 +804,7 @@ TEST_CASE( "Testing Gmat class" )
             ap.get_matrix("A22", A22, a22_id, false);
 
             gmat.scale_matrix(A22, 0.25);
-            gmat.get_matrix(G);
+            gmat.get_matrix(G,g_id);
 
             double a, b, a_diag, a_ofd, g_diag, g_ofd;
 
@@ -826,7 +823,7 @@ TEST_CASE( "Testing Gmat class" )
                 CHECK( G_scaled_true[i] == Catch::Approx(G[i]) );
 
             gmat.invert_matrix(true);
-            gmat.get_matrix(G);
+            gmat.get_matrix(G,g_id);
 
             CHECK( iG_true.size() == G.size() );
 
@@ -850,6 +847,7 @@ TEST_CASE( "Testing Gmat class" )
         {
             evoped::Gmat gmat;
             evolm::matrix<double> G;
+            std::vector<std::int64_t> g_id;
 
             gmat.read_matrix("tests/data/g_mat");
 
@@ -865,7 +863,7 @@ TEST_CASE( "Testing Gmat class" )
             std::vector<std::int64_t> core_id{ 18, 20, 22, 25 };
 
             gmat.invert_matrix(core_id);
-            gmat.get_matrix(G);
+            gmat.get_matrix(G,g_id);
 
             CHECK( iG_sparse_true.size() == G.size() );
 
@@ -889,6 +887,7 @@ TEST_CASE( "Testing Gmat class" )
         {
             evoped::Gmat gmat;
             evolm::matrix<double> G;
+            std::vector<std::int64_t> g_id;
 
             gmat.make_matrix("tests/data/allele.dat");
 
@@ -904,7 +903,7 @@ TEST_CASE( "Testing Gmat class" )
             std::vector<std::int64_t> core_id{ 18, 20, 22, 25 };
 
             gmat.invert_matrix(core_id);
-            gmat.get_matrix(G);
+            gmat.get_matrix(G,g_id);
 
             CHECK( iG_sparse_true.size() == G.size() );
 
@@ -950,8 +949,7 @@ TEST_CASE( "Testing Gmat class" )
             std::vector<std::int64_t> core_id{ 18, 20, 22, 25 };
 
             gmat.invert_matrix(core_id);
-            gmat.get_matrix(G);
-            gmat.get_ids(g_id);
+            gmat.get_matrix(G,g_id);
 
             evoped::Hmat h;
             evolm::matrix<double> H;

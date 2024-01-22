@@ -61,6 +61,8 @@ namespace evoped
     {
         try
         {
+            Utilities2 u;
+
             std::map<std::int64_t, std::int64_t> rid_map;
 
             if ( ids.empty() )
@@ -73,7 +75,7 @@ namespace evoped
             if ( limit < amap.size() )
                 throw std::string("The number of elements in calculated A(-1) matrix is higher than the number of traced IDs!!");
 
-            get_RecodedIdMap(rid_map, ids);
+            u.get_RecodedIdMap(rid_map, ids);
 
             if (rid_map.empty())
                 throw std::string("Recoded IDs map is empty!");
@@ -405,14 +407,14 @@ namespace evoped
         }
     }
 
-
-
     //===============================================================================================================
 
     void Amat::get_iA22(evolm::matrix<double>& full_matr, std::vector<std::int64_t>& matr_ids, std::vector<std::int64_t>& selected_ids)
     {
         try
         {
+            Utilities2 u;
+
             evolm::matrix<size_t> shapeofh;
             shapeofh = full_matr.shape();
 
@@ -430,7 +432,7 @@ namespace evoped
             if ( selected_ids.size() > matr_ids.size() )
                 throw std::string("The number of elements in the passed selected IDs array is greater then the number of IDs in the passed matrix!");
 
-            if ( !is_value_in_vect(matr_ids, selected_ids) )
+            if ( !u.is_value_in_vect(matr_ids, selected_ids) )
                 throw std::string("There are IDs in the selected IDs array which are not part of the passed matrix!");
 
             // --------------------------------
@@ -446,7 +448,7 @@ namespace evoped
 
             for ( size_t i = 0; i < matr_ids.size(); i++ )
             {
-                int res = find_invect( selected_ids, matr_ids[i] );
+                int res = u.find_invect( selected_ids, matr_ids[i] );
                 if ( res == -1 )
                     not_selected_ids.push_back( matr_ids[i] );
             }
@@ -469,21 +471,21 @@ namespace evoped
 
             std::vector<size_t> non_selected_pos;
             for (size_t i = 0; i < not_selected_ids.size(); i++)
-                non_selected_pos.push_back( find_invect( matr_ids, not_selected_ids[i] ) );
+                non_selected_pos.push_back( u.find_invect( matr_ids, not_selected_ids[i] ) );
 
             std::vector<size_t> selected_pos;
             for (size_t i = 0; i < selected_ids.size(); i++)
-                selected_pos.push_back( find_invect( matr_ids, selected_ids[i] ) );
+                selected_pos.push_back( u.find_invect( matr_ids, selected_ids[i] ) );
 
 #pragma omp parallel for
             for (size_t i = 0; i < not_selected_ids.size(); i++)
             {
-                //size_t pos_i = find_invect( matr_ids, not_selected_ids[i] );
+                //size_t pos_i = u.find_invect( matr_ids, not_selected_ids[i] );
                 size_t pos_i = non_selected_pos[i];
 
                 for (size_t j = 0; j <= i; j++)
                 {
-                    //size_t pos_j = find_invect( matr_ids, not_selected_ids[j] );
+                    //size_t pos_j = u.find_invect( matr_ids, not_selected_ids[j] );
                     size_t pos_j = non_selected_pos[j];
 
                     if ( pos_i >= pos_j )
@@ -507,12 +509,12 @@ namespace evoped
 #pragma omp parallel for
             for (size_t i = 0; i < selected_ids.size(); i++)
             {
-                //size_t pos_i = find_invect( matr_ids, selected_ids[i] );
+                //size_t pos_i = u.find_invect( matr_ids, selected_ids[i] );
                 size_t pos_i = selected_pos[i];
 
                 for (size_t j = 0; j < not_selected_ids.size(); j++)
                 {
-                    //size_t pos_j = find_invect( matr_ids, not_selected_ids[j] );
+                    //size_t pos_j = u.find_invect( matr_ids, not_selected_ids[j] );
                     size_t pos_j = non_selected_pos[j];
 
                     if ( pos_i >= pos_j )
@@ -561,12 +563,12 @@ namespace evoped
 #pragma omp parallel for
             for (size_t i = 0; i < selected_ids.size(); i++)
             {
-                //size_t pos_i = find_invect( matr_ids, selected_ids[i] );
+                //size_t pos_i = u.find_invect( matr_ids, selected_ids[i] );
                 size_t pos_i = selected_pos[i];
 
                 for (size_t j = 0; j <= i; j++)
                 {
-                    //size_t pos_j = find_invect( matr_ids, selected_ids[j] );
+                    //size_t pos_j = u.find_invect( matr_ids, selected_ids[j] );
                     size_t pos_j = selected_pos[j];
 
                     if ( pos_i >= pos_j )
@@ -633,6 +635,8 @@ namespace evoped
     {
         try
         {
+            Utilities2 u;
+
             std::string line;
             PedPair key;
             PedPair id_pair;
@@ -677,7 +681,7 @@ namespace evoped
 
             ped.close();
 
-            if (!is_unique(out_ids))
+            if (!u.is_unique(out_ids))
                 out_ids.erase(unique(out_ids.begin(), out_ids.end()), out_ids.end()); // here the vector should be sorted and unique
         }
         catch (const std::exception &e)
@@ -701,42 +705,13 @@ namespace evoped
 
     //===============================================================================================================
 
-    bool Amat::is_unique(std::vector<std::int64_t> &x)
-    {
-        try
-        {
-            bool out = false;
-            sort(x.begin(), x.end());
-            if (adjacent_find(x.begin(), x.end()) == x.end())
-                out = true;
-            return out;
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Exception in Amat::is_unique(std::vector<std::int64_t> &)" << '\n';
-            std::cerr << e.what() << '\n';
-            throw;
-        }
-        catch (const std::string &e)
-        {
-            std::cerr << "Exception in Amat::is_unique(std::vector<std::int64_t> &)" << '\n';
-            std::cerr << "Reason: " << e << '\n';
-            throw;
-        }
-        catch (...)
-        {
-            std::cerr << "Exception in Amat::is_unique(std::vector<std::int64_t> &)" << '\n';
-            throw;
-        }
-    }
-
-    //===============================================================================================================
-
     void Amat::fread_genotyped_id(const std::string &g_file, std::vector<std::int64_t> &out_ids)
     {
         // reads genotyped and core IDs from typed file into the vectors: genotyped, core
         try
         {
+            Utilities2 u;
+
             std::string line;
             std::int64_t t_gtyp, t_gcor;
             t_gtyp = t_gcor = 0;
@@ -783,10 +758,10 @@ namespace evoped
 
             ped.close();
 
-            if (!is_unique(out_ids))
+            if (!u.is_unique(out_ids))
                 out_ids.erase(unique(out_ids.begin(), out_ids.end()), out_ids.end());
 
-            //if (!is_unique(coreID))
+            //if (!u.is_unique(coreID))
             //    coreID.erase(unique(coreID.begin(), coreID.end()), coreID.end());
         }
         catch (const std::exception &e)
@@ -810,42 +785,12 @@ namespace evoped
 
     //===============================================================================================================
 
-    bool Amat::is_invect(std::vector<std::int64_t> &where, std::int64_t what)
-    {
-        try
-        {
-            std::vector<std::int64_t>::iterator it;
-            it = find(where.begin(), where.end(), what);
-            if (it != where.end())
-                return true;
-            else
-                return false;
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Exception in Amat::is_invect(std::vector<std::int64_t> &, std::int64_t)" << '\n';
-            std::cerr << e.what() << '\n';
-            throw;
-        }
-        catch (const std::string &e)
-        {
-            std::cerr << "Exception in Amat::is_invect(std::vector<std::int64_t> &, std::int64_t)" << '\n';
-            std::cerr << "Reason: " << e << '\n';
-            throw;
-        }
-        catch (...)
-        {
-            std::cerr << "Exception in Amat::is_invect(std::vector<std::int64_t> &, std::int64_t)" << '\n';
-            throw;
-        }
-    }
-
-    //===============================================================================================================
-
     void Amat::trace_pedigree(std::map<PedPair, PedPair> &in_ped, std::map<PedPair, PedPair> &out_ped, std::vector<std::int64_t> &traced_id)
     {
         try
         {
+            Utilities2 u;
+
             PedPair id_pair;
             PedPair key;
             std::vector<std::int64_t> gen_pedID(traced_id);
@@ -891,12 +836,12 @@ namespace evoped
 
                         if (id_pair.val_1 != 0)
                         {
-                            if (!is_invect(gen_pedID, id_pair.val_1))
+                            if (!u.is_invect(gen_pedID, id_pair.val_1))
                                 gen_pedID.push_back(id_pair.val_1);
                         }
                         if (id_pair.val_2 != 0)
                         {
-                            if (!is_invect(gen_pedID, id_pair.val_2))
+                            if (!u.is_invect(gen_pedID, id_pair.val_2))
                                 gen_pedID.push_back(id_pair.val_2);
                         }
 
@@ -918,7 +863,7 @@ namespace evoped
 
             } while (iter_v < gen_pedID.size());
             
-            if ( is_unique(gen_pedID) ) // Check if no repeated IDs appiar in the list of traced IDs
+            if ( u.is_unique(gen_pedID) ) // Check if no repeated IDs appiar in the list of traced IDs
                 traced_pedID = gen_pedID;
             else
                 throw std::string("In the traced pedigree some IDs appiar more then one time!");
@@ -1756,75 +1701,12 @@ namespace evoped
 
     //===============================================================================================================
 
-    void Amat::get_RecodedIdMap(std::map<std::int64_t, std::int64_t> &id_map,
-                                std::vector<std::int64_t> &idVect)
-    {
-        try
-        {
-            size_t code_id = 1;
-            for (auto const &elem : idVect)
-            {
-                id_map[elem] = code_id;
-                code_id++;
-            }
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Exception in Amat::get_RecodedIdMap(std::map<std::int64_t, std::int64_t> &, std::vector<std::int64_t> &)" << '\n';
-            std::cerr << e.what() << '\n';
-            throw;
-        }
-        catch (const std::string &e)
-        {
-            std::cerr << "Exception in Amat::get_RecodedIdMap(std::map<std::int64_t, std::int64_t> &, std::vector<std::int64_t> &)" << '\n';
-            std::cerr << "Reason: " << e << '\n';
-            throw;
-        }
-        catch (...)
-        {
-            std::cerr << "Exception in Amat::get_RecodedIdMap(std::map<std::int64_t, std::int64_t> &, std::vector<std::int64_t> &)" << '\n';
-            throw;
-        }
-    }
-
-    //===============================================================================================================
-
-    int Amat::find_invect(std::vector<std::int64_t> &where, std::int64_t what)
-    {
-        try
-        {
-            std::vector<std::int64_t>::iterator it;
-            it = find(where.begin(), where.end(), what);
-            if (it != where.end())
-                return it - where.begin();
-            else
-                return -1;
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Exception in Amat::find_invect(std::vector<std::int64_t> &, std::int64_t)" << '\n';
-            std::cerr << e.what() << '\n';
-            throw;
-        }
-        catch (const std::string &e)
-        {
-            std::cerr << "Exception in Amat::find_invect(std::vector<std::int64_t> &, std::int64_t)" << '\n';
-            std::cerr << "Reason: " << e << '\n';
-            throw;
-        }
-        catch (...)
-        {
-            std::cerr << "Exception in Amat::find_invect(std::vector<std::int64_t> &, std::int64_t)" << '\n';
-            throw;
-        }
-    }
-
-    //===============================================================================================================
-
     void Amat::get_A22(std::map <PedPair, PedPair> &ped, std::vector<std::int64_t> &genotypedID)
     {
         try
         {
+            Utilities2 u;
+
             size_t n = ped.size(); // total amount of animals in pedigree
             std::vector<std::vector<std::int64_t> > Ped(n+1, std::vector<std::int64_t>(2, 0.0));
             std::vector<std::int64_t> GenID; // list of genotyped IDs
@@ -1840,7 +1722,7 @@ namespace evoped
                 Ped[code_id][0] = pos_inped (code_map, elem.second.val_1);
                 Ped[code_id][1] = pos_inped (code_map, elem.second.val_2);
 
-                int pos = find_invect(genotypedID, elem.first.val_2);
+                int pos = u.find_invect(genotypedID, elem.first.val_2);
                 if (pos != -1) {
                     GenID.push_back(code_id);
                     gen_map[code_id] = pos;
@@ -1938,78 +1820,6 @@ namespace evoped
         catch (...)
         {
             std::cerr << "Exception in Amat::getA22vector(std::vector <double> &, std::vector <std::int64_t> &, std::vector<std::vector<std::int64_t> > &)" << '\n';
-            throw;
-        }
-    }
-
-    //===============================================================================================================
-
-    bool Amat::is_value_in_vect(std::vector<std::int64_t> &where_tocheck, std::vector<std::int64_t> &what_tocheck)
-    {
-        // are values from what_tocheck in where_tocheck?
-        try
-        {
-            bool out = true;
-
-            std::vector<std::int64_t> missing;
-            check_id(where_tocheck, what_tocheck, missing);
-
-            if (!missing.empty())
-            {
-                out = false;
-                missing.clear();
-            }
-
-            return out;
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Exception in Amat::is_value_in_vect(std::vector<std::int64_t> &, std::vector<std::int64_t> &)" << '\n';
-            std::cerr << e.what() << '\n';
-            throw;
-        }
-        catch (const std::string &e)
-        {
-            std::cerr << "Exception in Amat::is_value_in_vect(std::vector<std::int64_t> &, std::vector<std::int64_t> &)" << '\n';
-            std::cerr << "Reason: " << e << '\n';
-            throw;
-        }
-        catch (...)
-        {
-            std::cerr << "Exception in Amat::is_value_in_vect(std::vector<std::int64_t> &, std::vector<std::int64_t> &)" << '\n';
-            throw;
-        }
-    }
-
-    //===============================================================================================================
-
-    void Amat::check_id(std::vector<std::int64_t> &id_list, std::vector<std::int64_t> &checked_id, std::vector<std::int64_t> &missing_id)
-    {
-        try
-        {
-            // id_list - vector of ids from where to check
-            // checked_id - vector of ids to check
-            // missing_id - vector of missing ids (whose not found in id vector)
-
-            for (size_t i = 0; i < checked_id.size(); i++)
-                if (!std::binary_search(id_list.begin(), id_list.end(), checked_id[i]))
-                    missing_id.push_back(checked_id[i]);
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Exception in Amat::check_id(std::vector<std::int64_t> &, std::vector<std::int64_t> &, std::vector<std::int64_t> &)" << '\n';
-            std::cerr << e.what() << '\n';
-            throw;
-        }
-        catch (const std::string &e)
-        {
-            std::cerr << "Exception in Amat::check_id(std::vector<std::int64_t> &, std::vector<std::int64_t> &, std::vector<std::int64_t> &)" << '\n';
-            std::cerr << "Reason: " << e << '\n';
-            throw;
-        }
-        catch (...)
-        {
-            std::cerr << "Exception in Amat::check_id(std::vector<std::int64_t> &, std::vector<std::int64_t> &, std::vector<std::int64_t> &)" << '\n';
             throw;
         }
     }
