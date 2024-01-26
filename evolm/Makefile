@@ -16,8 +16,9 @@ SOURSE_BLAS_IS_INTEL := 0
 ifeq ($(UNAME_OS),Darwin)
 	CXX := clang++
 else
-	ifeq ( $(SOURSE_BLAS_IS_INTEL), 1)
-		CXX := icpc
+#	ifeq ( $(SOURSE_BLAS_IS_INTEL), 1)
+	ifdef SOURSE_BLAS_IS_INTEL
+		CXX := icpx
 	else
 		CXX := g++
 	endif
@@ -41,7 +42,8 @@ ifeq ($(UNAME_OS),Darwin) # using apple's Accelerate
 	EXTRA_LIBFLAGS :=  -L$(BDIR_CLIB) -l$(APPNAME)
 else
 	ifeq ($(UNAME_OS),Linux)
-		ifeq ( $(SOURSE_BLAS_IS_INTEL), 1) # using Intel's MKL
+#		ifeq ( $(SOURSE_BLAS_IS_INTEL), 1) # using Intel's MKL
+		ifdef SOURSE_BLAS_IS_INTEL
 			CFLAGS_TEST := -O3 -qopenmp -I$(SRCDIR) -DMKL_ILP64 -I${MKLROOT}/include $(PYBINDINCL) -std=c++14
 			CFLAGS_APP := -O3 -qopenmp -I$(SRCDIR) -DMKL_ILP64 -I${MKLROOT}/include -std=c++14
 			CFLAGS_PYLIB := -O3 -qopenmp -DPYBIND -DMKL_ILP64 -I${MKLROOT}/include $(PYBINDINCL) -fPIC -std=c++14
@@ -55,6 +57,11 @@ else
 			LIBFLAGS := -shared -qopenmp -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_ilp64.a ${MKLROOT}/lib/intel64/libmkl_core.a ${MKLROOT}/lib/intel64/libmkl_intel_thread.a -Wl,--end-group -lpthread -lm
 			LIBFLAGS_TEST := -qopenmp -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_ilp64.a ${MKLROOT}/lib/intel64/libmkl_core.a ${MKLROOT}/lib/intel64/libmkl_intel_thread.a -Wl,--end-group -lpthread -lm
 		else # using openBLAS
+			CFLAGS_APP := -I$(SRCDIR) -I(EXTSRC)
+			CFLAGS_PYLIB := -DPYBIND $(PYBINDINCL) -I(EXTSRC) -fPIC
+			EXTRA_CFLAGS := -Wall -Wextra -pedantic -D UTEST -03 -fopenmp -I/opt/openBLAS/include -std=c++17
+			LIBFLAGS_PY := -shared -lpthread -lm -lgomp /opt/openBLAS/lib/libopenblas.a
+			LIBFLAGS_TEST := -lpthread -lm -lgomp /opt/openBLAS/lib/libopenblas.a
 		endif
 	endif
 endif

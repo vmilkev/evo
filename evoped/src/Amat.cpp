@@ -480,12 +480,10 @@ namespace evoped
 #pragma omp parallel for
             for (size_t i = 0; i < not_selected_ids.size(); i++)
             {
-                //size_t pos_i = u.find_invect( matr_ids, not_selected_ids[i] );
                 size_t pos_i = non_selected_pos[i];
 
                 for (size_t j = 0; j <= i; j++)
                 {
-                    //size_t pos_j = u.find_invect( matr_ids, not_selected_ids[j] );
                     size_t pos_j = non_selected_pos[j];
 
                     if ( pos_i >= pos_j )
@@ -509,12 +507,10 @@ namespace evoped
 #pragma omp parallel for
             for (size_t i = 0; i < selected_ids.size(); i++)
             {
-                //size_t pos_i = u.find_invect( matr_ids, selected_ids[i] );
                 size_t pos_i = selected_pos[i];
 
                 for (size_t j = 0; j < not_selected_ids.size(); j++)
                 {
-                    //size_t pos_j = u.find_invect( matr_ids, not_selected_ids[j] );
                     size_t pos_j = non_selected_pos[j];
 
                     if ( pos_i >= pos_j )
@@ -563,12 +559,10 @@ namespace evoped
 #pragma omp parallel for
             for (size_t i = 0; i < selected_ids.size(); i++)
             {
-                //size_t pos_i = u.find_invect( matr_ids, selected_ids[i] );
                 size_t pos_i = selected_pos[i];
 
                 for (size_t j = 0; j <= i; j++)
                 {
-                    //size_t pos_j = u.find_invect( matr_ids, selected_ids[j] );
                     size_t pos_j = selected_pos[j];
 
                     if ( pos_i >= pos_j )
@@ -582,8 +576,6 @@ namespace evoped
             non_selected_pos.shrink_to_fit();
             selected_pos.clear();
             selected_pos.shrink_to_fit();
-
-            //a22.symtorec();
 
             // ------------------------------------------------
             //
@@ -600,9 +592,6 @@ namespace evoped
             for (size_t i = 0; i < a22.size(); i++)
                 A[i] = a22[i] - res[i];
             
-            //A = a22 - res;
-            //A.rectosym();
-
             a22.fclear();
             a22.clear();            
             res.fclear();

@@ -378,8 +378,8 @@ namespace evolm
 
         /* Interfaces to MKL routines */
 
-        void dotprod(double *_A, double *B, double *C, MKL_INT rowA, MKL_INT rowB, MKL_INT colA, MKL_INT colB);
-        void dotprod(float *_A, float *B, float *C, MKL_INT rowA, MKL_INT rowB, MKL_INT colA, MKL_INT colB);
+        void dotprod(double *_A, double *B, double *C, MKL_INT rowA/*, MKL_INT rowB*/, MKL_INT colA, MKL_INT colB);
+        void dotprod(float *_A, float *B, float *C, MKL_INT rowA/*, MKL_INT rowB*/, MKL_INT colA, MKL_INT colB);
         void inv_rec(double *_A, MKL_INT rowA, MKL_INT colA);
         void inv_rec(float *_A, MKL_INT rowA, MKL_INT colA);
         void inv_sym(double *_A, MKL_INT colA);
@@ -689,8 +689,8 @@ namespace evolm
             return A[atRow * numCol + atCol];
         else
         {
-            if ( atCol > atRow )
-                throw std::string("The column value is greater than the row value. This is not allowed for symmetric matrix in compact (L-store) format!");
+            //if ( atCol > atRow )
+            //    throw std::string("The column value is greater than the row value. This is not allowed for symmetric matrix in compact (L-store) format!");
             return A[atRow * (atRow + 1) / 2 + atCol];
         }
     }
@@ -2192,7 +2192,7 @@ namespace evolm
         C.numCol = rhs.numCol;
         C.resizedElements = C.numRow * C.numCol;
 
-        dotprod(A, rhs.A, C.A, numRow, rhs.numRow, numCol, rhs.numCol);
+        dotprod(A, rhs.A, C.A, numRow/*, rhs.numRow*/, numCol, rhs.numCol);
 
         return matrix(C);
     }
@@ -2358,7 +2358,7 @@ namespace evolm
     //===============================================================================================================
 
     template <typename T>
-    void matrix<T>::dotprod(double *_A, double *B, double *C, MKL_INT rowA, MKL_INT rowB, MKL_INT colA, MKL_INT colB)
+    void matrix<T>::dotprod(double *_A, double *B, double *C, MKL_INT rowA/*, MKL_INT rowB*/, MKL_INT colA, MKL_INT colB)
     {
 
         /*
@@ -2378,7 +2378,7 @@ namespace evolm
     //===============================================================================================================
 
     template <typename T>
-    void matrix<T>::dotprod(float *_A, float *B, float *C, MKL_INT rowA, MKL_INT rowB, MKL_INT colA, MKL_INT colB)
+    void matrix<T>::dotprod(float *_A, float *B, float *C, MKL_INT rowA/*, MKL_INT rowB*/, MKL_INT colA, MKL_INT colB)
     {
 
         /*

@@ -1,9 +1,6 @@
 #ifndef Gmat_hpp__
 #define Gmat_hpp__
 
-#include <vector>
-#include <map>
-#include <iostream>
 #include <fstream>
 
 #include "cs_matrix.hpp"

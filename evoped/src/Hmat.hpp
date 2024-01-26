@@ -1,10 +1,6 @@
 #ifndef Hmat_hpp__
 #define Hmat_hpp__
 
-#include <vector>
-#include <map>
-#include <iostream>
-
 #include "cs_matrix.hpp"
 #include "Utilities2.hpp"
 

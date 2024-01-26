@@ -1,9 +1,6 @@
 #ifndef Amat_hpp__
 #define Amat_hpp__
 
-#include <map>
-#include <vector>
-#include <iostream>
 #include <fstream>
 #include <algorithm>
 
