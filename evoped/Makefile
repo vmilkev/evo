@@ -47,8 +47,8 @@ else
 #		ifeq ( $(SOURSE_BLAS_IS_INTEL), 1) # using Intel's MKL
 		ifdef SOURSE_BLAS_IS_INTEL
 #			CFLAGS_TEST :=  -I$(SRCDIR) $(PYBINDINCL) 
-			CFLAGS_APP := -I$(SRCDIR) -I(EXTSRC)
-			CFLAGS_PYLIB := -DPYBIND $(PYBINDINCL) -I(EXTSRC) -fPIC
+			CFLAGS_APP := -I$(SRCDIR) -I$(EXTSRC)
+			CFLAGS_PYLIB := -DPYBIND $(PYBINDINCL) -I$(EXTSRC) -fPIC
 			
 			EXTRA_CFLAGS := -O3 -qopenmp -D UTEST -D intelmkl -Wall -DMKL_ILP64 -I"${MKLROOT}/include" -std=c++17
 						
