@@ -1,0 +1,10 @@
+var_f1 var_i1 var_f2 var_cat var_str var_str2
+12.2 20 51.1 1 aple true
+15.5 30 10 2 plum true
+21.0 45 562 3 aple false
+30.5 50 452 3 plum true
+40 61 231 4 tomato false
+51.3 71 125 2 tomato true
+60.6 80 121 1 plum true
+70.001 91 121 1 aple false
+82.012 10 110.0 4 tomato false

@@ -17,6 +17,14 @@ namespace evolm
 
     public:
         int type = 0;
+        bool is_diagonal;
+
+        Effects();
+
+        int set(std::vector<int> &in_effect);
+        int set(std::vector<std::vector<int>> &in_effect);
+        int set(std::vector<float> &in_effect);
+        int set(std::vector<std::vector<float>> &in_effect);
 
         int set(matrix<int> &in_effect);
         int set(matrix<size_t> &in_effect);

@@ -7,6 +7,7 @@
     in terms of utilizing  matrix storage formats,
     memory functions and inversion & multiplication routines.
 */
+
 #ifndef cs_matrix_hpp__
 #define cs_matrix_hpp__
 

@@ -1,14 +1,61 @@
 #include "model.hpp"
 #include "solver_pcg.hpp"
 #include "iointerface.hpp"
-#include <string>
+#include "parser.hpp"
+#include "effects.hpp"
 
-void proces_array(float **arr, size_t lda, size_t ldb);
+#include <string>
 
 int main(void)
 {
     try
     {
+        // -------------------------
+        std::cout<< "Parser:"<<"\n";
+
+        char expstr[80];
+
+        evolm::Parser<double> p;
+
+        std::cout<< "Parseer of the float type. To end the program print the dot."<<"\n";
+
+        for (;;)
+        {
+            std::cout<<"Ennter the expression: ";
+            std::cin.getline( expstr, 79 );
+            if ( *expstr == '.' )
+                break;
+            std::cout<<"The answer: "<<p.eval_exp(expstr) <<"\n\n";
+        }
+
+        std::cout<<"Selected file reading:"<<"\n";
+
+ /*                     Example:
+                        var_f1 var_i1 var_f2 var_cat var_str
+                        12.2   20     51.1   1       aple
+                        15.5   30     10     2       plum
+                        21.0   45     562    3       aple
+                        30.5   50     452    3       plum
+                        40     61     231    4       tomato
+                        51.3   71     125    2       tomato
+                        60.6   80     121    1       plum
+                        70.001 91     121    1       aple
+                        82.012 10     110.0  4       tomato
+*/
+        evolm::IOInterface in;
+        in.set_fname("tests/data/diverse_data.dat");
+        
+        std::string var_name("var_i1");
+
+        evolm::Effects res;
+
+        in.fgetvar(var_name, res);
+
+        res.print(var_name);
+
+        exit(0);
+        // -------------------------
+
         evolm::Pcg solver;
         evolm::Model model;
 
@@ -47,52 +94,10 @@ int main(void)
 
         solver.solve(2);
 
-        /*
-
-                        std::vector<float> sol = solver.get_solution();
-
-                        solver.get_solution("cpp_solution_model_4.dat");
-
-                        solver.remove_model();
-
-                        model.clear();
-
-                        evolm::matrix<float> a(1,3);
-                        evolm::matrix<float> c(1,3);
-
-                        for(auto i = 0; i < 3; i++)
-                            a[i] = i+1;
-
-                        float *b;
-
-                        b = a.return_array();
-
-                        c.insert_array(b);
-
-                        for(auto i = 0; i < 3; i++)
-                        {
-                            std::cout<<"b = "<<b[i]<<"\n";
-                            std::cout<<"c = "<<c[i]<<"\n";
-                        }
-                */
         return 0;
     }
     catch (const std::exception &e)
     {
         std::cerr << e.what() << '\n';
-    }
-}
-
-void proces_array(float **arr, size_t lda, size_t ldb)
-{
-    float counter = 1.0;
-
-    for (size_t i = 0; i < lda; i++)
-    {
-        for (size_t j = 0; j < ldb; j++)
-        {
-            arr[i][j] = counter;
-            counter++;
-        }
     }
 }

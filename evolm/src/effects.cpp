@@ -2,6 +2,127 @@
 
 namespace evolm
 {
+    Effects::Effects()
+    {
+        try
+        {
+            is_diagonal = false;
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Effects::Effects()" << '\n';
+            std::cerr << e.what() << '\n';
+            throw e;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Effects::Effects()" << '\n';
+            throw;
+        }
+    }
+
+//===============================================================================================================
+
+    int Effects::set(std::vector<int> &in_effect)
+    {
+        try
+        {
+            matrix<int> effect;
+            effect.from_vector(in_effect);
+            set(effect);
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Effects::set(std::vector<int> &)." << '\n';
+            std::cerr << e.what() << '\n';
+            throw e;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Effects::set(std::vector<int> &)." << '\n';
+            throw;
+        }
+
+        return 0;
+    }
+
+//===============================================================================================================
+
+    int Effects::set(std::vector<std::vector<int>> &in_effect)
+    {
+        try
+        {
+            matrix<int> effect;
+            effect.from_vector2d(in_effect);
+            set(effect);
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Effects::set(std::vector<std::vector<int>> &)." << '\n';
+            std::cerr << e.what() << '\n';
+            throw e;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Effects::set(std::vector<std::vector<int>> &)." << '\n';
+            throw;
+        }
+
+        return 0;
+    }
+
+//===============================================================================================================
+
+    int Effects::set(std::vector<float> &in_effect)
+    {
+        try
+        {
+            matrix<float> effect;
+            effect.from_vector(in_effect);
+            set(effect);
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Effects::set(std::vector<float> &)." << '\n';
+            std::cerr << e.what() << '\n';
+            throw e;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Effects::set(std::vector<float> &)." << '\n';
+            throw;
+        }
+
+        return 0;
+    }
+
+//===============================================================================================================
+
+    int Effects::set(std::vector<std::vector<float>> &in_effect)
+    {
+        try
+        {
+            matrix<float> effect;
+            effect.from_vector2d(in_effect);
+            set(effect);
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Effects::set(std::vector<std::vector<float>> &)." << '\n';
+            std::cerr << e.what() << '\n';
+            throw e;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Effects::set(std::vector<std::vector<float>> &)." << '\n';
+            throw;
+        }
+
+        return 0;
+    }
+
+//===============================================================================================================
+
     int Effects::set(matrix<int> &in_effect)
     {
         try
@@ -28,6 +149,8 @@ namespace evolm
 
         return 0;
     }
+
+//===============================================================================================================
 
     int Effects::set(matrix<size_t> &in_effect)
     {
@@ -56,6 +179,8 @@ namespace evolm
         return 0;
     }
 
+//===============================================================================================================
+
     int Effects::set(matrix<bool> &in_effect)
     {
         try
@@ -82,6 +207,8 @@ namespace evolm
 
         return 0;
     }
+
+//===============================================================================================================
 
     int Effects::set(matrix<float> &in_effect)
     {
@@ -110,6 +237,8 @@ namespace evolm
         return 0;
     }
 
+//===============================================================================================================
+
     int Effects::set(matrix<double> &in_effect)
     {
         try
@@ -137,6 +266,8 @@ namespace evolm
         return 0;
     }
 
+//===============================================================================================================
+
     int Effects::get(matrix<int> &out_effect)
     {
         try
@@ -157,6 +288,8 @@ namespace evolm
 
         return 0;
     }
+
+//===============================================================================================================
 
     int Effects::get(matrix<size_t> &out_effect)
     {
@@ -180,6 +313,8 @@ namespace evolm
         return 0;
     }
 
+//===============================================================================================================
+
     int Effects::get(matrix<bool> &out_effect)
     {
         try
@@ -200,6 +335,8 @@ namespace evolm
 
         return 0;
     }
+
+//===============================================================================================================
 
     int Effects::get(matrix<float> &out_effect)
     {
@@ -222,6 +359,8 @@ namespace evolm
         return 0;
     }
 
+//===============================================================================================================
+
     int Effects::get(matrix<double> &out_effect)
     {
         try
@@ -242,6 +381,8 @@ namespace evolm
 
         return 0;
     }
+
+//===============================================================================================================
 
     matrix<float> Effects::get_float()
     {
@@ -302,6 +443,8 @@ namespace evolm
         }
     }
 
+//===============================================================================================================
+
     void Effects::fread()
     {
         try
@@ -330,6 +473,8 @@ namespace evolm
         }
     }
 
+//===============================================================================================================
+
     void Effects::fwrite()
     {
         try
@@ -357,6 +502,8 @@ namespace evolm
             throw;
         }
     }
+
+//===============================================================================================================
 
     matrix<float> Effects::fget(size_t irow[], size_t icol[])
     {
@@ -390,6 +537,8 @@ namespace evolm
         return vect;
     }
 
+//===============================================================================================================
+
     void Effects::vect_fget(size_t irow[], size_t icol[], std::vector<std::vector<float>> &vect)
     {
         try
@@ -418,6 +567,8 @@ namespace evolm
         }
     }
 
+//===============================================================================================================
+
     void Effects::vect_fget(size_t irow[], size_t icol[], float **vect)
     {
         try
@@ -445,6 +596,8 @@ namespace evolm
             throw;
         }
     }
+
+//===============================================================================================================
 
     int Effects::print(std::string msg)
     {
@@ -476,6 +629,8 @@ namespace evolm
         return 0;
     }
 
+//===============================================================================================================
+
     matrix<size_t> Effects::shape()
     {
         try
@@ -506,6 +661,8 @@ namespace evolm
             throw;
         }
     }
+
+//===============================================================================================================
 
     size_t Effects::size()
     {
@@ -539,6 +696,8 @@ namespace evolm
         }
     }
 
+//===============================================================================================================
+
     int Effects::clear()
     {
         try
@@ -568,5 +727,7 @@ namespace evolm
             throw;
         }
     }
+
+//===============================================================================================================
 
 }
