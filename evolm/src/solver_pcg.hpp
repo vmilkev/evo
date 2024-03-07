@@ -76,8 +76,9 @@ namespace evolm
 
                 matrix<float> z_dot_y(size_t vect_size, size_t i_trait, size_t j_trait, float r_val);
                 matrix<float> z_dot_z(size_t row, size_t vect_size, size_t i_matr, size_t j_matr, float r_val);
-
-                float v_dot_v(const matrix<float> &v1, const matrix<float> &v2);
+                
+                template <typename T>
+                T v_dot_v(const matrix<T> &v1, const matrix<T> &v2);
 
                 matrix<float> get_row_cmatr(size_t rhs_size,
                                             size_t i_trate,
@@ -113,8 +114,8 @@ namespace evolm
                 void update_vect(std::vector<std::vector<size_t>> &cov_offsets,
                                  size_t num_levels,
                                  std::vector<size_t> &ordered_levels,
-                                 matrix<float> &out_vect,
-                                 matrix<float> &in_vect);
+                                 matrix<double> &out_vect,
+                                 matrix<double> &in_vect);
 
                 matrix<float> fget_vect(size_t all_tr_levels, size_t row);
 
@@ -123,7 +124,7 @@ namespace evolm
                 void set_pipeline(int which_pipeline);
 
                 matrix<float> rhs;
-                matrix<float> sol;
+                matrix<double> sol;
                 matrix<float> amatr;
                 double tolerance;
                 size_t iterations;

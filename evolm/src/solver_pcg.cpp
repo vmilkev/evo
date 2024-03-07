@@ -646,7 +646,11 @@ namespace evolm
         }
     }
 
-    void Pcg::update_vect(std::vector<std::vector<size_t>> &cov_offsets, size_t num_levels, std::vector<size_t> &ordered_levels, matrix<float> &out_vect, matrix<float> &in_vect)
+    void Pcg::update_vect(std::vector<std::vector<size_t>> &cov_offsets,
+                          size_t num_levels,
+                          std::vector<size_t> &ordered_levels,
+                          matrix<double> &out_vect,
+                          matrix<double> &in_vect)
     {
         try
         {
@@ -680,21 +684,27 @@ namespace evolm
                         vect = get_row_cmatr(unknowns, i_trate, i_eff, cov_offsets, num_levels, ordered_levels, cmatr_row);
                     }
 
-                    matrix<float> res = vect * in_vect;
+                    matrix<double> vect2 = vect._double(); // cast to double; may take time, so needs to be checked!
+
+                    vect.clear();
+
+                    matrix<double> res = vect2 * in_vect;
+                    
                     out_vect(cmatr_row, 0) = res[0];
+                    
                     cmatr_row = cmatr_row + 1;
                 }
             }
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Pcg::update_vect(std::vector<std::vector<size_t>> &, size_t, std::vector<int> &, matrix<float> &, matrix<float> &)." << '\n';
+            std::cerr << "Exception in Pcg::update_vect(std::vector<std::vector<size_t>> &, size_t, std::vector<int> &, matrix<double> &, matrix<double> &)." << '\n';
             std::cerr << e.what() << '\n';
             throw e;
         }
         catch (...)
         {
-            std::cerr << "Exception in Pcg::update_vect(std::vector<std::vector<size_t>> &, size_t, std::vector<int> &, matrix<float> &, matrix<float> &)." << '\n';
+            std::cerr << "Exception in Pcg::update_vect(std::vector<std::vector<size_t>> &, size_t, std::vector<int> &, matrix<double> &, matrix<double> &)." << '\n';
             throw;
         }
     }
@@ -715,53 +725,56 @@ namespace evolm
 
             sol.resize(unknowns, 1);
 
-            matrix<float> Mi = construct_dval(cov_offsets, num_levels, ordered_levels); // actually, returning the inverse of dval (== Mi)
+            matrix<float> _Mi = construct_dval(cov_offsets, num_levels, ordered_levels); // actually, returning the inverse of dval (== Mi)
+
+            matrix<double> Mi = _Mi._double(); // cast to double
+            matrix<double> _rhs = rhs._double(); // cast to double
 
             // -------------------------------------------------
-            matrix<float> tVect(unknowns, 1); // vector to keep the result of operation: A*x
+            matrix<double> tVect(unknowns, 1); // vector to keep the result of operation: A*x
 
             update_vect(cov_offsets, num_levels, ordered_levels, tVect, sol); // A*x(==sol)
 
-            matrix<float> r_vect = rhs - tVect; // r = b - A*x
+            matrix<double> r_vect = _rhs - tVect; // r = b - A*x
 
             tVect.clear();
             // -------------------------------------------------
 
-            matrix<float> d(unknowns, 1);
+            matrix<double> d(unknowns, 1);
 
             for (size_t i = 0; i < unknowns; i++)
             {
                 d[i] = Mi[i] * r_vect[i];
             }
 
-            float delta_new = v_dot_v(r_vect, d);
+            double delta_new = v_dot_v(r_vect, d);
 
-            float delta_zero = delta_new;
+            double delta_zero = delta_new;
 
             iterations = 1;
 
             while (iterations < max_iterations && delta_new > delta_zero * tolerance * tolerance)
             {
-                matrix<float> q(unknowns, 1);
+                matrix<double> q(unknowns, 1);
 
-                update_vect(cov_offsets, num_levels, ordered_levels, q, d);
+                update_vect(cov_offsets, num_levels, ordered_levels, q, d); // here we casting vector from float to double every time by calling this function
 
-                float i_value = v_dot_v(d, q);
+                double i_value = v_dot_v(d, q);
 
-                if (i_value == 0.0f)
+                if (i_value == 0.0)
                     throw std::string("Pcg::jacobi_pcg() => Expected division by 0.0: v_dot_v(d, q) == 0.0!");
 
-                float alpha = delta_new / i_value;
+                double alpha = delta_new / i_value;
 
                 sol = sol + alpha * d;
 
                 if (!(iterations % 50))
                 {
-                    matrix<float> _tVect(unknowns, 1);
+                    matrix<double> _tVect(unknowns, 1);
 
                     update_vect(cov_offsets, num_levels, ordered_levels, _tVect, sol);
 
-                    r_vect = rhs - _tVect;
+                    r_vect = _rhs - _tVect;
                     _tVect.clear();
                 }
                 else
@@ -769,19 +782,19 @@ namespace evolm
                     r_vect = r_vect - alpha * q;
                 }
 
-                matrix<float> s(unknowns, 1);
+                matrix<double> s(unknowns, 1);
 
                 for (size_t i = 0; i < unknowns; i++)
                     s[i] = Mi[i] * r_vect[i];
 
-                float delta_old = delta_new;
+                double delta_old = delta_new;
 
                 delta_new = v_dot_v(r_vect, s);
 
-                if (delta_old == 0.0f)
+                if (delta_old == 0.0)
                     throw std::string("Pcg::jacobi_pcg() => Expected division by 0.0: delta_old == 0.0!");
 
-                float betha = delta_new / delta_old;
+                double betha = delta_new / delta_old;
 
                 d = s + betha * d;
 
@@ -844,7 +857,7 @@ namespace evolm
                     which_r = j_trate*(j_trate+1)/2 + i_trate;
 
                 matrix<float> row_vect = z_dot_z(i_eff, tr_levels, i_trate, j_trate, which_r);
-                //matrix<float> row_vect = z_dot_z(i_eff, tr_levels, i_trate, j_trate, r(i_trate,j_trate));
+                //matrix<float> row_vect = z_dot_z(i_eff, tr_levels, i_trate, j_trate, r(i_trate,j_trate)); // if we use constant Rij(-1) for all observations
 
                 for (size_t i = first_random_level - 1; i < last_random_level; i++)
                 {
@@ -942,11 +955,8 @@ namespace evolm
 
             get_vect_z_uni2(i_matr, row, v11);
 
-            // Multiply each element by correct R(-1) according to observations pattern
-            for (size_t i = 0; i < vect_dim; i++)
+            for (size_t i = 0; i < vect_dim; i++) // Multiply each element by correct R(-1) according to observations pattern
                 v11[0][i] = v11[0][i] * r_map[ R_hash[i] ][ r_index ];
-
-            // size_t vect_dim = v11[0].size();
 
             for (size_t i = 0; i < vect_size; i++)
             {
@@ -958,9 +968,8 @@ namespace evolm
                 for (size_t j = 0; j < vect_dim; j++)
                     t = t + v11[0][j] * v22[0][j];
 
-                out_vect(0, i) = t;// * r_val;
+                out_vect(0, i) = t;
                 // matrix<float> res = v2 * v1; // x 1.6
-                //  out_vect(0, i) = res[0] * r_val;
             }
 
             delete[] v11[0];
@@ -1083,7 +1092,7 @@ namespace evolm
                         which_r = j*(j+1)/2 + i;
 
                     matrix<float> vect = z_dot_y(tr_levels, i, j, which_r );
-                    //matrix<float> vect = z_dot_y(tr_levels, i, j, r(i,j) );
+                    //matrix<float> vect = z_dot_y(tr_levels, i, j, r(i,j) ); // if we use constant Rij(-1) for all observations
 
                     size_t k2 = 0;
 
@@ -1122,15 +1131,14 @@ namespace evolm
 
             matrix<float> v2 = y[j_trait].fget(); // observations for a specific trait
 
-            // here multiply each v2 by relevant R(-1)
-            for (size_t i = 0; i < v2.size(); i++)
+            for (size_t i = 0; i < v2.size(); i++) // here multiply each v2 by relevant R(-1), correct for missing observations
                 v2(i,0) = v2(i,0) * r_map[ R_hash[i] ][r_index];
 
             for (size_t i = 0; i < vect_size; i++)
             {
                 matrix<float> v1 = get_vect_z_uni(i_trait, i);
                 matrix<float> res = v1 * v2;
-                out_vect(i, 0) = res[0];// * r_val;
+                out_vect(i, 0) = res[0];
             }
 
             return out_vect;
@@ -1386,11 +1394,12 @@ namespace evolm
         }
     }
 
-    float Pcg::v_dot_v(const matrix<float> &v1, const matrix<float> &v2)
+    template <typename T>
+    T Pcg::v_dot_v(const matrix<T> &v1, const matrix<T> &v2)
     {
         try
         {
-            matrix<float> res;
+            matrix<T> res;
 
             res = v1;
 
@@ -1402,16 +1411,19 @@ namespace evolm
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Pcg::v_dot_v(const matrix<float> &, const matrix<float> &)." << '\n';
+            std::cerr << "Exception in Pcg::v_dot_v(const matrix<T> &, const matrix<T> &)." << '\n';
             std::cerr << e.what() << '\n';
             throw e;
         }
         catch (...)
         {
-            std::cerr << "Exception in Pcg::v_dot_v(const matrix<float> &, const matrix<float> &)." << '\n';
+            std::cerr << "Exception in Pcg::v_dot_v(const matrix<T> &, const matrix<T> &)." << '\n';
             throw;
         }
     }
+
+    template double Pcg::v_dot_v(const matrix<double> &v1, const matrix<double> &v2);
+    template float Pcg::v_dot_v(const matrix<float> &v1, const matrix<float> &v2);
 
     void Pcg::set_tolerance(double tol)
     {

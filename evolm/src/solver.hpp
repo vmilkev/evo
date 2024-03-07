@@ -61,10 +61,7 @@ namespace evolm
         std::map< size_t, std::vector<float> > r_map; // hash values are keys, and specific (according to the observation pattern) covar matrices are values of the map
                                                       // the usage: r_map[ R_hash[i] ][j], where i is observation, j is indexing j = r*(r+1)/2 +c pointing to an element of R(-1)
         
-        //matrix<float> r;
-        //evolm::matrix<float> T;  // lower tringular matrix, the result of T = chol(r)
-        //evolm::matrix<float> iT; // inverse of T
-        //matrix<float> iT_tr; // transposed iT
+        // matrix<float> r; // uncoment this if use the mode where not correcting for missing observations, assumung constant Rij(-1) for all observations
 
         bool z_on_memory;
         bool is_model_added;

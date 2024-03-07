@@ -152,7 +152,6 @@ namespace evolm
             }
 
             set_r();
-
             set_g();
 
             // Checking if dimensions of correlated effects are matching:
@@ -175,177 +174,6 @@ namespace evolm
                         throw std::string("The provided correlation structure missmatch! Dimensions of a correlation matrix and correlated effects should match!");
                 }             
             }
-
-            /*if ( n_trait > 1 ) // Make decorrelation of observations and fixed effects
-            {
-
-                // (1): Getting T and iT
-                matrix<float> R = model.residuals[0].fget(); // Note! This is only for the very first submitted residual matrix.;
-                T = R;
-                T.lchol();
-                iT = T;
-                iT.invert();
-
-                T.print("the new T");
-                iT.print("the new iT");
-
-                // (2): Transform G and R
-                iT_tr = iT;
-                iT_tr.transpose();
-
-                for (size_t i = 0; i < model.variances.size(); i++)
-                {
-                    matrix<float> var;
-                    var = model.variances[i].fget();
-                    //var.fclear();
-
-                    model.variances[i].fclear();
-                    model.variances[i].clear();
-
-                    matrix<float> G = iT * var * iT_tr;
-                    //matrix<float> G = var;
-
-                    G.invert();
-                    G.print("inv G");
-                    G.fwrite();
-                    model.variances[i] = G;
-
-                    G.clear();
-                    
-                    var.clear();
-
-                    var = model.variances[i].fget();
-                    var.print("loaded inv G");
-                }
-                
-                r = iT * R * iT_tr;
-                //r = R;
-                //r.invert();
-
-                R.clear();
-
-                for (size_t i = 0; i < r.size(); i++)
-                    if ( abs(r[i]) <= 0.000001)
-                        r[i] = 0.0;
-
-                // (3): Making transformation, y_star = iT * y;
-
-                std::vector< evolm::matrix<float> > Y; // observations
-                std::vector< std::vector<bool> > S;    // missing observations
-
-                // temporal !!!
-                if ( model.miss_observations.empty() )
-                {
-                    for (size_t i = 0; i < n_trait; i++)
-                    {
-                        int obs_id = model.observation_trait[i]; // index of submitted observations vector in the observations std::vector
-                        set_y(obs_id); // moves all observations to std::vector<matrix<float>> y
-                    }
-                    return;
-                }
-
-                for (size_t i = 0; i < n_trait; i++)
-                {
-                    //int obs_id = model.observation_trait[i]; // index of submitted observations vector in the observations std::vector
-                    matrix<float> yi = y[i].fget();//model.observations[obs_id].fget();
-                    y[i].fclear();
-                    //model.observations[obs_id].fclear();
-                    Y.push_back(yi);
-                    yi.clear();
-                    //std::vector<bool> s = model.miss_observations[obs_id];
-                    //S.push_back(s);
-                }
-                //Y = y;
-                y.clear();
-                S = s;
-
-                size_t max_obs = S[0].size();
-
-                for (size_t i = 0; i < n_trait; i++) // make some chacks
-                {
-                    if ( S[i].size() != max_obs )
-                        throw std::string("The size of missing observations vectors should be the same!");
-                    
-                    if ( Y[i].size() > max_obs )
-                        throw std::string("The size of missing observations vector should be at least (minimum) the samme as the observations vector!");
-                }
-                std::vector< std::vector<float> > Y_star_vect( n_trait );
-
-                std::vector<size_t> obs_counts(n_trait); // consecutive index of used values of each trait's observations
-
-                for (size_t i = 0; i < max_obs; i++ )
-                {
-                    std::vector<float> yy( n_trait ); // temporal vector of observations which needs to be transformed
-                    for (size_t j = 0; j < n_trait; j++) // construct correct y vector
-                    {
-                        if ( S[j][i] ) // check if the specific i & j have observations, otherwise it is missing and == 0.0
-                        {
-                            size_t index = obs_counts[j];
-                            yy[j] = Y[j][index]; // taking the next element from the observation j
-                            //obs_counts[j]++;
-                        }
-                        obs_counts[j]++;
-                    }
-                    std::vector<float> y_star( n_trait ); // temporal container of transformed observations of a specific i
-                    for (size_t j = 0; j < n_trait; j++) // do matrix-by-vector multiplication: y_star = iT * y
-                    {
-                        if ( yy[j] != 0.0 ) //
-                        {
-                            for (size_t j2 = 0; j2 <= j; j2++) // because iT is lower triangular matrix
-                                y_star[j] = y_star[j] + iT(j,j2) * yy[j2];
-                        }
-
-                        Y_star_vect[j].push_back( y_star[j] );
-                    }
-                }
-                // Converting from std::vector to evolm::matrix
-                for (size_t i = 0; i < n_trait; i++)
-                {
-                    size_t zeros = count(Y_star_vect[i].begin(), Y_star_vect[i].end(), 0.0);
-                    size_t non_zeros = Y_star_vect[i].size() - zeros;
-
-                    //evolm::matrix<float> v1(non_zeros,1);
-                    evolm::matrix<float> v1(Y_star_vect[i].size(),1);
-                    size_t index = 0;
-                    for (size_t j = 0; j < Y_star_vect[i].size(); j++)
-                    {
-                        //if ( Y_star_vect[i][j] != 0.0 )
-                        //{
-                            v1(index,0) = Y_star_vect[i][j];
-                            index++;
-                        //}
-                    }
-
-
-                    v1.print("v1");
-
-                    v1.fwrite();
-                    y.push_back(v1); // final container of modified observations, class member
-                    
-                    v1.clear();
-
-                }
-
-                Y_star_vect.clear();
-                Y_star_vect.shrink_to_fit();
-
-            }
-            else
-            {
-                for (size_t i = 0; i < n_trait; i++)
-                {
-                    int obs_id = model.observation_trait[i]; // index of submitted observations vector in the observations std::vector
-                    set_y(obs_id); // moves all observations to std::vector<matrix<float>> y
-                }
-
-                matrix<float> R = model.residuals[0].fget(); // Note! This is only for the very first submitted residual matrix.
-                R.invert();
-                r = R;
-                R.clear();
-
-                set_g();
-            }*/
-
         }
         catch (const std::exception &e)
         {
@@ -842,6 +670,12 @@ namespace evolm
                         r_map[v][ pattern[i3]*(pattern[i3]+1)/2.0 + pattern[j3] ] = iR(i3,j3); // using lower triangulaar indexation
             }
             
+            // NOTE: uncoment this in case of accepting constant Rij(-1)
+            //       for all observations (not correcting for missing observations)
+            //r = R;
+            //r.invert();
+            // End of the NOTE.
+
             R.clear();
         }
         catch (const std::exception &e)

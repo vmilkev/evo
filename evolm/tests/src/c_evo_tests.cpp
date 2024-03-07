@@ -84,7 +84,7 @@ TEST_CASE("Small data test: model 1")
         {0, 0, 0, 0, 1}};
 
     std::vector<float> _rhs{
-        0.1543399,
+        0.15449,
         0.068767377,
         0,
         0,
@@ -1651,12 +1651,9 @@ TEST_CASE("Multivariate model with missing values")
                          11, 30}; // full matrix
 
     std::vector<float> y1{4.5, 2.9, 3.9, 3.5, 5.0, 4.0};
-    //std::vector<bool> s1{true,true,true,true,true,true};
-    std::vector<bool> s1{1,1,1,1,1,1};
 
     std::vector<float> y2_miss{-999.0, 5.0, 6.8, 6.0, 7.5, -999.0};
-    //std::vector<bool> s2{false,true,true,true,true,false};
-    std::vector<bool> s2{0,1,1,1,1,0};
+    std::vector<float> y2{10.0, 5.0, 6.8, 6.0, 7.5, 10.0};
 
     std::vector<int> x1{1, 0,
                         0, 1,
@@ -1665,12 +1662,13 @@ TEST_CASE("Multivariate model with missing values")
                         1, 0,
                         0, 1};
 
-    std::vector<int> x2_miss{0, 0,
-                             1, 0,
-                             0, 1,
-                             0, 1,
-                             1, 0,
-                             0 ,0};
+    std::vector<int> x2_miss{
+                        0, 0,
+                        0, 1,
+                        0, 1,
+                        1, 0,
+                        1, 0,
+                        0, 0};
 
     std::vector<size_t> z1{0, 0, 0, 1, 0, 0, 0, 0, 0,
                            0, 0, 0, 0, 1, 0, 0, 0, 0,
@@ -1736,26 +1734,26 @@ TEST_CASE("Multivariate model with missing values")
     std::vector<float> _sol{
         4.367,
         3.657,
-        0.13,
-        -0.084,
+        0.1298,
+        -0.0836,
         -0.098,
         0.007,
         -0.343,
-        0.192,
+        0.1915,
         -0.308,
-        0.201,
-        -0.018,
+        0.2006,
+        -0.0184,
         6.834,
         6.007,
         0.266,
-        -0.075,
+        -0.0752,
         -0.194,
-        0.016,
+        0.01557,
         -0.555,
         0.440,
         -0.483,
         0.349,
-        -0.119};
+        -0.11937};
 
     // ========================================================================================
 
@@ -1766,8 +1764,7 @@ TEST_CASE("Multivariate model with missing values")
         {
             evolm::Pcg solver;
             evolm::Model model;
-            std::cout << "Testing missing records:"
-                      << "\n\n";
+
             // define the model
             model.append_residual(R, 2);
 
@@ -1792,7 +1789,7 @@ TEST_CASE("Multivariate model with missing values")
             model.append_traitstruct(obs_trate_2, eff_trate_2);
 
             solver.append_model(model);
-std::cout<<"Solving:"<<"\n";
+
             solver.solve();
 
             // exit(1);
