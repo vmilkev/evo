@@ -2,6 +2,55 @@
 
 namespace evolm
 {
+    Model::Model()
+    {
+        try
+        {
+            missing_constant = -999.0;
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Model::Model()" << '\n';
+            std::cerr << "Reason: " << e.what() << '\n';
+            throw e;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Model::Model()" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw e;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Model::Model()" << '\n';
+            throw;
+        }
+    }
+
+    void Model::set_missing(float val)
+    {
+        try
+        {
+            missing_constant = val;
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Model::set_missing()" << '\n';
+            std::cerr << "Reason: " << e.what() << '\n';
+            throw e;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Model::set_missing()" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw e;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Model::set_missing()" << '\n';
+            throw;
+        }
+    }
 
 #ifdef PYBIND
 
@@ -170,9 +219,10 @@ namespace evolm
 
             _effects.resize(buf3.shape[0], 1);
             variance.resize(lda1, lda1);
-            // variance.rectosym();
             correlation.resize(lda2, lda2);
-            // correlation.rectosym();
+
+            if ( lda1 != (size_t)buf3.shape[0] )
+                throw std::string("The number of provided correlated effects does not correspond to the dimension of variance-covariance matrix!");
 
             for (pybind11::ssize_t i = 0; i < buf3.shape[0]; i++)
                 _effects[i] = ptr3[i];
@@ -199,6 +249,7 @@ namespace evolm
         catch (const std::string &e)
         {
             std::cerr << "Exception in Model::append_corrstruct(pybind11::array_t<float>, size_t, pybind11::array_t<float>, size_t, pybind11::array_t<int>): " << e << '\n';
+            std::cerr << "Reason => " << e << "\n";
             throw e;
         }
         catch (const std::exception &e)
@@ -242,9 +293,10 @@ namespace evolm
 
             _effects.resize(buf3.shape[0], 1);
             variance.resize(lda1, lda1);
-            // variance.rectosym();
-
             correlation.resize(1, 1);
+
+            if ( lda1 != (size_t)buf3.shape[0] )
+                throw std::string("The number of provided correlated effects does not correspond to the dimension of variance-covariance matrix!");
 
             for (pybind11::ssize_t i = 0; i < buf3.shape[0]; i++)
                 _effects[i] = ptr3[i];
@@ -270,6 +322,7 @@ namespace evolm
         catch (const std::string &e)
         {
             std::cerr << "Exception in Model::append_corrstruct(pybind11::array_t<float>, size_t, std::string &, size_t, pybind11::array_t<int>): " << e << '\n';
+            std::cerr << "Reason => " << e << "\n";
             throw e;
         }
         catch (const std::exception &e)
@@ -333,6 +386,9 @@ namespace evolm
 
             correlation.resize(1, 1);
 
+            if ( lda1 != (size_t)buf3.shape[0] )
+                throw std::string("The number of provided correlated effects does not correspond to the dimension of variance-covariance matrix!");
+
             for (pybind11::ssize_t i = 0; i < buf3.shape[0]; i++)
                 _effects[i] = ptr3[i];
 
@@ -360,10 +416,10 @@ namespace evolm
             var.clear();
             var.shrink_to_fit();
         }
-        catch (std::string err)
+        catch (std::string &err)
         {
             std::cerr << "Exception in Model::append_corrstruct(const std::string &, std::string &, size_t, pybind11::array_t<int>)." << '\n';
-            std::cerr << err << '\n';
+            std::cerr << "Reason => " << err << '\n';
             throw err;
         }
         catch (const std::exception &e)
@@ -419,9 +475,10 @@ namespace evolm
 
             _effects.resize(buf3.shape[0], 1);
             variance.resize(lda1, lda1);
-            // variance.rectosym();
             correlation.resize(lda2, lda2);
-            // correlation.rectosym();
+
+            if ( lda1 != (size_t)buf3.shape[0] )
+                throw std::string("The number of provided correlated effects does not correspond to the dimension of variance-covariance matrix!");
 
             for (pybind11::ssize_t i = 0; i < buf3.shape[0]; i++)
                 _effects[i] = ptr3[i];
@@ -451,10 +508,10 @@ namespace evolm
             corr.clear();
             corr.shrink_to_fit();
         }
-        catch (std::string err)
+        catch (std::string &err)
         {
             std::cerr << "Exception in Model::append_corrstruct(pybind11::array_t<float>, size_t, const std::string &, pybind11::array_t<int>)." << '\n';
-            std::cerr << err << '\n';
+            std::cerr << "Reason => " << err << '\n';
             throw err;
         }
         catch (const std::exception &e)
@@ -524,9 +581,10 @@ namespace evolm
 
             _effects.resize(buf3.shape[0], 1);
             variance.resize(lda1, lda1);
-            // variance.rectosym();
             correlation.resize(lda2, lda2);
-            // correlation.rectosym();
+
+            if ( lda1 != (size_t)buf3.shape[0] )
+                throw std::string("The number of provided correlated effects does not correspond to the dimension of variance-covariance matrix!");
 
             for (pybind11::ssize_t i = 0; i < buf3.shape[0]; i++)
                 _effects[i] = ptr3[i];
@@ -562,10 +620,10 @@ namespace evolm
             var.clear();
             var.shrink_to_fit();
         }
-        catch (std::string err)
+        catch (std::string &err)
         {
             std::cerr << "Exception in Model::append_corrstruct(const std::string &, const std::string &, pybind11::array_t<int>)." << '\n';
-            std::cerr << err << '\n';
+            std::cerr << "Reason => " << err << '\n';
             throw err;
         }
         catch (const std::exception &e)
@@ -665,6 +723,9 @@ namespace evolm
     {
         try
         {
+            if ( arr.size() != lda  )
+                throw std::string("Provided vector size does not correspond to the number of elements in the observations vector!");
+
             matrix<float> observation;
 
             // lda := is size of vector
@@ -683,9 +744,61 @@ namespace evolm
             std::cerr << e.what() << '\n';
             throw e;
         }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Model::append_observation(const std::vector<float> &, size_t)." << '\n';
+            std::cerr << e << '\n';
+            throw e;
+        }
         catch (...)
         {
             std::cerr << "Exception in Model::append_observation(const std::vector<float> &, size_t)." << '\n';
+            throw;
+        }
+
+        return 0;
+    }
+
+    int Model::append_observation(const std::vector<float> &arr, const std::vector<bool> &miss_arr, size_t lda)
+    {
+        try
+        {
+            /*size_t zeros = count(miss_arr.begin(), miss_arr.end(), 0);
+            size_t non_zeros = miss_arr.size() - zeros;
+
+            if ( (arr.size() != lda) || (non_zeros != lda)  )
+                throw std::string("Provided observations  vector size does not correspond to the number of elements in the observations vector!");
+            */
+            matrix<float> observation;
+
+            // lda := is size of vector
+
+            observation.resize(lda, 1);
+
+            for (size_t i = 0; i < lda; i++)
+                observation[i] = arr[i];
+
+            observation.fwrite();
+            observations.push_back(observation);
+
+            miss_observations.push_back(miss_arr);
+
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Model::append_observation(const std::vector<float> &, const std::vector<bool> &, size_t)." << '\n';
+            std::cerr << e.what() << '\n';
+            throw e;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Model::append_observation(const std::vector<float> &, const std::vector<bool> &, size_t)." << '\n';
+            std::cerr << e << '\n';
+            throw e;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Model::append_observation(const std::vector<float> &, const std::vector<bool> &, size_t)." << '\n';
             throw;
         }
 
@@ -747,9 +860,10 @@ namespace evolm
 
             _effects.resize(which_effects.size(), 1);
             variance.resize(lda1, lda1);
-            // variance.rectosym();
             correlation.resize(lda2, lda2);
-            // correlation.rectosym();
+
+            if ( lda1 != which_effects.size() )
+                throw std::string("The number of provided correlated effects does not correspond to the dimension of variance-covariance matrix!");
 
             for (size_t i = 0; i < which_effects.size(); i++)
                 _effects[i] = which_effects[i];
@@ -779,6 +893,12 @@ namespace evolm
             std::cerr << e.what() << '\n';
             throw e;
         }
+        catch (std::string &err)
+        {
+            std::cerr << "Exception in Model::append_corrstruct(const std::vector<float> &, size_t, const std::vector<float> &, size_t, const std::vector<int> &)." << '\n';
+            std::cerr << "Reason => " << err << '\n';
+            throw err;
+        }
         catch (...)
         {
             std::cerr << "Exception in Model::append_corrstruct(const std::vector<float> &, size_t, const std::vector<float> &, size_t, const std::vector<int> &)." << '\n';
@@ -807,6 +927,9 @@ namespace evolm
 
             correlation.resize(1, 1);
 
+            if ( lda1 != which_effects.size() )
+                throw std::string("The number of provided correlated effects does not correspond to the dimension of variance-covariance matrix!");
+
             for (size_t i = 0; i < which_effects.size(); i++)
                 _effects[i] = which_effects[i];
 
@@ -833,6 +956,12 @@ namespace evolm
             std::cerr << "Exception in Model::append_corrstruct(const std::vector<float>, size_t, std::string &, size_t, const std::vector<int>)." << '\n';
             std::cerr << e.what() << '\n';
             throw e;
+        }
+        catch (std::string &err)
+        {
+            std::cerr << "Exception in Model::append_corrstruct(const std::vector<float>, size_t, std::string &, size_t, const std::vector<int>)." << '\n';
+            std::cerr << "Reason => " << err << '\n';
+            throw err;
         }
         catch (...)
         {
@@ -882,6 +1011,9 @@ namespace evolm
 
             correlation.resize(1, 1);
 
+            if ( lda1 != which_effects.size() )
+                throw std::string("The number of provided correlated effects does not correspond to the dimension of variance-covariance matrix!");
+
             for (size_t i = 0; i < which_effects.size(); i++)
                 _effects[i] = which_effects[i];
 
@@ -909,10 +1041,10 @@ namespace evolm
             var.clear();
             var.shrink_to_fit();
         }
-        catch (std::string err)
+        catch (std::string &err)
         {
             std::cerr << "Exception in Model::append_corrstruct(const std::string &, std::string &, size_t, const std::vector<int>)." << '\n';
-            std::cerr << err << '\n';
+            std::cerr << "Reason => " << err << '\n';
             throw err;
         }
         catch (const std::exception &e)
@@ -959,9 +1091,10 @@ namespace evolm
 
             _effects.resize(which_effects.size(), 1);
             variance.resize(lda1, lda1);
-            // variance.rectosym();
             correlation.resize(lda2, lda2);
-            // correlation.rectosym();
+
+            if ( lda1 != which_effects.size() )
+                throw std::string("The number of provided correlated effects does not correspond to the dimension of variance-covariance matrix!");
 
             for (size_t i = 0; i < which_effects.size(); i++)
                 _effects[i] = which_effects[i];
@@ -991,10 +1124,10 @@ namespace evolm
             corr.clear();
             corr.shrink_to_fit();
         }
-        catch (std::string err)
+        catch (std::string &err)
         {
             std::cerr << "Exception in Model::append_corrstruct(const std::vector<float> &, size_t, const std::string &, const std::vector<int> &)." << '\n';
-            std::cerr << err << '\n';
+            std::cerr << "Reason => " << err << '\n';
             throw err;
         }
         catch (const std::exception &e)
@@ -1053,9 +1186,10 @@ namespace evolm
 
             _effects.resize(which_effects.size(), 1);
             variance.resize(lda1, lda1);
-            // variance.rectosym();
             correlation.resize(lda2, lda2);
-            // correlation.rectosym();
+
+            if ( lda1 != which_effects.size() )
+                throw std::string("The number of provided correlated effects does not correspond to the dimension of variance-covariance matrix!");
 
             for (size_t i = 0; i < which_effects.size(); i++)
                 _effects[i] = which_effects[i];
@@ -1091,10 +1225,10 @@ namespace evolm
             var.clear();
             var.shrink_to_fit();
         }
-        catch (std::string err)
+        catch (std::string &err)
         {
             std::cerr << "Exception in Model::append_corrstruct(const std::string &, const std::string &, const std::vector<int> &)." << '\n';
-            std::cerr << err << '\n';
+            std::cerr << "Reason => " << err << '\n';
             throw err;
         }
         catch (const std::exception &e)

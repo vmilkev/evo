@@ -400,7 +400,7 @@ class TestEVO( unittest.TestCase ):
 
         #----- define the model -------
 
-        model.append_residual(iR, 2)
+        model.append_residual(iR, 1)
 
         model.append_observation(y, 10) #obs := 0
 

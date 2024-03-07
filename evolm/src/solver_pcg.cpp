@@ -6,11 +6,16 @@ namespace evolm
     {
         try
         {
-            set_pipeline(pipeline_val);
-            construct_rhs();
+            set_pipeline(pipeline_val); // defines a memory management
+
+            construct_rhs(); // constructing RHS
+
             size_t n_all_levels = num_all_levels(); // number of all random effects in the model
-            std::vector<size_t> ordered_random_levels = get_ordered_levels();
+
+            std::vector<size_t> ordered_random_levels = get_ordered_levels(); // for each trait stack the number of levels for each effect matrix, in the order as it appiars in the model
+
             std::vector<std::vector<size_t>> rcov_offsets = get_cov_offsets(ordered_random_levels);
+
             jacobi_pcg(rcov_offsets, n_all_levels, ordered_random_levels);
         }
         catch (const std::exception &e)
@@ -455,6 +460,15 @@ namespace evolm
     {
         // Build coefficient matrix on disk
 
+        // Consider trait 1 effects: x1, z1;
+        //          trait 2 effects: z2;
+        // Model effects stacked consecutively as [ x1 z1 z2 ]';
+        // Model observations stacked as [ y1 y2 ];
+        // Than coefficient matrix calculated as (row-by-row):
+        //                       [ x1 ]                   [ x1' * x1 * R11  x1' * z1 * R11  x1' * z2 * R12 ]
+        //                       | z1 | * [ x1 z1 z2 ] =  | z1' * x1 * R11  z1' * z1 * R11  z1' * z2 * R12 |
+        //                       [ z2 ]                   [ z2' * x1 * R21  z2' * z1 * R21  z2' * z2 * R22 ]
+
         try
         {
             size_t all_tr_levels = get_all_levels();
@@ -800,18 +814,19 @@ namespace evolm
         }
     }
 
-    matrix<float> Pcg::get_row_cmatr(size_t rhs_size,
-                                     size_t i_trate,
-                                     size_t i_eff,
-                                     std::vector<std::vector<size_t>> &cov_offsets,
-                                     size_t num_levels,
-                                     std::vector<size_t> &ordered_levels,
-                                     size_t i_row)
+    matrix<float>
+    Pcg::get_row_cmatr(size_t rhs_size,
+                        size_t i_trate,
+                        size_t i_eff,
+                        std::vector<std::vector<size_t>> &cov_offsets,
+                        size_t num_levels,
+                        std::vector<size_t> &ordered_levels,
+                        size_t i_row)
     {
-        matrix<float> vect_a(1, rhs_size);
-
         try
         {
+            matrix<float> vect_a(1, rhs_size);
+
             size_t correlations = corr_size();
 
             size_t last_random_level = 0;
@@ -823,7 +838,13 @@ namespace evolm
                 size_t first_random_level = last_random_level + 1;
                 last_random_level = last_random_level + tr_levels;
 
-                matrix<float> row_vect = z_dot_z(i_eff, tr_levels, i_trate, j_trate, r(i_trate, j_trate));
+                size_t which_r = i_trate*(i_trate+1)/2 + j_trate;
+
+                if ( j_trate > i_trate )
+                    which_r = j_trate*(j_trate+1)/2 + i_trate;
+
+                matrix<float> row_vect = z_dot_z(i_eff, tr_levels, i_trate, j_trate, which_r);
+                //matrix<float> row_vect = z_dot_z(i_eff, tr_levels, i_trate, j_trate, r(i_trate,j_trate));
 
                 for (size_t i = first_random_level - 1; i < last_random_level; i++)
                 {
@@ -877,6 +898,8 @@ namespace evolm
                     }
                 }
             }
+
+            return vect_a;
         }
         catch (const std::exception &e)
         {
@@ -888,17 +911,17 @@ namespace evolm
         {
             std::cerr << "Exception in Pcg::get_row_cmatr(size_t, size_t, size_t, std::vector<std::vector<size_t>> &, size_t, std::vector<int> &, size_t)." << '\n';
             throw;
-        }
-
-        return vect_a;
+        }   
     }
 
-    matrix<float> Pcg::z_dot_z(size_t row, size_t vect_size, size_t i_matr, size_t j_matr, float r_val)
+    matrix<float> Pcg::z_dot_z(size_t row, size_t vect_size, size_t i_matr, size_t j_matr, size_t r_index)
     {
-        matrix<float> out_vect(1, vect_size); // (1,1002) => (1, n_levels)
-
         try
         {
+            matrix<float> out_vect(1, vect_size); // (1,1002) => (1, n_levels)
+
+            size_t vect_dim = n_obs[i_matr];
+
             // ---- Solution 1: -----------------------------
             // matrix<float> v1 = get_vect_z_uni(i_matr, row);
             // v1.transpose();
@@ -913,14 +936,82 @@ namespace evolm
             float **v11 = new float *[1];
             float **v22 = new float *[1];
 
-            v11[0] = new float[n_obs[0]];
-            v22[0] = new float[n_obs[0]];
+            v11[0] = new float[vect_dim];
+            v22[0] = new float[vect_dim];
+            // ----------------------------------------------
+
+            get_vect_z_uni2(i_matr, row, v11);
+
+            // Multiply each element by correct R(-1) according to observations pattern
+            for (size_t i = 0; i < vect_dim; i++)
+                v11[0][i] = v11[0][i] * r_map[ R_hash[i] ][ r_index ];
+
+            // size_t vect_dim = v11[0].size();
+
+            for (size_t i = 0; i < vect_size; i++)
+            {
+                // matrix<float> v2 = get_vect_z_uni(j_matr, i); // !!! very expensive: x 115; (1, 489) => (1, n_obs)
+
+                get_vect_z_uni2(j_matr, i, v22);
+
+                float t = 0.0;
+                for (size_t j = 0; j < vect_dim; j++)
+                    t = t + v11[0][j] * v22[0][j];
+
+                out_vect(0, i) = t;// * r_val;
+                // matrix<float> res = v2 * v1; // x 1.6
+                //  out_vect(0, i) = res[0] * r_val;
+            }
+
+            delete[] v11[0];
+            delete[] v22[0];
+            delete[] v11;
+            delete[] v22;
+
+            return out_vect;
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Pcg::z_dot_z(size_t, size_t, size_t, size_t, size_t)." << '\n';
+            std::cerr << e.what() << '\n';
+            throw e;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Pcg::z_dot_z(size_t, size_t, size_t, size_t, size_t)." << '\n';
+            throw;
+        }
+    }
+
+    matrix<float> Pcg::z_dot_z(size_t row, size_t vect_size, size_t i_matr, size_t j_matr, float r_val)
+    {
+        try
+        {
+            matrix<float> out_vect(1, vect_size); // (1,1002) => (1, n_levels)
+
+            size_t vect_dim = n_obs[i_matr];
+
+            // ---- Solution 1: -----------------------------
+            // matrix<float> v1 = get_vect_z_uni(i_matr, row);
+            // v1.transpose();
+            // ----------------------------------------------
+
+            // ---- Solution 2: -----------------------------
+            // std::vector<std::vector<float>> v11(1, std::vector<float>(n_obs[0]));
+            // std::vector<std::vector<float>> v22(1, std::vector<float>(n_obs[0]));
+            // ----------------------------------------------
+
+            // ---- Solution 3: -----------------------------
+            float **v11 = new float *[1];
+            float **v22 = new float *[1];
+
+            v11[0] = new float[vect_dim];
+            v22[0] = new float[vect_dim];
             // ----------------------------------------------
 
             get_vect_z_uni2(i_matr, row, v11);
 
             // size_t vect_dim = v11[0].size();
-            size_t vect_dim = n_obs[0];
 
             for (size_t i = 0; i < vect_size; i++)
             {
@@ -941,49 +1032,64 @@ namespace evolm
             delete[] v22[0];
             delete[] v11;
             delete[] v22;
+
+            return out_vect;
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Pcg::z_dot_z(size_t, size_t, size_t, size_t, float)." << '\n';
+            std::cerr << "Exception in Pcg::z_dot_z(size_t, size_t, size_t, size_t, size_t)." << '\n';
             std::cerr << e.what() << '\n';
             throw e;
         }
         catch (...)
         {
-            std::cerr << "Exception in Pcg::z_dot_z(size_t, size_t, size_t, size_t, float)." << '\n';
+            std::cerr << "Exception in Pcg::z_dot_z(size_t, size_t, size_t, size_t, size_t)." << '\n';
             throw;
         }
-
-        return out_vect;
     }
 
     void Pcg::construct_rhs()
     {
+        // Consider trait 1 effects: x1, z1;
+        //          trait 2 effects: z2;
+        // Model effects stacked consecutively as [ x1 z1 z2 ]';
+        // Model observations stacked as [ y1 y2 ];
+        // Than RHS calculated as:
+        //                       [ x1 ]                                            [ x1 * y1 * R11  x1 * y2 * R12 ]
+        //                       | z1 | * [ y1 y2 ]; then summ by rows the matrix: | z1 * y1 * R11  z1 * y2 * R12 |
+        //                       [ z2 ]                                            [ z2 * y1 * R21  z2 * y2 * R22 ]
+        
         try
         {
-            size_t all_tr_levels = get_all_levels();
+            size_t all_tr_levels = get_all_levels(); // number of levels of all the traits
 
-            rhs.resize(all_tr_levels, 1);
+            rhs.resize(all_tr_levels, 1); // resize the dimension of RHS, it is the size of all levels in a model
 
             size_t levels_2 = 0;
 
             for (size_t i = 0; i < n_trait; i++)
             {
-                size_t tr_levels = get_levels(i);
+                size_t tr_levels = get_levels(i); // number of levels for a specific trait
 
-                size_t levels_1 = levels_2 + 1;
+                size_t levels_1 = levels_2 + 1; // lower index for the trait input in the RHS, starts at level_1
 
-                levels_2 = levels_2 + tr_levels;
+                levels_2 = levels_2 + tr_levels; // upper index for the trait input in the RHS, ends at level_2
 
                 for (size_t j = 0; j < n_trait; j++)
                 {
-                    matrix<float> vect = z_dot_y(tr_levels, i, j, r(i, j));
+                    size_t which_r = i*(i+1)/2 + j;
+
+                    if ( j > i )
+                        which_r = j*(j+1)/2 + i;
+
+                    matrix<float> vect = z_dot_y(tr_levels, i, j, which_r );
+                    //matrix<float> vect = z_dot_y(tr_levels, i, j, r(i,j) );
 
                     size_t k2 = 0;
 
                     for (size_t k = levels_1 - 1; k < levels_2; k++)
                     {
-                        rhs(k, 0) = rhs(k, 0) + vect(k2, 0);
+                        rhs(k, 0) = rhs(k, 0) + vect(k2, 0); // tr(X1)*R11*y1 + tr(X1)*R12*y2 + ...
                         k2++;
                     }
                 }
@@ -1002,15 +1108,59 @@ namespace evolm
         }
     }
 
+    matrix<float> Pcg::z_dot_y(size_t vect_size, size_t i_trait, size_t j_trait, size_t r_index)
+    {
+        // giving a column vector
+        // Here we do matrix-by-vector multiplication:
+        // get_vect_z_uni(i_trait, i) return a row of a specific effect matrix which then
+        // multiplied by the observation vector v2 and then by the corresponding component
+        // of an inversed residual matrix r
+        
+        try
+        {
+            matrix<float> out_vect(vect_size, 1);
+
+            matrix<float> v2 = y[j_trait].fget(); // observations for a specific trait
+
+            // here multiply each v2 by relevant R(-1)
+            for (size_t i = 0; i < v2.size(); i++)
+                v2(i,0) = v2(i,0) * r_map[ R_hash[i] ][r_index];
+
+            for (size_t i = 0; i < vect_size; i++)
+            {
+                matrix<float> v1 = get_vect_z_uni(i_trait, i);
+                matrix<float> res = v1 * v2;
+                out_vect(i, 0) = res[0];// * r_val;
+            }
+
+            return out_vect;
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Pcg::z_dot_y(size_t, size_t, size_t, size_t)." << '\n';
+            std::cerr << e.what() << '\n';
+            throw e;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Pcg::z_dot_y(size_t, size_t, size_t, size_t)." << '\n';
+            throw;
+        }        
+    }
+
     matrix<float> Pcg::z_dot_y(size_t vect_size, size_t i_trait, size_t j_trait, float r_val)
     {
         // giving a column vector
-
-        matrix<float> out_vect(vect_size, 1);
-
+        // Here we do matrix-by-vector multiplication:
+        // get_vect_z_uni(i_trait, i) return a row of a specific effect matrix which then
+        // multiplied by the observation vector v2 and then by the corresponding component
+        // of an inversed residual matrix r
+        
         try
         {
-            matrix<float> v2 = y[j_trait].fget();
+            matrix<float> out_vect(vect_size, 1);
+
+            matrix<float> v2 = y[j_trait].fget(); // observations for a specific trait
 
             for (size_t i = 0; i < vect_size; i++)
             {
@@ -1018,33 +1168,34 @@ namespace evolm
                 matrix<float> res = v1 * v2;
                 out_vect(i, 0) = res[0] * r_val;
             }
+
+            return out_vect;
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Pcg::z_dot_y(size_t, size_t, size_t, float)." << '\n';
+            std::cerr << "Exception in Pcg::z_dot_y(size_t, size_t, size_t, size_t)." << '\n';
             std::cerr << e.what() << '\n';
             throw e;
         }
         catch (...)
         {
-            std::cerr << "Exception in Pcg::z_dot_y(size_t, size_t, size_t, float)." << '\n';
+            std::cerr << "Exception in Pcg::z_dot_y(size_t, size_t, size_t, size_t)." << '\n';
             throw;
-        }
-
-        return out_vect;
+        }        
     }
 
     size_t Pcg::get_levels(size_t which_trait)
     {
-        size_t tr_levels = 0;
-
         try
         {
+            size_t tr_levels = 0;
 
             for (auto const &e : n_lev[which_trait])
             {
                 tr_levels = tr_levels + e;
             }
+
+            return tr_levels;
         }
         catch (const std::exception &e)
         {
@@ -1056,17 +1207,15 @@ namespace evolm
         {
             std::cerr << "Exception in Pcg::get_levels(size_t)." << '\n';
             throw;
-        }
-
-        return tr_levels;
+        }        
     }
 
     size_t Pcg::get_all_levels()
     {
-        size_t tr_levels = 0;
-
         try
         {
+            size_t tr_levels = 0;
+
             for (size_t i = 0; i < n_trait; i++)
             {
                 for (auto const &e : n_lev[i])
@@ -1074,6 +1223,8 @@ namespace evolm
                     tr_levels = tr_levels + e;
                 }
             }
+
+            return tr_levels;
         }
         catch (const std::exception &e)
         {
@@ -1086,16 +1237,14 @@ namespace evolm
             std::cerr << "Exception in Pcg::get_all_levels()." << '\n';
             throw;
         }
-
-        return tr_levels;
     }
 
     size_t Pcg::get_all_levels(size_t before_trait)
     {
-        size_t tr_levels = 0;
-
         try
         {
+            size_t tr_levels = 0;
+
             for (size_t i = 0; i < before_trait; i++)
             {
                 for (auto const &e : n_lev[i])
@@ -1103,6 +1252,8 @@ namespace evolm
                     tr_levels = tr_levels + e;
                 }
             }
+
+            return tr_levels;
         }
         catch (const std::exception &e)
         {
@@ -1114,21 +1265,21 @@ namespace evolm
         {
             std::cerr << "Exception in Pcg::get_all_levels(size_t)." << '\n';
             throw;
-        }
-
-        return tr_levels;
+        }        
     }
 
     size_t Pcg::num_all_levels()
     {
-        size_t levels = 0;
-
         try
         {
+            size_t levels = 0;
+
             for (size_t i = 0; i < n_trait; i++)
             {
                 levels = levels + n_lev[i].size();
             }
+
+            return levels;
         }
         catch (const std::exception &e)
         {
@@ -1140,9 +1291,7 @@ namespace evolm
         {
             std::cerr << "Exception in Pcg::num_all_levels()." << '\n';
             throw;
-        }
-
-        return levels;
+        }        
     }
 
     std::vector<size_t> Pcg::get_ordered_levels()
@@ -1209,11 +1358,14 @@ namespace evolm
             for (size_t i = 0; i < n_eff_random; i++)
             {
                 size_t right_shift = 0;
+
                 for (size_t j = 0; j < n_eff_random; j++)
                 {
                     rcov_offsets[cont_index][0] = left_shift;
                     rcov_offsets[cont_index][1] = right_shift;
+
                     cont_index = cont_index + 1;
+
                     right_shift = right_shift + ordered_levels[j];
                 }
                 left_shift = left_shift + ordered_levels[i];
@@ -1236,15 +1388,17 @@ namespace evolm
 
     float Pcg::v_dot_v(const matrix<float> &v1, const matrix<float> &v2)
     {
-        matrix<float> res;
-
         try
         {
+            matrix<float> res;
+
             res = v1;
 
             res.transpose();
 
             res = res * v2;
+
+            return res[0];
         }
         catch (const std::exception &e)
         {
@@ -1257,8 +1411,6 @@ namespace evolm
             std::cerr << "Exception in Pcg::v_dot_v(const matrix<float> &, const matrix<float> &)." << '\n';
             throw;
         }
-
-        return res[0];
     }
 
     void Pcg::set_tolerance(double tol)
@@ -1301,23 +1453,23 @@ namespace evolm
     }
 
 #ifdef UTEST
-    matrix<float> Pcg::test_z_dot_y(size_t vect_size, size_t i_trait, size_t j_trait, float r_val)
+    matrix<float> Pcg::test_z_dot_y(size_t vect_size, size_t i_trait, size_t j_trait, size_t r_index)
     {
 
         try
         {
-            matrix<float> out_vect = z_dot_y(vect_size, i_trait, j_trait, r_val);
+            matrix<float> out_vect = z_dot_y(vect_size, i_trait, j_trait, r_index);
             return out_vect;
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Pcg::test_z_dot_y(size_t, size_t, size_t, float)." << '\n';
+            std::cerr << "Exception in Pcg::test_z_dot_y(size_t, size_t, size_t, size_t)." << '\n';
             std::cerr << e.what() << '\n';
             throw e;
         }
         catch (...)
         {
-            std::cerr << "Exception in Pcg::test_z_dot_y(size_t, size_t, size_t, float)." << '\n';
+            std::cerr << "Exception in Pcg::test_z_dot_y(size_t, size_t, size_t, size_t)." << '\n';
             throw;
         }
     }

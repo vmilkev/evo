@@ -4,47 +4,55 @@
 #include "parser.hpp"
 #include "effects.hpp"
 
+/*#include <stdio.h>
+#include <time.h>
 #include <string>
+#include <functional>
+#include <map>*/
 
 int main(void)
 {
     try
     {
         // -------------------------
-        std::cout<< "Parser:"<<"\n";
+        std::cout << "Parser:"
+                  << "\n";
 
         char expstr[80];
 
         evolm::Parser<double> p;
 
-        std::cout<< "Parseer of the float type. To end the program print the dot."<<"\n";
+        std::cout << "Parseer of the float type. To end the program print the dot."
+                  << "\n";
 
         for (;;)
         {
-            std::cout<<"Ennter the expression: ";
-            std::cin.getline( expstr, 79 );
-            if ( *expstr == '.' )
+            std::cout << "Ennter the expression: ";
+            std::cin.getline(expstr, 79);
+            if (*expstr == '.')
                 break;
-            std::cout<<"The answer: "<<p.eval_exp(expstr) <<"\n\n";
+            std::cout << "The answer: " << p.eval_exp(expstr) << "\n\n";
         }
 
-        std::cout<<"Selected file reading:"<<"\n";
+        std::cout << "Selected file reading:"
+                  << "\n";
 
- /*                     Example:
-                        var_f1 var_i1 var_f2 var_cat var_str
-                        12.2   20     51.1   1       aple
-                        15.5   30     10     2       plum
-                        21.0   45     562    3       aple
-                        30.5   50     452    3       plum
-                        40     61     231    4       tomato
-                        51.3   71     125    2       tomato
-                        60.6   80     121    1       plum
-                        70.001 91     121    1       aple
-                        82.012 10     110.0  4       tomato
-*/
+        /*
+            Example:
+            var_f1 var_i1 var_f2 var_cat var_str
+            12.2   20     51.1   1       aple
+            15.5   30     10     2       plum
+            21.0   45     562    3       aple
+            30.5   50     452    3       plum
+            40     61     231    4       tomato
+            51.3   71     125    2       tomato
+            60.6   80     121    1       plum
+            70.001 91     121    1       aple
+            82.012 10     110.0  4       tomato
+       */
         evolm::IOInterface in;
         in.set_fname("tests/data/diverse_data.dat");
-        
+
         std::string var_name("var_i1");
 
         evolm::Effects res;
@@ -53,8 +61,10 @@ int main(void)
 
         res.print(var_name);
 
-        exit(0);
         // -------------------------
+        exit(0);
+
+        // Testing model
 
         evolm::Pcg solver;
         evolm::Model model;
@@ -76,7 +86,7 @@ int main(void)
         float type2 = 0.0f;
 
         model.append_effect("tests/data/model_4/obs_489_snp_1000.txt", type1); // eff := 0
-        model.append_effect("tests/data/model_4/fixed_1.dat", type2);           // eff := 1
+        model.append_effect("tests/data/model_4/fixed_1.dat", type2);          // eff := 1
 
         std::vector<int> corr_eff{0};
 

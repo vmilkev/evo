@@ -28,8 +28,8 @@ TEST_CASE("Small data test: model 1")
 
     // DATA
 
-    std::vector<float> iR{0.0278, -0.0102,
-                          -0.0102, 0.0371}; // full matrix
+    std::vector<float> iR{40, 11,
+                          11, 30}; // full matrix, not inverse!
 
     std::vector<float> y1{4.5, 2.9, 3.9, 3.5, 5.0};
 
@@ -42,22 +42,22 @@ TEST_CASE("Small data test: model 1")
                         1, 0};
 
     std::vector<int> x2{1, 0,
-                        0, 1,
+                        0, 1, 
                         0, 1,
                         1, 0,
                         1, 0};
 
     std::vector<size_t> z1{0, 0, 0, 1, 0, 0, 0, 0,
-                        0, 0, 0, 0, 1, 0, 0, 0,
-                        0, 0, 0, 0, 0, 1, 0, 0,
-                        0, 0, 0, 0, 0, 0, 1, 0,
-                        0, 0, 0, 0, 0, 0, 0, 1};
+                           0, 0, 0, 0, 1, 0, 0, 0,
+                           0, 0, 0, 0, 0, 1, 0, 0,
+                           0, 0, 0, 0, 0, 0, 1, 0,
+                           0, 0, 0, 0, 0, 0, 0, 1};
 
     std::vector<size_t> z2{0, 0, 0, 1, 0, 0, 0, 0,
-                        0, 0, 0, 0, 1, 0, 0, 0,
-                        0, 0, 0, 0, 0, 1, 0, 0,
-                        0, 0, 0, 0, 0, 0, 1, 0,
-                        0, 0, 0, 0, 0, 0, 0, 1};
+                           0, 0, 0, 0, 1, 0, 0, 0,
+                           0, 0, 0, 0, 0, 1, 0, 0,
+                           0, 0, 0, 0, 0, 0, 1, 0,
+                           0, 0, 0, 0, 0, 0, 0, 1};
 
     std::vector<float> iA{1.833, 0.5, 0, -0.667, 0, -1, 0, 0,
                           0.5, 2, 0.5, 0, -1, -1, 0, 0,
@@ -68,8 +68,8 @@ TEST_CASE("Small data test: model 1")
                           0, 0, 0, -1, -1, 0, 2, 0,
                           0, 0, -1, 0, 0, -1, 0, 2}; // full matrix
 
-    std::vector<float> iG1{0.084, -0.0378,
-                           -0.0378, 0.042}; // full matrix
+    std::vector<float> iG1{20, 18,
+                           18, 40}; // full matrix, not inverse!
 
     std::vector<std::vector<float>> true_z{
         {1, 0, 0, 1, 1},
@@ -282,7 +282,7 @@ TEST_CASE("Small data test: model 1")
             CHECK(model.size_of("cor_eff") == 2);
             CHECK(model.size_of("obs_trt") == 2);
             CHECK(model.size_of("eff_trt") == 4);
-            
+
             model.clear_residuals();
             model.clear_observations();
             model.clear_effects();
@@ -296,7 +296,6 @@ TEST_CASE("Small data test: model 1")
             CHECK(model.size_of("cor_eff") == 0);
             CHECK(model.size_of("obs_trt") == 0);
             CHECK(model.size_of("eff_trt") == 0);
-            
         }
         catch (const std::exception &e)
         {
@@ -917,7 +916,6 @@ TEST_CASE("Small data test: model 1")
     {
         try
         {
-            
             evolm::IOInterface datstream;
 
             datstream.set_fname("tests/data/allele.dat");
@@ -986,7 +984,7 @@ TEST_CASE("Small data test: model 1")
             //-------------------------------------------------
 
             datstream.set_fname("tests/data/1000G.EUR.QC.22.bed"); // Expected rows: variants (SNPs); columns: samples (observations).
-            
+
             datstream.fgetdata(489, 141123, in);
 
             REQUIRE(in.empty() == false);
@@ -1021,10 +1019,9 @@ TEST_CASE("Small data test: model 1")
                     CHECK(in[i][j] == alleledat[i][j]);
                 }
             }
-            
+
             in.clear();
             in.shrink_to_fit();
-            
         }
         catch (const std::exception &e)
         {
@@ -1593,7 +1590,7 @@ TEST_CASE("Small data test: model 1")
 
             solver.append_model(model);
 
-            //model.print();
+            // model.print();
 
             solver.solve();
 
@@ -1632,6 +1629,202 @@ TEST_CASE("Small data test: model 1")
         {
             std::cerr << " Model 1. Exit from [The overloaded methods (Model & IO interface): testing solution] due to an unknown exception." << '\n';
             // exit(EXIT_FAILURE);
+        }
+    }
+
+    // ========================================================================================
+}
+
+TEST_CASE("Multivariate model with missing values")
+{
+    // ---------------------------
+    // model 5.2 pp. 78:
+    // effect: 1       2
+    // y1 = b1*X1 + a1*Z1 + e1;
+    // effect: 3       4
+    // y2 = b2*X2 + a2*Z2 + e2;
+    // ---------------------------
+
+    // DATA
+
+    std::vector<float> R{40, 11,
+                         11, 30}; // full matrix
+
+    std::vector<float> y1{4.5, 2.9, 3.9, 3.5, 5.0, 4.0};
+    //std::vector<bool> s1{true,true,true,true,true,true};
+    std::vector<bool> s1{1,1,1,1,1,1};
+
+    std::vector<float> y2_miss{-999.0, 5.0, 6.8, 6.0, 7.5, -999.0};
+    //std::vector<bool> s2{false,true,true,true,true,false};
+    std::vector<bool> s2{0,1,1,1,1,0};
+
+    std::vector<int> x1{1, 0,
+                        0, 1,
+                        0, 1,
+                        1, 0,
+                        1, 0,
+                        0, 1};
+
+    std::vector<int> x2_miss{0, 0,
+                             1, 0,
+                             0, 1,
+                             0, 1,
+                             1, 0,
+                             0 ,0};
+
+    std::vector<size_t> z1{0, 0, 0, 1, 0, 0, 0, 0, 0,
+                           0, 0, 0, 0, 1, 0, 0, 0, 0,
+                           0, 0, 0, 0, 0, 1, 0, 0, 0,
+                           0, 0, 0, 0, 0, 0, 1, 0, 0,
+                           0, 0, 0, 0, 0, 0, 0, 1, 0,
+                           0, 0, 0, 0, 0, 0, 0, 0, 1};
+
+    std::vector<size_t> z2_miss{0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                0, 0, 0, 0, 1, 0, 0, 0, 0,
+                                0, 0, 0, 0, 0, 1, 0, 0, 0,
+                                0, 0, 0, 0, 0, 0, 1, 0, 0,
+                                0, 0, 0, 0, 0, 0, 0, 1, 0,
+                                0, 0, 0, 0, 0, 0, 0, 0, 0};
+
+    std::vector<float> iA{1.8333, 0.5, 0, -0.66667, 0, -1, 0, 0, 0,
+                          0.5, 2, 0.5, 0, -1, -1, 0, 0, 0,
+                          0, 0.5, 2, 0, -1, 0.5, 0, -1, 0,
+                          -0.66667, 0, 0, 1.8333, 0.5, 0, -1, 0, 0,
+                          0, -1, -1, 0.5, 2.5, 0, -1, 0, 0,
+                          -1, -1, 0.5, 0, 0, 2.5, 0, -1, 0,
+                          0, 0, 0, -1, -1, 0, 2.3333, 0, -0.66667,
+                          0, 0, -1, 0, 0, -1, 0, 2, 0,
+                          0, 0, 0, 0, 0, 0, -0.66667, 0, 1.3333};
+
+    std::vector<float> G{20, 18,
+                         18, 40};
+
+    std::vector<std::vector<float>> true_z{
+        {1, 0, 0, 1, 1},
+        {0, 1, 1, 0, 0},
+        {0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0},
+        {1, 0, 0, 0, 0},
+        {0, 1, 0, 0, 0},
+        {0, 0, 1, 0, 0},
+        {0, 0, 0, 1, 0},
+        {0, 0, 0, 0, 1}};
+
+    std::vector<float> _rhs{
+        0.1543399,
+        0.068767377,
+        0,
+        0,
+        0,
+        0.0557924,
+        0.0296570,
+        0.03911028,
+        0.036144578,
+        0.062557,
+        0.620018,
+        0.36811862,
+        0,
+        0,
+        0,
+        0.20620945,
+        0.1557924,
+        0.212326227,
+        0.18674698,
+        0.22706209};
+
+    std::vector<float> _sol{
+        4.367,
+        3.657,
+        0.13,
+        -0.084,
+        -0.098,
+        0.007,
+        -0.343,
+        0.192,
+        -0.308,
+        0.201,
+        -0.018,
+        6.834,
+        6.007,
+        0.266,
+        -0.075,
+        -0.194,
+        0.016,
+        -0.555,
+        0.440,
+        -0.483,
+        0.349,
+        -0.119};
+
+    // ========================================================================================
+
+
+    SECTION("Testing model using different fixed and raandom matrices (some with a missing records) for all traits (observations)")
+    {
+        try
+        {
+            evolm::Pcg solver;
+            evolm::Model model;
+            std::cout << "Testing missing records:"
+                      << "\n\n";
+            // define the model
+            model.append_residual(R, 2);
+
+            model.append_observation(y1, 6);      // obs := 0
+            model.append_observation(y2_miss, 6); // obs := 1
+
+            model.append_effect(x1, 6, 2);      // eff := 0
+            model.append_effect(z1, 6, 9);      // eff := 1
+            model.append_effect(x2_miss, 6, 2); // eff := 2
+            model.append_effect(z2_miss, 6, 9); // eff := 3
+
+            std::vector<int> eff_trate_1{0, 1};
+            int obs_trate_1 = 0;
+
+            std::vector<int> eff_trate_2{2, 3};
+            int obs_trate_2 = 1;
+
+            std::vector<int> corr_eff{1, 3};
+
+            model.append_corrstruct(G, 2, iA, 9, corr_eff);
+            model.append_traitstruct(obs_trate_1, eff_trate_1);
+            model.append_traitstruct(obs_trate_2, eff_trate_2);
+
+            solver.append_model(model);
+std::cout<<"Solving:"<<"\n";
+            solver.solve();
+
+            // exit(1);
+
+            std::vector<float> sol = solver.get_solution();
+
+            solver.get_solution("cpp_solution_model_mv_2.dat");
+
+            for (size_t i = 0; i < sol.size(); i++)
+                CHECK((_sol[i]) == Catch::Approx(sol[i]).margin(0.0001).epsilon(1e-3));
+
+            solver.remove_model();
+
+            model.clear();
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << " Multivariate Model. Exit from [Testing model using different fixed and raandom matrices (some with a missing records) for all traits (observations)] due to the exception:" << '\n';
+            std::cerr << " Multivariate Model.  => " << e.what() << '\n';
+        }
+        catch (const std::string &err)
+        {
+            std::cerr << " Multivariate Model. Exit from [Testing model using different fixed and raandom matrices (some with a missing records) for all traits (observations)] due to the exception:" << '\n';
+            std::cerr << " Multivariate Model.  => " << err << '\n';
+        }
+        catch (int ierr)
+        {
+            std::cerr << " Multivariate Model. Exit from [Testing model using different fixed and raandom matrices (some with a missing records) for all traits (observations)] due to the exception with code " << ierr << '\n';
+        }
+        catch (...)
+        {
+            std::cerr << " Multivariate Model. Exit from [Testing model using different fixed and raandom matrices (some with a missing records) for all traits (observations)] due to an unknown exception." << '\n';
         }
     }
 
@@ -1725,13 +1918,13 @@ TEST_CASE("Small data test: model 2")
 
     std::vector<float> y{35, 20, 25, 40, 42, 22, 35, 34, 20, 40};
 
-    std::vector<float> iR{0.0029};
+    std::vector<float> iR{350};
 
     std::vector<float> iG1{1};
 
-    std::vector<float> iG2{0.0076, 0.0034, 0.0034, 0.0126};
+    std::vector<float> iG2{150, -40, -40, 90};
 
-    std::vector<float> iG3{0.025};
+    std::vector<float> iG3{40};
 
     std::vector<float> _sol{
         14.492235,
@@ -1797,12 +1990,12 @@ TEST_CASE("Small data test: model 2")
     model.append_corrstruct(iG2, 2, iA, 14, corr_eff_1);
 
     std::string identity("I");
-    //model.append_corrstruct(iG3, 1, corS, 4, corr_eff_2);
+    // model.append_corrstruct(iG3, 1, corS, 4, corr_eff_2);
     model.append_corrstruct(iG3, 1, identity, 4, corr_eff_2);
 
     model.append_traitstruct(obs_trate, eff_trate);
 
-    //model.print();
+    // model.print();
 
     solver.append_model(model);
 
@@ -1824,7 +2017,6 @@ TEST_CASE("Small data test: model 2")
             solver.remove_model();
 
             model.clear();
-            
         }
         catch (const std::exception &e)
         {
@@ -1896,9 +2088,9 @@ TEST_CASE("Small data test: model 3")
 
     std::vector<float> y{9.0, 13.4, 12.7, 15.4, 5.9, 7.7, 10.2, 4.8};
 
-    std::vector<float> iR{0.0041};
+    std::vector<float> iR{245};
 
-    std::vector<float> iG1{0.1004};
+    std::vector<float> iG1{10};
 
     std::vector<float> _sol{
         9.94415,

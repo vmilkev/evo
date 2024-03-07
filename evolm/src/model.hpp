@@ -24,6 +24,10 @@ namespace evolm
         public:
                 friend class Solver;
 
+                Model();
+
+                void set_missing(float val);
+
 #ifdef PYBIND
                 int append_residual(pybind11::array_t<float> arr, size_t lda);
                 int append_observation(pybind11::array_t<float> arr, size_t lda);
@@ -41,6 +45,7 @@ namespace evolm
 #else
                 int append_residual(const std::vector<float> &arr, size_t lda);
                 int append_observation(const std::vector<float> &arr, size_t lda);
+                int append_observation(const std::vector<float> &arr, const std::vector<bool> &miss_arr, size_t lda);
 
                 template <typename T>
                 int append_effect(const std::vector<T> &arr, size_t lda1, size_t lda2);
@@ -86,6 +91,7 @@ namespace evolm
                 // Data
                 std::vector<matrix<float>> residuals;    // assumed to full matrix
                 std::vector<matrix<float>> observations; // assumed to be (nx1) vectors
+                std::vector<std::vector<bool>> miss_observations; // assumed to be (nx1) vectors
                 std::vector<Effects> effects;
 
                 // Correlation structure
@@ -98,6 +104,8 @@ namespace evolm
                 // Trait structure
                 std::vector<int> observation_trait;     // assumed to be (nx1) vectors
                 std::vector<matrix<int>> effects_trait; // assumed to be (nx1) vectors
+
+                float missing_constant; // variable indicating which number recogniised as missing in observations
         };
 
 } // end of namespace evolm

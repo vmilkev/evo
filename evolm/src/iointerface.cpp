@@ -416,7 +416,7 @@ namespace evolm
 
                         switch (detected_type)
                         {
-                                case 2:  // for continious variable, returns a vector
+                                case 2: // for continious variable, returns a vector
                                 {
                                         std::vector<float> fvalues;
                                         str_tofloat(data_str, fvalues);
@@ -431,16 +431,18 @@ namespace evolm
 
                                         break;
                                 }
-                                case 1: case 3: case 4: // for integer- and string-type variables (categorical), returns a matrix
+                                case 1:
+                                case 3:
+                                case 4: // for integer- and string-type variables (categorical), returns a matrix
                                 {
                                         std::vector<int> c_values;
                                         size_t n_columns = 0;
 
-                                        if ( detected_type == 3 )
+                                        if (detected_type == 3)
                                         {
-                                                std::vector<int> ivalues; // temporal container for integer-type values converted from string-type data
+                                                std::vector<int> ivalues;     // temporal container for integer-type values converted from string-type data
                                                 str_toint(data_str, ivalues); // convert string-type data to integer (which will be processed further as a categorical-type data)
-                                                
+
                                                 n_columns = dim_ofeffmatrix(ivalues, c_values); // estimate the number of columns in an effect matrix, and convert integers to categorical data
 
                                                 ivalues.clear();
@@ -452,16 +454,16 @@ namespace evolm
                                         data_str.clear();
                                         data_str.shrink_to_fit();
 
-                                        if ( n_columns == 0 )
+                                        if (n_columns == 0)
                                                 throw std::string("The estimated number of columns of the effect matrix is zero!");
 
-                                        if ( c_values.size() == 0 )
+                                        if (c_values.size() == 0)
                                                 throw std::string("The estimated number of rows of the effect matrix is zero!");
 
-                                        std::vector<std::vector<int> > ematrix( c_values.size(),
-                                                                                std::vector<int>(n_columns) );
+                                        std::vector<std::vector<int>> ematrix(c_values.size(),
+                                                                        std::vector<int>(n_columns));
 
-                                        catvect_toeffmatrix( c_values, ematrix );
+                                        catvect_toeffmatrix(c_values, ematrix);
 
                                         out_var.set(ematrix);
 
@@ -500,7 +502,7 @@ namespace evolm
         {
                 try
                 {
-                        std::vector<T> in_values( ivalues );
+                        std::vector<T> in_values(ivalues);
 
                         sort(in_values.begin(), in_values.end());
 
@@ -510,27 +512,27 @@ namespace evolm
                         // recoding integer values in the 'ivalues' vector to the vcategorical data
                         for (size_t i = 0; i < ivalues.size(); i++)
                         {
-                                int i_observation = find_value( in_values, ivalues[i] ); // get categorical value (in the range [0,n]) of a specific observation 'ivalues[i]' 
-                                cat_values.push_back( i_observation );
+                                int i_observation = find_value(in_values, ivalues[i]); // get categorical value (in the range [0,n]) of a specific observation 'ivalues[i]'
+                                cat_values.push_back(i_observation);
                         }
 
                         return in_values.size();
                 }
                 catch (const std::exception &e)
                 {
-                        std::cerr << "Exception in IOInterface::dim_ofeffmatrix(std::vector<int> &, std::vector<int> &)" << '\n';
+                        std::cerr << "Exception in IOInterface::dim_ofeffmatrix(std::vector<T> &, std::vector<int> &)" << '\n';
                         std::cerr << e.what() << '\n';
                         throw;
                 }
                 catch (const std::string &e)
                 {
-                        std::cerr << "Exception in IOInterface::dim_ofeffmatrix(std::vector<int> &, std::vector<int> &)" << '\n';
+                        std::cerr << "Exception in IOInterface::dim_ofeffmatrix(std::vector<T> &, std::vector<int> &)" << '\n';
                         std::cerr << "Reason: " << e << '\n';
                         throw;
                 }
                 catch (...)
                 {
-                        std::cerr << "Exception in IOInterface::dim_ofeffmatrix(std::vector<int> &, std::vector<int> &)" << '\n';
+                        std::cerr << "Exception in IOInterface::dim_ofeffmatrix(std::vector<T> &, std::vector<int> &)" << '\n';
                         throw;
                 }
         }
@@ -545,7 +547,7 @@ namespace evolm
                 try
                 {
                         for (size_t i = 0; i < cvalues.size(); i++)
-                                ematrix[i][ cvalues[i] ] = 1;
+                                ematrix[i][cvalues[i]] = 1;
                 }
                 catch (const std::exception &e)
                 {
@@ -578,9 +580,8 @@ namespace evolm
                         std::vector<int>::iterator result = std::min_element(fvalues.begin(), fvalues.end());
                         int min_value = *result;
 
-                        if ( min_value < 0 )
+                        if (min_value < 0)
                                 throw std::string("There is negative value observed for the integer-type (categorical) data in a data file!");
-
                 }
                 catch (const std::exception &e)
                 {
@@ -762,7 +763,7 @@ namespace evolm
         {
                 try
                 {
-                        //std::vector<T>::iterator it;
+                        // std::vector<T>::iterator it;
                         auto it = find(where.begin(), where.end(), what);
                         if (it != where.end())
                                 return it - where.begin();
@@ -771,19 +772,19 @@ namespace evolm
                 }
                 catch (const std::exception &e)
                 {
-                        std::cerr << "Exception in IOInterface::find_value(std::vector<T> &, std::string)" << '\n';
+                        std::cerr << "Exception in IOInterface::find_value(std::vector<T> &, T)" << '\n';
                         std::cerr << e.what() << '\n';
                         throw;
                 }
                 catch (const std::string &e)
                 {
-                        std::cerr << "Exception in IOInterface::find_value(std::vector<T> &, std::string)" << '\n';
+                        std::cerr << "Exception in IOInterface::find_value(std::vector<T> &, T)" << '\n';
                         std::cerr << "Reason: " << e << '\n';
                         throw;
                 }
                 catch (...)
                 {
-                        std::cerr << "Exception in IOInterface::find_value(std::vector<T> &, std::string)" << '\n';
+                        std::cerr << "Exception in IOInterface::find_value(std::vector<T> &, T)" << '\n';
                         throw;
                 }
         }

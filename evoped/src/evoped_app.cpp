@@ -22,18 +22,19 @@ int main()
     evolm::matrix<double> rA;
     std::vector<std::int64_t> ara_id;
 
-/*
-    ap.make_matrix("tests/data/ped_bkg.dat", true); // full A(-1)
+
+    ap.make_matrix("tests/data/ped_632.dat", true); // full A(-1)
     //ap.make_matrix("tests/data/sstep_050/data/id4trace.PED", true); // full A(-1)
-    ap.get_matrix("iA", iA, a_id);
+    ap.get_matrix("iA", iA, a_id, false);
+    iA.symtorec();
     iA.print("Full A(-1)");
 
     std::cout<<"n IDs in A(-1): "<<a_id.size()<<"\n";
     for (auto &e: a_id)
         std::cout<<e<<" ";
     std::cout<<"\n";
-
-    std::cout<<"making reduced A(-1)"<<"\n";
+exit(1);
+/*    std::cout<<"making reduced A(-1)"<<"\n";ll
     
     ap.make_matrix("tests/data/ped_bkg.dat", "tests/data/typed2", true); // reduced A(-1)
     //ap.make_matrix("tests/data/sstep_050/data/id4trace.PED", "tests/data/sstep_050/data/typed_050.dat", true); // reduced A(-1)

@@ -58,7 +58,7 @@ namespace evolm
                 int get_solution(const std::string &fname);
 
 #ifdef UTEST
-                matrix<float> test_z_dot_y(size_t vect_size, size_t i_trait, size_t j_trait, float r_val);
+                matrix<float> test_z_dot_y(size_t vect_size, size_t i_trait, size_t j_trait, size_t r_index);
                 matrix<float> test_rhs();
 
                 size_t test_num_all_levels();
@@ -71,8 +71,12 @@ namespace evolm
 
         private:
                 void construct_rhs();
+                matrix<float> z_dot_y(size_t vect_size, size_t i_trait, size_t j_trait, size_t r_index);
+                matrix<float> z_dot_z(size_t row, size_t vect_size, size_t i_matr, size_t j_matr, size_t r_index);
+
                 matrix<float> z_dot_y(size_t vect_size, size_t i_trait, size_t j_trait, float r_val);
                 matrix<float> z_dot_z(size_t row, size_t vect_size, size_t i_matr, size_t j_matr, float r_val);
+
                 float v_dot_v(const matrix<float> &v1, const matrix<float> &v2);
 
                 matrix<float> get_row_cmatr(size_t rhs_size,
@@ -120,7 +124,6 @@ namespace evolm
 
                 matrix<float> rhs;
                 matrix<float> sol;
-                //matrix<float> dval; // vector of inverse of diagonal elements of coefficient maatrix
                 matrix<float> amatr;
                 double tolerance;
                 size_t iterations;

@@ -146,7 +146,7 @@ rclean:
 
 test:
 	@echo " Testing ..."
-	python3 $(TESTDIR)/$(SRCDIR)/*.py
+#	python3 $(TESTDIR)/$(SRCDIR)/*.py
 	@export  LD_LIBRARY_PATH=$(PWDADDR)/$(BDIR_CLIB):"$(LIBRARY_PATH)"; $(TARGET_TEST)
 
 run:

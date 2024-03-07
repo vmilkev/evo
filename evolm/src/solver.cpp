@@ -57,7 +57,13 @@ namespace evolm
             }
             std::vector<matrix<float>>().swap(y);
 
-            r.clear();
+            s.clear();
+            s.shrink_to_fit();
+
+            R_hash.clear();
+            R_hash.shrink_to_fit();
+
+            r_map.clear();
 
             z_on_memory = false;
             is_model_added = false;
@@ -99,19 +105,25 @@ namespace evolm
     {
         try
         {
-            n_trait = model.observation_trait.size();
+            n_trait = model.observation_trait.size(); // get the number of traits by the number of indicated associations
+                                                      // between submitted observations and considered traits
 
             size_t i_adj_effects = 0;
 
             for (size_t i = 0; i < n_trait; i++)
             {
-                int trait_obs_id = model.observation_trait[i];
+                int trait_obs_id = model.observation_trait[i]; // index of submitted observations vector in the observations std::vector
 
-                matrix<int> trait_eff_ids = model.effects_trait[i];
+                if ( ( (size_t)trait_obs_id > model.observations.size() - 1 ) || ( trait_obs_id < 0 ) )
+                    throw std::string("Wrong index of observations vector associated to a trait!");
+
+                matrix<int> trait_eff_ids = model.effects_trait[i]; // ids for the submitted effects associated with a trait
 
                 size_t n_trait_effects = trait_eff_ids.size();
+                
+                size_t n_obs_trait = model.observations[trait_obs_id].size(); // number of observations for a specific trait
 
-                n_obs.push_back(model.observations[trait_obs_id].size());
+                n_obs.push_back(model.observations[trait_obs_id].size()); // get the number of observations for the specific trait
 
                 std::vector<size_t> trait_levels;
 
@@ -119,27 +131,232 @@ namespace evolm
                 {
                     matrix<size_t> shape = model.effects[trait_eff_ids[j]].shape();
 
-                    // trait_levels.push_back(shape[1]); // on not transposed effects
                     trait_levels.push_back(shape[0]); // on transposed effects
 
-                    adj_effects_order[trait_eff_ids[j]] = i_adj_effects;
+                    if ( shape[1] != n_obs_trait )
+                        throw std::string("The dimension of provided effect matrix corresponding to observations is not correct!");
+
+                    adj_effects_order[trait_eff_ids[j]] = i_adj_effects; // map between the submitted effects ids and their recoded (consecutive) order
 
                     i_adj_effects++;
                 }
 
-                n_lev.push_back(trait_levels);
+                n_lev.push_back(trait_levels); // get the effects' levels for each trait
+                                                
+                                                  // Combines a consecutive sets of incidense matrices (stack of effects matrices)
+                                                  // of different (original & unchanged) types for a specific trait
+                construct_union_z(trait_eff_ids); // build std::vector<std::vector<Effects>> z_uni;
+                                                  // <- everything on disk !
 
-                construct_union_z(trait_eff_ids); // <- everything on disk !
-
-                set_y(trait_obs_id);
-
-                r = model.residuals[0].fget(); // Note! This is only for the very first submitted residual matrix.
+                set_y(trait_obs_id); // moves all observations to std::vector<matrix<float>> y
             }
+
+            set_r();
+
+            set_g();
+
+            // Checking if dimensions of correlated effects are matching:
+            for (size_t i = 0; i < model.correlated_effects.size(); i++) // loop over provided correlation structures
+            {
+                matrix<int> cor_effects = model.correlated_effects[i]; // list of correlated effects IDs
+                cor_effects.fread();
+                size_t n_effects = cor_effects.size(); // number of correlated effects 
+                matrix<size_t> shape1 = model.correlations[i].shape(); // get shape of correlation matrix
+
+                if ( model.identity_correlations[i] ) // in case of correlation matrix is identity matrix
+                    shape1[0] = model.identity_dimension[i];
+
+                for (size_t j = 0; j < n_effects; j++) // loop over correlated effects
+                {
+                    size_t which_effect = cor_effects(j,0); // effect ID
+                    matrix<size_t> shape2 = model.effects[ which_effect ].shape(); // shape of effect matrix, it is transposed, so n_lev-by-n_obs
+
+                    if ( shape2[0] != shape1[0] ) // size of n_levels should be equal to a size of correlation matrix (symmetric)
+                        throw std::string("The provided correlation structure missmatch! Dimensions of a correlation matrix and correlated effects should match!");
+                }             
+            }
+
+            /*if ( n_trait > 1 ) // Make decorrelation of observations and fixed effects
+            {
+
+                // (1): Getting T and iT
+                matrix<float> R = model.residuals[0].fget(); // Note! This is only for the very first submitted residual matrix.;
+                T = R;
+                T.lchol();
+                iT = T;
+                iT.invert();
+
+                T.print("the new T");
+                iT.print("the new iT");
+
+                // (2): Transform G and R
+                iT_tr = iT;
+                iT_tr.transpose();
+
+                for (size_t i = 0; i < model.variances.size(); i++)
+                {
+                    matrix<float> var;
+                    var = model.variances[i].fget();
+                    //var.fclear();
+
+                    model.variances[i].fclear();
+                    model.variances[i].clear();
+
+                    matrix<float> G = iT * var * iT_tr;
+                    //matrix<float> G = var;
+
+                    G.invert();
+                    G.print("inv G");
+                    G.fwrite();
+                    model.variances[i] = G;
+
+                    G.clear();
+                    
+                    var.clear();
+
+                    var = model.variances[i].fget();
+                    var.print("loaded inv G");
+                }
+                
+                r = iT * R * iT_tr;
+                //r = R;
+                //r.invert();
+
+                R.clear();
+
+                for (size_t i = 0; i < r.size(); i++)
+                    if ( abs(r[i]) <= 0.000001)
+                        r[i] = 0.0;
+
+                // (3): Making transformation, y_star = iT * y;
+
+                std::vector< evolm::matrix<float> > Y; // observations
+                std::vector< std::vector<bool> > S;    // missing observations
+
+                // temporal !!!
+                if ( model.miss_observations.empty() )
+                {
+                    for (size_t i = 0; i < n_trait; i++)
+                    {
+                        int obs_id = model.observation_trait[i]; // index of submitted observations vector in the observations std::vector
+                        set_y(obs_id); // moves all observations to std::vector<matrix<float>> y
+                    }
+                    return;
+                }
+
+                for (size_t i = 0; i < n_trait; i++)
+                {
+                    //int obs_id = model.observation_trait[i]; // index of submitted observations vector in the observations std::vector
+                    matrix<float> yi = y[i].fget();//model.observations[obs_id].fget();
+                    y[i].fclear();
+                    //model.observations[obs_id].fclear();
+                    Y.push_back(yi);
+                    yi.clear();
+                    //std::vector<bool> s = model.miss_observations[obs_id];
+                    //S.push_back(s);
+                }
+                //Y = y;
+                y.clear();
+                S = s;
+
+                size_t max_obs = S[0].size();
+
+                for (size_t i = 0; i < n_trait; i++) // make some chacks
+                {
+                    if ( S[i].size() != max_obs )
+                        throw std::string("The size of missing observations vectors should be the same!");
+                    
+                    if ( Y[i].size() > max_obs )
+                        throw std::string("The size of missing observations vector should be at least (minimum) the samme as the observations vector!");
+                }
+                std::vector< std::vector<float> > Y_star_vect( n_trait );
+
+                std::vector<size_t> obs_counts(n_trait); // consecutive index of used values of each trait's observations
+
+                for (size_t i = 0; i < max_obs; i++ )
+                {
+                    std::vector<float> yy( n_trait ); // temporal vector of observations which needs to be transformed
+                    for (size_t j = 0; j < n_trait; j++) // construct correct y vector
+                    {
+                        if ( S[j][i] ) // check if the specific i & j have observations, otherwise it is missing and == 0.0
+                        {
+                            size_t index = obs_counts[j];
+                            yy[j] = Y[j][index]; // taking the next element from the observation j
+                            //obs_counts[j]++;
+                        }
+                        obs_counts[j]++;
+                    }
+                    std::vector<float> y_star( n_trait ); // temporal container of transformed observations of a specific i
+                    for (size_t j = 0; j < n_trait; j++) // do matrix-by-vector multiplication: y_star = iT * y
+                    {
+                        if ( yy[j] != 0.0 ) //
+                        {
+                            for (size_t j2 = 0; j2 <= j; j2++) // because iT is lower triangular matrix
+                                y_star[j] = y_star[j] + iT(j,j2) * yy[j2];
+                        }
+
+                        Y_star_vect[j].push_back( y_star[j] );
+                    }
+                }
+                // Converting from std::vector to evolm::matrix
+                for (size_t i = 0; i < n_trait; i++)
+                {
+                    size_t zeros = count(Y_star_vect[i].begin(), Y_star_vect[i].end(), 0.0);
+                    size_t non_zeros = Y_star_vect[i].size() - zeros;
+
+                    //evolm::matrix<float> v1(non_zeros,1);
+                    evolm::matrix<float> v1(Y_star_vect[i].size(),1);
+                    size_t index = 0;
+                    for (size_t j = 0; j < Y_star_vect[i].size(); j++)
+                    {
+                        //if ( Y_star_vect[i][j] != 0.0 )
+                        //{
+                            v1(index,0) = Y_star_vect[i][j];
+                            index++;
+                        //}
+                    }
+
+
+                    v1.print("v1");
+
+                    v1.fwrite();
+                    y.push_back(v1); // final container of modified observations, class member
+                    
+                    v1.clear();
+
+                }
+
+                Y_star_vect.clear();
+                Y_star_vect.shrink_to_fit();
+
+            }
+            else
+            {
+                for (size_t i = 0; i < n_trait; i++)
+                {
+                    int obs_id = model.observation_trait[i]; // index of submitted observations vector in the observations std::vector
+                    set_y(obs_id); // moves all observations to std::vector<matrix<float>> y
+                }
+
+                matrix<float> R = model.residuals[0].fget(); // Note! This is only for the very first submitted residual matrix.
+                R.invert();
+                r = R;
+                R.clear();
+
+                set_g();
+            }*/
+
         }
         catch (const std::exception &e)
         {
             std::cerr << "Exception in Solver::process_model()." << '\n';
             std::cerr << e.what() << '\n';
+            throw e;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Solver::process_model()" << "\n";
+            std::cerr << "Reason => " << e << "\n";
             throw e;
         }
         catch (...)
@@ -291,6 +508,8 @@ namespace evolm
            of different (original & unchanged) types for a specific trait.
 
            Everything is on disk.
+
+           eff_ids is the indeces list of effects matrices associated to a specific trait
         */
 
         try
@@ -381,26 +600,24 @@ namespace evolm
            Therefore, which_row is supposed to address in combined and transposed
            incidence (effects) matrix.
 
-           CHANGED to transposed!
+           CHANGED to transposed! => when setting up effects to a model (input still uses not-transposed matrices).
         */
-
-        matrix<float> vect;
-
         try
         {
-            size_t which_eff_matr = 0; // will be changed inside z_row_to_uni_col(...)
+            matrix<float> vect;
 
-            size_t irow[] = {0, n_obs[0] - 1}; // this is constant for any row, due to the same amount of observations
+            size_t irow[] = {0, n_obs[which_trait] - 1};
 
-            size_t icol[] = {0, 0}; // will be changed inside z_row_to_uni_col(...)
+            size_t icol[] = {0, 0};    // will be modified (returned) by the z_row_to_uni_col(...)
+            size_t which_eff_matr = 0; // will be modified (returned) by the z_row_to_uni_col(...)
 
             z_row_to_uni_col(which_trait, which_row, icol, which_eff_matr);
 
-            // vect = z_uni[which_trait][which_eff_matr].fget(irow, icol); // here is col vector extracted, assumed not-transposed matrices  from the input
-
-            vect = z_uni[which_trait][which_eff_matr].fget(icol, irow); // here is row vector extracted, assumed transposed matrices from the input
-
-            // vect.transpose(); // transforming to a row vector, because assumed of not-transposed matrices  from the input
+                                                                        // Note: z_uni is the composition of effect matrices
+            vect = z_uni[which_trait][which_eff_matr].fget(icol, irow); // here is row vector extracted, assumed transposed matrices
+                                                                        // in the case of not-transposed matrices, we use .fget(irow, icol), then apply transpose()
+            
+            return vect;
         }
         catch (const std::exception &e)
         {
@@ -412,9 +629,7 @@ namespace evolm
         {
             std::cerr << "Exception in Solver::get_vect_z_uni(const size_t &, const size_t &)." << '\n';
             throw;
-        }
-
-        return vect;
+        }        
     }
 
     void Solver::get_vect_z_uni2(const size_t &which_trait, const size_t &which_row, std::vector<std::vector<float>> &vect)
@@ -424,7 +639,7 @@ namespace evolm
         {
             size_t which_eff_matr = 0; // will be changed inside z_row_to_uni_col(...)
 
-            size_t irow[] = {0, n_obs[0] - 1}; // this is constant for any row, due to the same amount of observations
+            size_t irow[] = {0, n_obs[which_trait] - 1}; // this is constant for any row, due to the same amount of observations
 
             size_t icol[] = {0, 0}; // will be changed inside z_row_to_uni_col(...)
 
@@ -451,7 +666,7 @@ namespace evolm
         {
             size_t which_eff_matr = 0; // will be changed inside z_row_to_uni_col(...)
 
-            size_t irow[] = {0, n_obs[0] - 1}; // this is constant for any row, due to the same amount of observations
+            size_t irow[] = {0, n_obs[which_trait] - 1}; // this is constant for any row, due to the same amount of observations
 
             size_t icol[] = {0, 0}; // will be changed inside z_row_to_uni_col(...)
 
@@ -516,8 +731,32 @@ namespace evolm
     {
         try
         {
-            matrix<float> yi = model.observations[obs_id];
+            matrix<float> yi = model.observations[obs_id].fget();
+
+            model.observations[obs_id].fclear();
+            model.observations[obs_id].clear();
+
+            // Making missing data structure
+            std::vector<bool> s_miss;
+            matrix<size_t> shp = yi.shape();
+
+            for (size_t i = 0; i < shp[0]; i++)
+            {
+                if ( yi(i,0) == model.missing_constant )
+                {
+                    s_miss.push_back(false);
+                    yi(i,0) = 0.0; // is this OK? Otherwise we'll have -999.0 in this place!
+                }
+                else
+                    s_miss.push_back(true);
+            }
+
+            s.push_back(s_miss);
+
+            yi.fwrite();
+
             y.push_back(yi);
+
             yi.clear();
         }
         catch (const std::exception &e)
@@ -529,6 +768,129 @@ namespace evolm
         catch (...)
         {
             std::cerr << "Exception in Solver::set_y(const int)." << '\n';
+            throw;
+        }
+    }
+
+    void Solver::set_r()
+    {
+        try
+        {
+            size_t k = ( n_trait * n_trait + n_trait ) / 2.0; // elements in lower triangular part
+
+            matrix<float> R = model.residuals[0].fget(); // Note! This is only for the very first submitted residual matrix.
+
+            if ( R.size() < k )
+                throw std::string("The number of elements in the provided residual covariance matrix is not correspond to the number of traitsin the model!");
+
+            std::vector<float> r_init(k,0.0); // inverse of residual covariance for the  trivial case when all traits are unrelated
+            for (size_t i = 0; i < n_trait; i++)
+                for (size_t j = 0; j <= i; j++)
+                    r_init[ i*(i+1)/2 + j ] = 1.0 / R(i,j); // using lower triangular part
+
+            for (size_t i = 0; i < n_obs[0]; i++) // create hash list for each row of observations
+            {
+                std::vector<bool> vec_bool;
+                for (size_t j = 0; j < n_trait; j++) // loop over all trait for the specific observation i
+                    vec_bool.push_back( s[j][i] );
+                
+                std::hash<std::vector<bool> > hash_vector_bool;
+                
+                R_hash.push_back(hash_vector_bool(vec_bool));
+            }
+
+            std::vector<size_t> hash_keys; // unique list of hash keys            
+            hash_keys = R_hash;
+
+            sort( hash_keys.begin(),hash_keys.end() ); //sort and getting unique hesh keys
+            hash_keys.erase( unique( hash_keys.begin(),hash_keys.end() ), hash_keys.end() );
+
+            for (auto const &v: hash_keys) // initializing r_map, and modify its value's specific elements based on unique patterns
+            {
+                r_map[v] = r_init; // initialize by the trivial case covariance (all unrelated)
+
+                // by looping over unique keys, get info about the specific pattern
+                // find the details of the pattern by using its hash key
+                size_t index_in_obs = 0;
+
+                std::vector<size_t>::iterator it = find (R_hash.begin(), R_hash.end(), v);
+
+                if (it != R_hash.end())
+                    index_in_obs = it - R_hash.begin();
+                else
+                    throw std::string("Cannot find the hask key in the R_hash vector!");
+
+                std::vector<size_t> pattern; // holds indexes needed to construct the reduced covariance matrix
+
+                for (size_t i3 = 0; i3 < n_trait; i3++)
+                    if ( s[i3][index_in_obs] ) // select only those indexes which have observations (true values)
+                        pattern.push_back( i3 ); // which index should be used to construct and invert matrix
+
+                if ( pattern.size() < 2 ) // if the pattern is 0 everywhere or only 1 is non-missing -> is trivial case
+                    continue; // do nothing, switch to the next key
+                
+                evolm::matrix<float> iR(pattern.size(),pattern.size()); // creating reduced covariance matrix
+
+                for (size_t i3 = 0; i3 < pattern.size(); i3++)
+                    for (size_t j3 = 0; j3 <= i3; j3++)
+                        iR(i3,j3) = iR(j3,i3) = R( pattern[i3], pattern[j3] ); // build matrix
+
+                iR.invert();
+
+                for (size_t i3 = 0; i3 < pattern.size(); i3++)
+                    for (size_t j3 = 0; j3 <= i3; j3++)
+                        r_map[v][ pattern[i3]*(pattern[i3]+1)/2.0 + pattern[j3] ] = iR(i3,j3); // using lower triangulaar indexation
+            }
+            
+            R.clear();
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Solver::set_r()" << '\n';
+            std::cerr << e.what() << '\n';
+            throw e;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Solver::set_r()" << '\n';
+            std::cerr <<"Reason => "<< e << '\n';
+            throw e;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Solver::set_r()" << '\n';
+            throw;
+        }
+    }
+
+    void Solver::set_g()
+    {
+        try
+        {
+            for (size_t i = 0; i < model.variances.size(); i++)
+            {
+                matrix<float> var;
+                var = model.variances[i].fget();
+
+                model.variances[i].fclear();
+                model.variances[i].clear();
+
+                var.invert();
+                var.fwrite();
+                model.variances[i] = var;
+                
+                var.clear();
+            }
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Solver::set_g()" << '\n';
+            std::cerr << e.what() << '\n';
+            throw e;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Solver::set_g()" << '\n';
             throw;
         }
     }
@@ -552,11 +914,11 @@ namespace evolm
         }
     }
 
-    matrix<int> Solver::get_corr_effects(size_t which_trait)
+    matrix<int> Solver::get_corr_effects(size_t which_correlation)
     {
         try
         {
-            matrix<int> which_effects = model.correlated_effects[which_trait];
+            matrix<int> which_effects = model.correlated_effects[which_correlation];
 
             which_effects.fread();
             matrix<size_t> shape_eff = which_effects.shape();
@@ -564,7 +926,6 @@ namespace evolm
             for (size_t i = 0; i < shape_eff[0]; i++)
                 which_effects(i, 0) = (int)adj_effects_order[which_effects(i, 0)];
 
-            // return model.correlated_effects[which_trait];
             return which_effects;
         }
         catch (const std::exception &e)
@@ -580,7 +941,7 @@ namespace evolm
         }
     }
 
-    matrix<float> Solver::get_variance(size_t which_trait, size_t row, size_t col)
+    matrix<float> Solver::get_variance(size_t which_correlation, size_t row, size_t col)
     {
         try
         {
@@ -592,8 +953,7 @@ namespace evolm
 
                 matrix<float> var; //(1, 1);
 
-                // var[0] = model.variances[which_trait].at(row, col);
-                model.variances[which_trait].cast_fget(irow, icol, var);
+                model.variances[which_correlation].cast_fget(irow, icol, var);
 
                 return var;
             }
@@ -610,7 +970,7 @@ namespace evolm
                 icol[0] = col;
                 icol[1] = col;
 
-                return model.variances[which_trait].fget(irow, icol);
+                return model.variances[which_correlation].fget(irow, icol);
             }
             else
                 throw std::string("Problem with determining the state of variance. In Solver::get_variance()");
