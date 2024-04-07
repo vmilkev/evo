@@ -53,7 +53,7 @@ namespace evogen
     {
         try
         {
-            if (ref_allele_probability > 1.0)
+            if (ref_allele_probability > 1.0f)
             {
                 std::string err("The reference allele probability should be less then 1.0!");
                 throw err;
@@ -536,6 +536,7 @@ namespace evogen
 
     //===============================================================================================================
 
+#ifdef UTEST
     void Population::show_animals(size_t max_animals, size_t max_snps)
     {
         try
@@ -575,6 +576,8 @@ namespace evogen
             throw;
         }
     }
+#endif
+
     //===============================================================================================================
 
     unsigned long Population::id_at(size_t at)
@@ -994,10 +997,100 @@ namespace evogen
             throw;
         }
     }
+    //===============================================================================================================
+
+#ifdef PYBIND
+
+    pybind11::array_t<float> Population::phenotype_at(size_t at)
+    {
+        try
+        {
+            if ( at >= active_individuals.size() || at < 0 )
+                throw std::string("Illegal value of passed parameter!");
+
+            //return individuals[active_individuals[at]].get_phenotype();
+
+            std::vector<float> vals = individuals[active_individuals[at]].get_phenotype();
+
+            size_t N = vals.size();
+
+            pybind11::array_t<float, pybind11::array::c_style> arr({N, (size_t)1});
+
+            auto arr_obj = arr.mutable_unchecked();
+
+            for (size_t i = 0; i < N; i++)
+            {
+                arr_obj(i,0) = vals[i];
+            }
+
+            return arr;
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Population::phenotype_at(size_t)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Population::phenotype_at(size_t)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Population::phenotype_at(size_t)" << '\n';
+            throw;
+        }
+    }
 
     //===============================================================================================================
 
-    std::vector<double> Population::phenotype_at(size_t at)
+    void Population::phenotype_at(size_t at, pybind11::array_t<float> phen)
+    {
+        try
+        {
+            if ( at >= active_individuals.size() || at < 0 )
+                throw std::string("Illegal value of passed parameter!");
+
+            std::vector<float> phen_vect;
+
+            pybind11::buffer_info buf1 = phen.request();
+
+            if (buf1.ndim != 1)
+                throw std::runtime_error("Number of dimensions must be one");
+
+            float *ptr1 = static_cast<float *>(buf1.ptr);
+
+            for (pybind11::ssize_t i = 0; i < buf1.shape[0]; i++)
+                phen_vect.push_back(ptr1[i]);
+
+            individuals[active_individuals[at]].set_phenotype(phen_vect);
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Population::phenotype_at(size_t, std::vector<float> &)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Population::phenotype_at(size_t, std::vector<float> &)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Population::phenotype_at(size_t, std::vector<float> &)" << '\n';
+            throw;
+        }
+    }
+
+#endif
+
+    //===============================================================================================================
+
+    std::vector<float> Population::phenotype_at_cpp(size_t at)
     {
         try
         {
@@ -1008,56 +1101,148 @@ namespace evogen
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Population::phenotype_at(size_t)" << '\n';
+            std::cerr << "Exception in Population::phenotype_at_cpp(size_t)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Population::phenotype_at(size_t)" << '\n';
+            std::cerr << "Exception in Population::phenotype_at_cpp(size_t)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Population::phenotype_at(size_t)" << '\n';
+            std::cerr << "Exception in Population::phenotype_at_cpp(size_t)" << '\n';
             throw;
         }
     }
 
     //===============================================================================================================
 
-    void Population::phenotype_at(size_t at, std::vector<double> &phen)
+    void Population::phenotype_at_cpp(size_t at, std::vector<float> &phen)
     {
         try
         {
             if ( at >= active_individuals.size() || at < 0 )
                 throw std::string("Illegal value of passed parameter!");
 
-            return individuals[active_individuals[at]].set_phenotype(phen);
+            individuals[active_individuals[at]].set_phenotype(phen);
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Population::phenotype_at(size_t, std::vector<double> &)" << '\n';
+            std::cerr << "Exception in Population::phenotype_at_cpp(size_t, std::vector<float> &)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Population::phenotype_at(size_t, std::vector<double> &)" << '\n';
+            std::cerr << "Exception in Population::phenotype_at_cpp(size_t, std::vector<float> &)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Population::phenotype_at(size_t, std::vector<double> &)" << '\n';
+            std::cerr << "Exception in Population::phenotype_at_cpp(size_t, std::vector<float> &)" << '\n';
             throw;
         }
     }
 
     //===============================================================================================================
 
-    std::vector<double> Population::breedingvalue_at(size_t at)
+#ifdef PYBIND
+
+    pybind11::array_t<float> Population::breedingvalue_at(size_t at)
+    {
+        try
+        {
+            if ( at >= active_individuals.size() || at < 0 )
+                throw std::string("Illegal value of passed parameter!");
+
+            //return pybind11::cast( individuals[active_individuals[at]].get_breeding_value() );
+            
+            std::vector<float> vals = individuals[active_individuals[at]].get_breeding_value();
+
+            size_t N = vals.size();
+
+            pybind11::array_t<float, pybind11::array::c_style> arr({N, (size_t)1});
+
+            auto arr_obj = arr.mutable_unchecked();
+
+            for (size_t i = 0; i < N; i++)
+            {
+                arr_obj(i, 0) = vals[i];
+            }
+
+            return arr;
+
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Population::breedingvalue_at(size_t)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Population::breedingvalue_at(size_t)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Population::breedingvalue_at(size_t)" << '\n';
+            throw;
+        }
+    }
+
+    //===============================================================================================================
+
+    void Population::breedingvalue_at(size_t at, pybind11::array_t<float> bv)
+    {
+        try
+        {
+            if ( at >= active_individuals.size() || at < 0 )
+                throw std::string("Illegal value of passed parameter!");
+
+            std::vector<float> bv_vect;
+
+            pybind11::buffer_info buf1 = bv.request();
+
+            if (buf1.ndim != 1)
+                throw std::runtime_error("Number of dimensions must be one");
+
+            float *ptr1 = static_cast<float *>(buf1.ptr);
+
+            for (pybind11::ssize_t i = 0; i < buf1.shape[0]; i++)
+                bv_vect.push_back(ptr1[i]);
+
+            individuals[active_individuals[at]].set_breeding_value(bv_vect);
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Population::breedingvalue_at(size_t, std::vector<float> &)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Population::breedingvalue_at(size_t, std::vector<float> &)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Population::breedingvalue_at(size_t, std::vector<float> &)" << '\n';
+            throw;
+        }
+    }
+
+#endif
+
+    //===============================================================================================================
+
+    std::vector<float> Population::breedingvalue_at_cpp(size_t at)
     {
         try
         {
@@ -1068,49 +1253,49 @@ namespace evogen
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Population::breedingvalue_at(size_t)" << '\n';
+            std::cerr << "Exception in Population::breedingvalue_at_cpp(size_t)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Population::breedingvalue_at(size_t)" << '\n';
+            std::cerr << "Exception in Population::breedingvalue_at_cpp(size_t)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Population::breedingvalue_at(size_t)" << '\n';
+            std::cerr << "Exception in Population::breedingvalue_at_cpp(size_t)" << '\n';
             throw;
         }
     }
 
     //===============================================================================================================
 
-    void Population::breedingvalue_at(size_t at, std::vector<double> &bv)
+    void Population::breedingvalue_at_cpp(size_t at, std::vector<float> &bv)
     {
         try
         {
             if ( at >= active_individuals.size() || at < 0 )
                 throw std::string("Illegal value of passed parameter!");
 
-            return individuals[active_individuals[at]].set_breeding_value(bv);
+            individuals[active_individuals[at]].set_breeding_value(bv);
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Population::breedingvalue_at(size_t, std::vector<double> &)" << '\n';
+            std::cerr << "Exception in Population::breedingvalue_at_cpp(size_t, std::vector<float> &)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Population::breedingvalue_at(size_t, std::vector<double> &)" << '\n';
+            std::cerr << "Exception in Population::breedingvalue_at_cpp(size_t, std::vector<float> &)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Population::breedingvalue_at(size_t, std::vector<double> &)" << '\n';
+            std::cerr << "Exception in Population::breedingvalue_at_cpp(size_t, std::vector<float> &)" << '\n';
             throw;
         }
     }

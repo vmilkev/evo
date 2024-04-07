@@ -58,16 +58,248 @@ namespace evogen
 
     //===============================================================================================================
 
+#ifdef PYBIND
+
+    std::vector<float> Trait::py_tovect(pybind11::array_t<float> py_vect)
+    {
+        try
+        {
+            std::vector<float> out_vect;
+
+            pybind11::buffer_info buf1 = py_vect.request();
+
+            if (buf1.ndim != 1)
+                throw std::runtime_error("Number of dimensions must be one");
+
+            float *ptr1 = static_cast<float *>(buf1.ptr);
+
+            for (pybind11::ssize_t i = 0; i < buf1.shape[0]; i++)
+                out_vect.push_back(ptr1[i]);
+
+            return out_vect;
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Trait::py_tovect(pybind11::array_t<float>)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Trait::py_tovect(pybind11::array_t<float>)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Trait::py_tovect(pybind11::array_t<float>)" << '\n';
+            throw;
+        }        
+    }
+
+    //===============================================================================================================
+
+    std::vector<std::vector<float>> Trait::py_tovect2d(pybind11::array_t<float> py_vect)
+    {
+        try
+        {
+            std::vector<std::vector<float>> out_vect;
+
+            pybind11::buffer_info buf1 = py_vect.request();
+
+            if (buf1.ndim != 2)
+                throw std::runtime_error("Number of dimensions must be two");
+
+            float *ptr1 = static_cast<float *>(buf1.ptr);
+
+            for (pybind11::ssize_t i = 0; i < buf1.shape[0]; i++)
+            {
+                std::vector<float> vect;
+
+                for (pybind11::ssize_t j = 0; j < buf1.shape[1]; j++)
+                {
+                    vect.push_back( ptr1[ i*buf1.shape[1]+j ] );
+                }
+                out_vect.push_back(vect);
+            }
+
+            return out_vect;
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Trait::py_tovect2d(pybind11::array_t<float>)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Trait::py_tovect2d(pybind11::array_t<float>)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Trait::py_tovect2d(pybind11::array_t<float>)" << '\n';
+            throw;
+        }        
+    }
+
+    //===============================================================================================================
+
     Trait::Trait(Population &pop,
-                 std::vector<double> &trmean,
-                 std::vector<double> &qtl_prop_chrom,
-                 std::vector<std::vector<double>> &corr_g,
-                 std::vector<double> &varr_g,
-                 std::vector<std::vector<double>> &corr_e,
-                 std::vector<double> &varr_e,
-                 std::vector<double> &envr,
+                 pybind11::array_t<float> py_trmean,
+                 pybind11::array_t<float> py_qtl_prop_chrom,
+                 pybind11::array_t<float> py_corr_g, // 2d
+                 pybind11::array_t<float> py_varr_g,
+                 pybind11::array_t<float> py_corr_e, // 2d
+                 pybind11::array_t<float> py_varr_e,
+                 pybind11::array_t<float> py_envr,
                  size_t dist_model,
-                 std::vector<double> &dist_par)
+                 pybind11::array_t<float> py_dist_par)
+    {
+        try
+        {
+            std::vector<float> trmean = py_tovect(py_trmean);
+            std::vector<float> qtl_prop_chrom = py_tovect(py_qtl_prop_chrom);
+            std::vector<std::vector<float>> corr_g = py_tovect2d(py_corr_g);
+            std::vector<float> varr_g = py_tovect(py_varr_g);
+            std::vector<std::vector<float>> corr_e = py_tovect2d(py_corr_e);
+            std::vector<float> varr_e = py_tovect(py_varr_e);
+            std::vector<float> envr = py_tovect(py_envr);
+            std::vector<float> dist_par = py_tovect(py_dist_par);
+
+            // call the native c++ method
+
+            cleared = true;
+            set_trait(pop, trmean, qtl_prop_chrom, corr_g, varr_g, corr_e, varr_e, envr, dist_model, dist_par);
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Trait::Trait(...overloaded...)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Trait::Trait(...overloaded...)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Trait::Trait(...overloaded...)" << '\n';
+            throw;
+        }
+    }
+
+    //===============================================================================================================
+
+    void Trait::set_trait(Population &pop,
+                        pybind11::array_t<float> py_trmean,
+                        pybind11::array_t<float> py_qtl_prop_chrom,
+                        pybind11::array_t<float> py_corr_g, // 2d
+                        pybind11::array_t<float> py_varr_g,
+                        pybind11::array_t<float> py_corr_e, // 2d
+                        pybind11::array_t<float> py_varr_e,
+                        pybind11::array_t<float> py_envr,
+                        size_t dist_model,
+                        pybind11::array_t<float> py_dist_par)
+    {
+        try
+        {
+            std::vector<float> trmean = py_tovect(py_trmean);
+            std::vector<float> qtl_prop_chrom = py_tovect(py_qtl_prop_chrom);
+            std::vector<std::vector<float>> corr_g = py_tovect2d(py_corr_g);
+            std::vector<float> varr_g = py_tovect(py_varr_g);
+            std::vector<std::vector<float>> corr_e = py_tovect2d(py_corr_e);
+            std::vector<float> varr_e = py_tovect(py_varr_e);
+            std::vector<float> envr = py_tovect(py_envr);
+            std::vector<float> dist_par = py_tovect(py_dist_par);
+            
+            // call the native c++ method
+            set_trait(pop, trmean, qtl_prop_chrom, corr_g, varr_g, corr_e, varr_e, envr, dist_model, dist_par);
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Trait::set_trait(...python overloaded...)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Trait::set_trait(...python overloaded...)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Trait::set_trait(...python overloaded...)" << '\n';
+            throw;
+        }
+    }
+
+    //===============================================================================================================
+
+    void Trait::reset_trait(Population &pop,
+                            pybind11::array_t<float> py_trmean,
+                            pybind11::array_t<float> py_qtl_prop_chrom,
+                            pybind11::array_t<float> py_corr_g, // 2d
+                            pybind11::array_t<float> py_varr_g,
+                            pybind11::array_t<float> py_corr_e, // 2d
+                            pybind11::array_t<float> py_varr_e,
+                            pybind11::array_t<float> py_envr,
+                            size_t dist_model,
+                            pybind11::array_t<float> py_dist_par)
+    {
+        try
+        {
+            std::vector<float> trmean = py_tovect(py_trmean);
+            std::vector<float> qtl_prop_chrom = py_tovect(py_qtl_prop_chrom);
+            std::vector<std::vector<float>> corr_g = py_tovect2d(py_corr_g);
+            std::vector<float> varr_g = py_tovect(py_varr_g);
+            std::vector<std::vector<float>> corr_e = py_tovect2d(py_corr_e);
+            std::vector<float> varr_e = py_tovect(py_varr_e);
+            std::vector<float> envr = py_tovect(py_envr);
+            std::vector<float> dist_par = py_tovect(py_dist_par);
+
+            // call the native c++ method
+
+            clear();
+            set_trait(pop, trmean, qtl_prop_chrom, corr_g, varr_g, corr_e, varr_e, envr, dist_model, dist_par);
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Trait::reset_trait(...python overloaded...)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Trait::reset_trait(...python overloaded...)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Trait::reset_trait(...python overloaded...)" << '\n';
+            throw;
+        }
+    }
+
+#endif
+
+    //===============================================================================================================
+
+    Trait::Trait(Population &pop,
+                 std::vector<float> &trmean,
+                 std::vector<float> &qtl_prop_chrom,
+                 std::vector<std::vector<float>> &corr_g,
+                 std::vector<float> &varr_g,
+                 std::vector<std::vector<float>> &corr_e,
+                 std::vector<float> &varr_e,
+                 std::vector<float> &envr,
+                 size_t dist_model,
+                 std::vector<float> &dist_par)
     {
         try
         {
@@ -96,15 +328,15 @@ namespace evogen
     //===============================================================================================================
 
     void Trait::set_trait(Population &pop,
-                          std::vector<double> &trmean,
-                          std::vector<double> &qtl_prop_chrom,
-                          std::vector<std::vector<double>> &corr_g,
-                          std::vector<double> &varr_g,
-                          std::vector<std::vector<double>> &corr_e,
-                          std::vector<double> &varr_e,
-                          std::vector<double> &envr,
+                          std::vector<float> &trmean,
+                          std::vector<float> &qtl_prop_chrom,
+                          std::vector<std::vector<float>> &corr_g,
+                          std::vector<float> &varr_g,
+                          std::vector<std::vector<float>> &corr_e,
+                          std::vector<float> &varr_e,
+                          std::vector<float> &envr,
                           size_t dist_model,
-                          std::vector<double> &dist_par)
+                          std::vector<float> &dist_par)
     {
         try
         {
@@ -128,7 +360,7 @@ namespace evogen
                 if ((qtl_prop_chrom[i] >= 0) && (qtl_prop_chrom[i] <= 1))
                 {
                     size_t n_snps = snp_table[i][1] - snp_table[i][0] + 1;
-                    size_t iqtls = (size_t)std::round(n_snps * qtl_prop_chrom[i]);
+                    size_t iqtls = (size_t)std::roundf(n_snps * qtl_prop_chrom[i]);
 
                     // std::cout<<"n_snps: "<<n_snps<<", iqtls: "<<iqtls<<", not rounded: "<<n_snps * qtl_prop_chrom[i]<<", qtl_prop_chrom[i]: "<<qtl_prop_chrom[i]<<"\n";
                     n_qtl_in_chr.push_back(iqtls);
@@ -170,8 +402,8 @@ namespace evogen
 
             // --------- Calculate upper Cholesky decomposition of correlation matrices -------
 
-            evolm::matrix<double> Ug;
-            evolm::matrix<double> Ue;
+            evolm::matrix<float> Ug;
+            evolm::matrix<float> Ue;
 
             Ug.from_vector2d(corr_g);
             Ue.from_vector2d(corr_e);
@@ -218,8 +450,8 @@ namespace evogen
             // --------- Calculate scaling (diagonal) matrices -------------------------------
             // square root of diag_matr of required variances * square root of inverse of diag_matr of current variances
 
-            evolm::matrix<double> scal_a = get_scaler(varr_g, ta);
-            evolm::matrix<double> scal_e = get_scaler(varr_e, te);
+            evolm::matrix<float> scal_a = get_scaler(varr_g, ta);
+            evolm::matrix<float> scal_e = get_scaler(varr_e, te);
 
             // scal_a.printf("scal_a.dat", false); // debugging
             // scal_a.printf("scal_e.dat", false); // debugging
@@ -258,15 +490,15 @@ namespace evogen
         catch (const std::exception &e)
         {
             std::string msg = "Exception in Trait::set_trait(Population &,\n"
-                              "std::vector<double> &\n"
-                              "std::vector<double> &,\n"
-                              "std::vector<std::vector<double>> &\n"
-                              "std::vector<double> &,\n"
-                              "std::vector<std::vector<double>> &\n"
-                              "std::vector<double> &,\n"
-                              "std::vector<double> &,\n"
+                              "std::vector<float> &\n"
+                              "std::vector<float> &,\n"
+                              "std::vector<std::vector<float>> &\n"
+                              "std::vector<float> &,\n"
+                              "std::vector<std::vector<float>> &\n"
+                              "std::vector<float> &,\n"
+                              "std::vector<float> &,\n"
                               "size_t\n"
-                              "std::vector<double> &,\n)";
+                              "std::vector<float> &,\n)";
             std::cerr << msg << '\n';
             std::cerr << e.what() << '\n';
             throw;
@@ -274,15 +506,15 @@ namespace evogen
         catch (const std::string &e)
         {
             std::string msg = "Exception in Trait::set_trait(Population &,\n"
-                              "std::vector<double> &\n"
-                              "std::vector<double> &,\n"
-                              "std::vector<std::vector<double>> &\n"
-                              "std::vector<double> &,\n"
-                              "std::vector<std::vector<double>> &\n"
-                              "std::vector<double> &,\n"
-                              "std::vector<double> &,\n"
+                              "std::vector<float> &\n"
+                              "std::vector<float> &,\n"
+                              "std::vector<std::vector<float>> &\n"
+                              "std::vector<float> &,\n"
+                              "std::vector<std::vector<float>> &\n"
+                              "std::vector<float> &,\n"
+                              "std::vector<float> &,\n"
                               "size_t\n"
-                              "std::vector<double> &,\n)";
+                              "std::vector<float> &,\n)";
             std::cerr << msg << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
@@ -290,15 +522,15 @@ namespace evogen
         catch (...)
         {
             std::string msg = "Exception in Trait::set_trait(Population &,\n"
-                              "std::vector<double> &\n"
-                              "std::vector<double> &,\n"
-                              "std::vector<std::vector<double>> &\n"
-                              "std::vector<double> &,\n"
-                              "std::vector<std::vector<double>> &\n"
-                              "std::vector<double> &,\n"
-                              "std::vector<double> &,\n"
+                              "std::vector<float> &\n"
+                              "std::vector<float> &,\n"
+                              "std::vector<std::vector<float>> &\n"
+                              "std::vector<float> &,\n"
+                              "std::vector<std::vector<float>> &\n"
+                              "std::vector<float> &,\n"
+                              "std::vector<float> &,\n"
                               "size_t\n"
-                              "std::vector<double> &,\n)";
+                              "std::vector<float> &,\n)";
             std::cerr << msg << '\n';
             throw;
         }
@@ -307,15 +539,15 @@ namespace evogen
     //===============================================================================================================
 
     void Trait::reset_trait(Population &pop,
-                            std::vector<double> &trmean,
-                            std::vector<double> &qtl_prop_chrom,
-                            std::vector<std::vector<double>> &corr_g,
-                            std::vector<double> &varr_g,
-                            std::vector<std::vector<double>> &corr_e,
-                            std::vector<double> &varr_e,
-                            std::vector<double> &envr,
+                            std::vector<float> &trmean,
+                            std::vector<float> &qtl_prop_chrom,
+                            std::vector<std::vector<float>> &corr_g,
+                            std::vector<float> &varr_g,
+                            std::vector<std::vector<float>> &corr_e,
+                            std::vector<float> &varr_e,
+                            std::vector<float> &envr,
                             size_t dist_model,
-                            std::vector<double> &dist_par)
+                            std::vector<float> &dist_par)
     {
         try
         {
@@ -325,15 +557,15 @@ namespace evogen
         catch (const std::exception &e)
         {
             std::string msg = "Exception in Trait::reset_trait(Population &,\n"
-                              "std::vector<double> &\n"
-                              "std::vector<double> &,\n"
-                              "std::vector<std::vector<double>> &\n"
-                              "std::vector<double> &,\n"
-                              "std::vector<std::vector<double>> &\n"
-                              "std::vector<double> &,\n"
-                              "std::vector<double> &,\n"
+                              "std::vector<float> &\n"
+                              "std::vector<float> &,\n"
+                              "std::vector<std::vector<float>> &\n"
+                              "std::vector<float> &,\n"
+                              "std::vector<std::vector<float>> &\n"
+                              "std::vector<float> &,\n"
+                              "std::vector<float> &,\n"
                               "size_t\n"
-                              "std::vector<double> &,\n)";
+                              "std::vector<float> &,\n)";
             std::cerr << msg << '\n';
             std::cerr << e.what() << '\n';
             throw;
@@ -341,15 +573,15 @@ namespace evogen
         catch (const std::string &e)
         {
             std::string msg = "Exception in Trait::reset_trait(Population &,\n"
-                              "std::vector<double> &\n"
-                              "std::vector<double> &,\n"
-                              "std::vector<std::vector<double>> &\n"
-                              "std::vector<double> &,\n"
-                              "std::vector<std::vector<double>> &\n"
-                              "std::vector<double> &,\n"
-                              "std::vector<double> &,\n"
+                              "std::vector<float> &\n"
+                              "std::vector<float> &,\n"
+                              "std::vector<std::vector<float>> &\n"
+                              "std::vector<float> &,\n"
+                              "std::vector<std::vector<float>> &\n"
+                              "std::vector<float> &,\n"
+                              "std::vector<float> &,\n"
                               "size_t\n"
-                              "std::vector<double> &,\n)";
+                              "std::vector<float> &,\n)";
             std::cerr << msg << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
@@ -357,15 +589,15 @@ namespace evogen
         catch (...)
         {
             std::string msg = "Exception in Trait::reset_trait(Population &,\n"
-                              "std::vector<double> &\n"
-                              "std::vector<double> &,\n"
-                              "std::vector<std::vector<double>> &\n"
-                              "std::vector<double> &,\n"
-                              "std::vector<std::vector<double>> &\n"
-                              "std::vector<double> &,\n"
-                              "std::vector<double> &,\n"
+                              "std::vector<float> &\n"
+                              "std::vector<float> &,\n"
+                              "std::vector<std::vector<float>> &\n"
+                              "std::vector<float> &,\n"
+                              "std::vector<std::vector<float>> &\n"
+                              "std::vector<float> &,\n"
+                              "std::vector<float> &,\n"
                               "size_t\n"
-                              "std::vector<double> &,\n)";
+                              "std::vector<float> &,\n)";
             std::cerr << msg << '\n';
             throw;
         }
@@ -437,13 +669,13 @@ namespace evogen
 
     //===============================================================================================================
 
-    void Trait::sample_dom(size_t which_dist, std::vector<double> &dist_param)
+    void Trait::sample_dom(size_t which_dist, std::vector<float> &dist_param)
     {
         try
         {
             Utilites u;
 
-            std::vector<double> v;
+            std::vector<float> v;
 
             switch (which_dist)
             {
@@ -465,7 +697,7 @@ namespace evogen
                 if (dist_param.size() != 1)
                     throw std::string("The number of provided gamma distribution parameters is not equal 1!");
 
-                v = u.get_gamma_rand(qtls.size(), 2.0, dist_param[0], false);
+                v = u.get_gamma_rand(qtls.size(), 2.0f, dist_param[0], false);
                 break;
 
             default:
@@ -479,26 +711,26 @@ namespace evogen
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Trait::sample_genes(size_t, std::vector<double> &)" << '\n';
+            std::cerr << "Exception in Trait::sample_genes(size_t, std::vector<float> &)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Trait::sample_genes(size_t, std::vector<double> &)" << '\n';
+            std::cerr << "Exception in Trait::sample_genes(size_t, std::vector<float> &)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Trait::sample_genes(size_t, std::vector<double> &)" << '\n';
+            std::cerr << "Exception in Trait::sample_genes(size_t, std::vector<float> &)" << '\n';
             throw;
         }
     }
 
     //===============================================================================================================
 
-    void Trait::sample_genes(std::vector<size_t> &n_qtl, std::vector<std::vector<unsigned long>> &stable, std::vector<double> &qtl_prop)
+    void Trait::sample_genes(std::vector<size_t> &n_qtl, std::vector<std::vector<unsigned long>> &stable, std::vector<float> &qtl_prop)
     {
         /* We are sampling not physical locations but indexes pointing to the std::vector of maarkers in the genome. */
         try
@@ -531,19 +763,19 @@ namespace evogen
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Trait::sample_genes(std::vector<size_t> &, std::vector<std::vector<unsigned long>> &, std::vector<double> &)" << '\n';
+            std::cerr << "Exception in Trait::sample_genes(std::vector<size_t> &, std::vector<std::vector<unsigned long>> &, std::vector<float> &)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Trait::sample_genes(std::vector<size_t> &, std::vector<std::vector<unsigned long>> &, std::vector<double> &)" << '\n';
+            std::cerr << "Exception in Trait::sample_genes(std::vector<size_t> &, std::vector<std::vector<unsigned long>> &, std::vector<float> &)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Trait::sample_genes(std::vector<size_t> &, std::vector<std::vector<unsigned long>> &, std::vector<double> &)" << '\n';
+            std::cerr << "Exception in Trait::sample_genes(std::vector<size_t> &, std::vector<std::vector<unsigned long>> &, std::vector<float> &)" << '\n';
             throw;
         }
     }
@@ -556,11 +788,11 @@ namespace evogen
         {
             Utilites u;
 
-            std::vector<std::vector<double>> v;
+            std::vector<std::vector<float>> v;
 
             for (size_t i = 0; i < n_trate; i++)
             {
-                std::vector<double> v1 = u.get_norm_rand(qtls.size(), 0.0, 1.0, true);
+                std::vector<float> v1 = u.get_norm_rand(qtls.size(), 0.0f, 1.0f, true);
                 v.push_back(v1);
             }
 
@@ -572,7 +804,7 @@ namespace evogen
 
             for (size_t i = 0; i < n_trate; i++)
             {
-                std::vector<double> v1 = u.get_norm_rand(qtls.size(), 0.0, 1.0, true);
+                std::vector<float> v1 = u.get_norm_rand(qtls.size(), 0.0f, 1.0f, true);
                 v.push_back(v1);
             }
 
@@ -603,14 +835,14 @@ namespace evogen
 
     //===============================================================================================================
 
-    void Trait::calculate_trait(Population &in_pop, std::vector<double> &envr, size_t n_trate)
+    void Trait::calculate_trait(Population &in_pop, std::vector<float> &envr, size_t n_trate)
     {
         try
         {
             size_t n_ploidy = in_pop.get_ploidy();
             size_t n_indiv = in_pop.size();
 
-            double p_eff = ploidy_effect(n_ploidy, 2.0f);
+            float p_eff = ploidy_effect(n_ploidy, 2.0f);
 
             for (size_t trait = 0; trait < n_trate; trait++)
             {
@@ -620,37 +852,37 @@ namespace evogen
                     {
                         std::vector<int> locus_state = get_locus_state(in_pop, individ, qtls(iqtl, 0));
 
-                        double qtl_val = (double)locus_state[0];   // qtl value of genotype, number of ref alleles
-                        double dom_cases = (double)locus_state[1]; // cases of dominance
+                        float qtl_val = (float)locus_state[0];   // qtl value of genotype, number of ref alleles
+                        float dom_cases = (float)locus_state[1]; // cases of dominance
 
-                        ta(individ, trait) = ta(individ, trait) + p_eff * (1.0 + dom_cases * k(iqtl, 0)) * a(iqtl, trait) * qtl_val;
-                        te(individ, trait) = te(individ, trait) + p_eff * (e(iqtl, trait) + 0.5 * envr[trait] * std::abs(e(iqtl, trait))) * qtl_val;
+                        ta(individ, trait) = ta(individ, trait) + p_eff * (1.0f + dom_cases * k(iqtl, 0)) * a(iqtl, trait) * qtl_val;
+                        te(individ, trait) = te(individ, trait) + p_eff * (e(iqtl, trait) + 0.5f * envr[trait] * std::abs(e(iqtl, trait))) * qtl_val;
                     }
                 }
             }
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Trait::calculate_trait(Population &, std::vector<double> &, size_t)" << '\n';
+            std::cerr << "Exception in Trait::calculate_trait(Population &, std::vector<float> &, size_t)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Trait::calculate_trait(Population &, std::vector<double> &, size_t)" << '\n';
+            std::cerr << "Exception in Trait::calculate_trait(Population &, std::vector<float> &, size_t)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Trait::calculate_trait(Population &, std::vector<double> &, size_t)" << '\n';
+            std::cerr << "Exception in Trait::calculate_trait(Population &, std::vector<float> &, size_t)" << '\n';
             throw;
         }
     }
 
     //===============================================================================================================
 
-    void Trait::calculate_trait(Population &in_pop, std::vector<size_t> &ind_list, std::vector<double> &envr, size_t n_trate)
+    void Trait::calculate_trait(Population &in_pop, std::vector<size_t> &ind_list, std::vector<float> &envr, size_t n_trate)
     {
         try
         {
@@ -658,7 +890,7 @@ namespace evogen
 
             size_t n_indiv = ind_list.size();
 
-            double p_eff = ploidy_effect(n_ploidy, 2.0f);
+            float p_eff = ploidy_effect(n_ploidy, 2.0f);
 
             for (size_t trait = 0; trait < n_trate; trait++)
             {
@@ -668,57 +900,57 @@ namespace evogen
                     {
                         std::vector<int> locus_state = get_locus_state(in_pop, ind_list[individ], qtls(iqtl, 0)); // access only active individuals
 
-                        double qtl_val = (double)locus_state[0];   // qtl value of genotype, number of ref alleles
-                        double dom_cases = (double)locus_state[1]; // cases of dominance
+                        float qtl_val = (float)locus_state[0];   // qtl value of genotype, number of ref alleles
+                        float dom_cases = (float)locus_state[1]; // cases of dominance
 
-                        ta(individ, trait) = ta(individ, trait) + p_eff * (1.0 + dom_cases * k(iqtl, 0)) * a(iqtl, trait) * qtl_val;
-                        te(individ, trait) = te(individ, trait) + p_eff * (e(iqtl, trait) + 0.5 * envr[trait] * std::abs(e(iqtl, trait))) * qtl_val;
+                        ta(individ, trait) = ta(individ, trait) + p_eff * (1.0f + dom_cases * k(iqtl, 0)) * a(iqtl, trait) * qtl_val;
+                        te(individ, trait) = te(individ, trait) + p_eff * (e(iqtl, trait) + 0.5f * envr[trait] * std::abs(e(iqtl, trait))) * qtl_val;
                     }
                 }
             }
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Trait::calculate_trait(Population &, std::vector<size_t> &, std::vector<double> &, size_t)" << '\n';
+            std::cerr << "Exception in Trait::calculate_trait(Population &, std::vector<size_t> &, std::vector<float> &, size_t)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Trait::calculate_trait(Population &, std::vector<size_t> &, std::vector<double> &, size_t)" << '\n';
+            std::cerr << "Exception in Trait::calculate_trait(Population &, std::vector<size_t> &, std::vector<float> &, size_t)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Trait::calculate_trait(Population &, std::vector<size_t> &, std::vector<double> &, size_t)" << '\n';
+            std::cerr << "Exception in Trait::calculate_trait(Population &, std::vector<size_t> &, std::vector<float> &, size_t)" << '\n';
             throw;
         }
     }
 
     //===============================================================================================================
 
-    double Trait::ploidy_effect(size_t n_ploidy, double degree)
+    float Trait::ploidy_effect(size_t n_ploidy, float degree)
     {
         try
         {
-            return (1.0 / (1.0 + std::pow((1.0 - 2.0 / n_ploidy), degree)));
+            return (1.0f / (1.0f + std::pow((1.0f - 2.0f / n_ploidy), degree)));
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Trait::ploidy_effect(size_t, double)" << '\n';
+            std::cerr << "Exception in Trait::ploidy_effect(size_t, float)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Trait::ploidy_effect(size_t, double)" << '\n';
+            std::cerr << "Exception in Trait::ploidy_effect(size_t, float)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Trait::ploidy_effect(size_t, double)" << '\n';
+            std::cerr << "Exception in Trait::ploidy_effect(size_t, float)" << '\n';
             throw;
         }
     }
@@ -782,7 +1014,7 @@ namespace evogen
 
     //===============================================================================================================
 
-    evolm::matrix<double> Trait::var_diag(evolm::matrix<double> &arr)
+    evolm::matrix<float> Trait::var_diag(evolm::matrix<float> &arr)
     {
         try
         {
@@ -792,10 +1024,10 @@ namespace evogen
             size_t row = shape[0];
             size_t col = shape[1];
 
-            evolm::matrix<double> out_var(col, col);
+            evolm::matrix<float> out_var(col, col);
 
             // calculate mean
-            evolm::matrix<double> mean(col, col);
+            evolm::matrix<float> mean(col, col);
 
             for (size_t i = 0; i < col; i++)
             {
@@ -804,7 +1036,7 @@ namespace evogen
                     mean(i, i) += arr(j, i);
                 }
             }
-            mean = mean * (1.0 / (double)row);
+            mean = mean * (1.0f / (float)row);
 
             // calculate variannce
             for (size_t i = 0; i < col; i++)
@@ -815,43 +1047,43 @@ namespace evogen
                 }
             }
 
-            return out_var * (1.0 / (double)row);
+            return out_var * (1.0f / (float)row);
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Trait::var_diag( evolm::matrix<double> & )" << '\n';
+            std::cerr << "Exception in Trait::var_diag( evolm::matrix<float> & )" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Trait::var_diag( evolm::matrix<double> & )" << '\n';
+            std::cerr << "Exception in Trait::var_diag( evolm::matrix<float> & )" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Trait::var_diag( evolm::matrix<double> & )" << '\n';
+            std::cerr << "Exception in Trait::var_diag( evolm::matrix<float> & )" << '\n';
             throw;
         }
     }
 
     //===============================================================================================================
 
-    evolm::matrix<double> Trait::get_scaler(std::vector<double> &in_var, evolm::matrix<double> &in_arr)
+    evolm::matrix<float> Trait::get_scaler(std::vector<float> &in_var, evolm::matrix<float> &in_arr)
     {
         try
         {
-            // evolm::matrix<double> out;
-            evolm::matrix<double> requested_std(in_var.size(), in_var.size());
-            evolm::matrix<double> current_std(in_var.size(), in_var.size());
+            // evolm::matrix<float> out;
+            evolm::matrix<float> requested_std(in_var.size(), in_var.size());
+            evolm::matrix<float> current_std(in_var.size(), in_var.size());
 
-            evolm::matrix<double> var = var_diag(in_arr);
+            evolm::matrix<float> var = var_diag(in_arr);
 
             for (size_t i = 0; i < in_var.size(); i++)
             {
                 requested_std(i, i) = std::sqrt(in_var[i]);
-                current_std(i, i) = 1.0 / std::sqrt(var(i, i));
+                current_std(i, i) = 1.0f / std::sqrt(var(i, i));
             }
 
             // requested_std.printf("req_var.dat", false);
@@ -861,19 +1093,19 @@ namespace evogen
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Trait::get_scaler( std::vector<double> &, evolm::matrix<double> & )" << '\n';
+            std::cerr << "Exception in Trait::get_scaler( std::vector<float> &, evolm::matrix<float> & )" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Trait::get_scaler( std::vector<double> &, evolm::matrix<double> & )" << '\n';
+            std::cerr << "Exception in Trait::get_scaler( std::vector<float> &, evolm::matrix<float> & )" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Trait::get_scaler( std::vector<double> &, evolm::matrix<double> & )" << '\n';
+            std::cerr << "Exception in Trait::get_scaler( std::vector<float> &, evolm::matrix<float> & )" << '\n';
             throw;
         }
     }
@@ -956,7 +1188,7 @@ namespace evogen
 
     //===============================================================================================================
 
-    void Trait::calculate_correction_mean(std::vector<double> &in_mean)
+    void Trait::calculate_correction_mean(std::vector<float> &in_mean)
     {
         try
         {
@@ -974,36 +1206,40 @@ namespace evogen
                 {
                     t_mean(i, 0) += ta(j, i) + te(j, i);
                 }
-                // std::cout<<"in_mean[i] => "<<in_mean[i]<<", t_mean(i, 0) / (double)row => "<<t_mean(i, 0) / (double)row<<"\n";
-                t_mean(i, 0) = in_mean[i] - t_mean(i, 0) / (double)row;
+                // std::cout<<"in_mean[i] => "<<in_mean[i]<<", t_mean(i, 0) / (float)row => "<<t_mean(i, 0) / (float)row<<"\n";
+                t_mean(i, 0) = in_mean[i] - t_mean(i, 0) / (float)row;
                 // std::cout<<"t_mean(i, 0) => "<<t_mean(i, 0)<<"\n";
             }
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Trait::calculate_correction_mean(std::vector<double> &)" << '\n';
+            std::cerr << "Exception in Trait::calculate_correction_mean(std::vector<float> &)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Trait::calculate_correction_mean(std::vector<double> &)" << '\n';
+            std::cerr << "Exception in Trait::calculate_correction_mean(std::vector<float> &)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Trait::calculate_correction_mean(std::vector<double> &)" << '\n';
+            std::cerr << "Exception in Trait::calculate_correction_mean(std::vector<float> &)" << '\n';
             throw;
         }
     }
 
     //===============================================================================================================
 
-    void Trait::get_observations(Population &in_pop, std::vector<double> &env)
+#ifdef PYBIND
+
+    void Trait::get_observations(Population &in_pop, pybind11::array_t<float> py_env)
     {
         try
         {
+            std::vector<float> env = py_tovect(py_env);
+
             if (cleared)
                 throw std::string("The trait is configured, hence the call of set_trait() is required!");
 
@@ -1025,7 +1261,7 @@ namespace evogen
             realloc_traits(in_pop, n_traits);
             calculate_trait(in_pop, env, n_traits);
 
-            evolm::matrix<double> t(n_individuals, n_traits);
+            evolm::matrix<float> t(n_individuals, n_traits);
 
             for (size_t i = 0; i < n_traits; i++)
             {
@@ -1038,12 +1274,12 @@ namespace evogen
             // register the observed phenotypes for corresponding individual
             for (size_t i = 0; i < n_individuals; i++)
             {
-                std::vector<double> obs;
+                std::vector<float> obs;
                 for (size_t j = 0; j < n_traits; j++)
                 {
                     obs.push_back(t(i, j));
                 }
-                in_pop.phenotype_at(i, obs);
+                in_pop.phenotype_at_cpp(i, obs);
             }
 
             ta.clear();
@@ -1052,29 +1288,31 @@ namespace evogen
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Trait::get_observations(Population &, std::vector<double> &)" << '\n';
+            std::cerr << "Exception in Trait::get_observations(Population &, pybind11::array_t<float>)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Trait::get_observations(Population &, std::vector<double> &)" << '\n';
+            std::cerr << "Exception in Trait::get_observations(Population &, pybind11::array_t<float>)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Trait::get_observations(Population &, std::vector<double> &)" << '\n';
+            std::cerr << "Exception in Trait::get_observations(Population &, pybind11::array_t<float>)" << '\n';
             throw;
         }
     }
 
     //===============================================================================================================
 
-    void Trait::get_observations(Population &in_pop, std::vector<double> &env, std::vector<std::vector<double>> &out_t, std::vector<std::vector<short>> &out_g)
+    void Trait::get_observations(Population &in_pop, pybind11::array_t<float> py_env, pybind11::array_t<float> py_t)
     {
         try
         {
+            std::vector<float> env = py_tovect(py_env);
+
             if (cleared)
                 throw std::string("The trait is configured, hence the call of set_trait() is required!");
 
@@ -1096,7 +1334,7 @@ namespace evogen
             realloc_traits(in_pop, n_traits);
             calculate_trait(in_pop, env, n_traits);
 
-            evolm::matrix<double> t(n_individuals, n_traits);
+            evolm::matrix<float> t(n_individuals, n_traits);
 
             for (size_t i = 0; i < n_traits; i++)
             {
@@ -1109,47 +1347,76 @@ namespace evogen
             // register the observed phenotypes for corresponding individual
             for (size_t i = 0; i < n_individuals; i++)
             {
-                std::vector<double> obs;
+                std::vector<float> obs;
                 for (size_t j = 0; j < n_traits; j++)
                 {
                     obs.push_back(t(i, j));
                 }
-                in_pop.phenotype_at(i, obs);
+                in_pop.phenotype_at_cpp(i, obs);
             }
+
+            //------------------------------
+            std::vector<std::vector<float>> out_t;
 
             t.to_vector2d(out_t);
 
+            size_t N = out_t.size();
+            size_t M = out_t[0].size();
+
+            //  allocate the buffer
+            pybind11::array_t<float> py_trvalues = pybind11::array_t<float>( N * M );
+
+            pybind11::buffer_info buf2 = py_trvalues.request();
+
+            if (buf2.ndim != 2)
+                throw std::runtime_error("Number of dimensions must be two");
+
+            float *ptr2 = (float *) buf2.ptr;
+
+            for (size_t i = 0; i < N; i++) {
+                for (size_t j = 0; j < M; j++) {
+                    ptr2[ i * M + j ] = out_t[i][j];
+                }
+            }
+            
+            // reshape array to match input shape
+            py_trvalues.resize({N,M}); // maybe make it as: return py_trvalues ?
+            py_t.resize({N,M});
+
+            py_t = py_trvalues;
+            //------------------------------
+
             ta.clear();
             te.clear();
             t.clear();
-
-            in_pop.get_all_genotypes(out_g);
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Trait::get_observations(Population &, std::vector<double> &, std::vector<std::vector<double>> &, std::vector<std::vector<short>> &)" << '\n';
+            std::cerr << "Exception in Trait::get_observations(Population &, pybind11::array_t<float>, pybind11::array_t<float>)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Trait::get_observations(Population &, std::vector<double> &, std::vector<std::vector<double>> &, std::vector<std::vector<short>> &)" << '\n';
+            std::cerr << "Exception in Trait::get_observations(Population &, pybind11::array_t<float>, pybind11::array_t<float>)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Trait::get_observations(Population &, std::vector<double> &, std::vector<std::vector<double>> &, std::vector<std::vector<short>> &)" << '\n';
+            std::cerr << "Exception in Trait::get_observations(Population &, pybind11::array_t<float>, pybind11::array_t<float>)" << '\n';
             throw;
         }
     }
 
     //===============================================================================================================
 
-    void Trait::get_observations(Population &in_pop, std::vector<double> &env, const std::string &out_t, const std::string &out_g)
+    void Trait::get_observations(Population &in_pop, pybind11::array_t<float> py_env, pybind11::array_t<float> py_t, pybind11::array_t<int> py_g)
     {
         try
         {
+            std::vector<float> env = py_tovect(py_env);
+
             if (cleared)
                 throw std::string("The trait is configured, hence the call of set_trait() is required!");
 
@@ -1171,7 +1438,7 @@ namespace evogen
             realloc_traits(in_pop, n_traits);
             calculate_trait(in_pop, env, n_traits);
 
-            evolm::matrix<double> t(n_individuals, n_traits);
+            evolm::matrix<float> t(n_individuals, n_traits);
 
             for (size_t i = 0; i < n_traits; i++)
             {
@@ -1184,12 +1451,225 @@ namespace evogen
             // register the observed phenotypes for corresponding individual
             for (size_t i = 0; i < n_individuals; i++)
             {
-                std::vector<double> obs;
+                std::vector<float> obs;
                 for (size_t j = 0; j < n_traits; j++)
                 {
                     obs.push_back(t(i, j));
                 }
-                in_pop.phenotype_at(i, obs);
+                in_pop.phenotype_at_cpp(i, obs);
+            }
+
+            //------------------------------
+            std::vector<std::vector<float>> out_t;
+
+            t.to_vector2d(out_t);
+
+            size_t N = out_t.size();
+            size_t M = out_t[0].size();
+
+            //  allocate the buffer
+            pybind11::array_t<float> py_trvalues = pybind11::array_t<float>( N * M );
+
+            pybind11::buffer_info buf2 = py_trvalues.request();
+
+            if (buf2.ndim != 2)
+                throw std::runtime_error("Number of dimensions must be two");
+
+            float *ptr2 = (float *) buf2.ptr;
+
+            for (size_t i = 0; i < N; i++) {
+                for (size_t j = 0; j < M; j++) {
+                    ptr2[ i * M + j ] = out_t[i][j];
+                }
+            }
+            
+            // reshape array to match input shape
+            py_trvalues.resize({N,M}); // maybe make it as: return py_trvalues ?
+            py_t.resize({N,M});
+
+            py_t = py_trvalues;
+            //------------------------------
+
+            ta.clear();
+            te.clear();
+            t.clear();
+
+            //--------------------------------------
+            std::vector<std::vector<short>> out_g;
+
+            in_pop.get_all_genotypes(out_g);
+
+            N = M = 0;
+
+            N = out_g.size();
+            M = out_g[0].size();
+
+            //  allocate the buffer
+            pybind11::array_t<int> py_genotypes = pybind11::array_t<int>( N * M );
+
+            pybind11::buffer_info buf3 = py_genotypes.request();
+
+            if (buf3.ndim != 2)
+                throw std::runtime_error("Number of dimensions must be two");
+
+            int *ptr3 = (int *) buf3.ptr;
+
+            for (size_t i = 0; i < N; i++) {
+                for (size_t j = 0; j < M; j++) {
+                    ptr3[ i * M + j ] = (int)out_g[i][j];
+                }
+            }
+            
+            // reshape array to match input shape
+            py_genotypes.resize({N,M}); // maybe make it as: return py_genotypes ?
+            py_g.resize({N,M});
+
+            py_g = py_genotypes;
+            //--------------------------------------
+
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Trait::get_observations(Population &, pybind11::array_t<float>, pybind11::array_t<float>, pybind11::array_t<float>)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Trait::get_observations(Population &, pybind11::array_t<float>, pybind11::array_t<float>, pybind11::array_t<float>)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Trait::get_observations(Population &, pybind11::array_t<float>, pybind11::array_t<float>, pybind11::array_t<float>)" << '\n';
+            throw;
+        }
+    }
+
+    //===============================================================================================================
+
+    void Trait::get_observations(Population &in_pop, pybind11::array_t<float> py_env, const std::string &out_t)
+    {
+        try
+        {
+            std::vector<float> env = py_tovect(py_env);
+
+            if (cleared)
+                throw std::string("The trait is configured, hence the call of set_trait() is required!");
+
+            evolm::matrix<size_t> shape(2, 1);
+            shape = a.shape();
+
+            size_t n_individuals = in_pop.size();
+            size_t n_traits = shape[1];
+
+            if (n_individuals < 1)
+                throw std::string("Cannot provide observation on empty population!");
+
+            if (env.size() != n_traits)
+                throw std::string("The demension of the array ENV array does not correspond to the number of traits!");
+
+            if (base_genome_structure != in_pop.get_genome_structure())
+                throw std::string("The genome structure of the base population is not the same as in the population being observed!");
+
+            realloc_traits(in_pop, n_traits);
+            calculate_trait(in_pop, env, n_traits);
+
+            evolm::matrix<float> t(n_individuals, n_traits);
+
+            for (size_t i = 0; i < n_traits; i++)
+            {
+                for (size_t j = 0; j < n_individuals; j++)
+                {
+                    t(j, i) = ta(j, i) + te(j, i) + t_mean(i, 0);
+                }
+            }
+
+            // register the observed phenotypes for corresponding individual
+            for (size_t i = 0; i < n_individuals; i++)
+            {
+                std::vector<float> obs;
+                for (size_t j = 0; j < n_traits; j++)
+                {
+                    obs.push_back(t(i, j));
+                }
+                in_pop.phenotype_at_cpp(i, obs);
+            }
+
+            t.printf(out_t, false); // not in append mode
+
+            ta.clear();
+            te.clear();
+            t.clear();
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Trait::get_observations(Population &, pybind11::array_t<float>, const std::string &)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Trait::get_observations(Population &, pybind11::array_t<float>, const std::string &)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Trait::get_observations(Population &, pybind11::array_t<float>, const std::string &)" << '\n';
+            throw;
+        }
+    }
+
+    //===============================================================================================================
+
+    void Trait::get_observations(Population &in_pop, pybind11::array_t<float> py_env, const std::string &out_t, const std::string &out_g)
+    {
+        try
+        {
+            std::vector<float> env = py_tovect(py_env);
+
+            if (cleared)
+                throw std::string("The trait is configured, hence the call of set_trait() is required!");
+
+            evolm::matrix<size_t> shape(2, 1);
+            shape = a.shape();
+
+            size_t n_individuals = in_pop.size();
+            size_t n_traits = shape[1];
+
+            if (n_individuals < 1)
+                throw std::string("Cannot provide observation on empty population!");
+
+            if (env.size() != n_traits)
+                throw std::string("The demension of the array ENV array does not correspond to the number of traits!");
+
+            if (base_genome_structure != in_pop.get_genome_structure())
+                throw std::string("The genome structure of the base population is not the same as in the population being observed!");
+
+            realloc_traits(in_pop, n_traits);
+            calculate_trait(in_pop, env, n_traits);
+
+            evolm::matrix<float> t(n_individuals, n_traits);
+
+            for (size_t i = 0; i < n_traits; i++)
+            {
+                for (size_t j = 0; j < n_individuals; j++)
+                {
+                    t(j, i) = ta(j, i) + te(j, i) + t_mean(i, 0);
+                }
+            }
+
+            // register the observed phenotypes for corresponding individual
+            for (size_t i = 0; i < n_individuals; i++)
+            {
+                std::vector<float> obs;
+                for (size_t j = 0; j < n_traits; j++)
+                {
+                    obs.push_back(t(i, j));
+                }
+                in_pop.phenotype_at_cpp(i, obs);
             }
 
             t.printf(out_t, false); // not in append mode
@@ -1205,26 +1685,28 @@ namespace evogen
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Trait::get_observations(Population &, std::vector<double> &, const std::string &, const std::string &)" << '\n';
+            std::cerr << "Exception in Trait::get_observations(Population &, pybind11::array_t<float>, const std::string &, const std::string &)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Trait::get_observations(Population &, std::vector<double> &, const std::string &, const std::string &)" << '\n';
+            std::cerr << "Exception in Trait::get_observations(Population &, pybind11::array_t<float>, const std::string &, const std::string &)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Trait::get_observations(Population &, std::vector<double> &, const std::string &, const std::string &)" << '\n';
+            std::cerr << "Exception in Trait::get_observations(Population &, pybind11::array_t<float>, const std::string &, const std::string &)" << '\n';
             throw;
         }
     }
 
+#endif
+
     //===============================================================================================================
 
-    void Trait::get_observations(Population &in_pop, std::vector<double> &env, const std::string &out_t)
+    void Trait::get_observations(Population &in_pop, std::vector<float> &env)
     {
         try
         {
@@ -1249,7 +1731,7 @@ namespace evogen
             realloc_traits(in_pop, n_traits);
             calculate_trait(in_pop, env, n_traits);
 
-            evolm::matrix<double> t(n_individuals, n_traits);
+            evolm::matrix<float> t(n_individuals, n_traits);
 
             for (size_t i = 0; i < n_traits; i++)
             {
@@ -1262,12 +1744,236 @@ namespace evogen
             // register the observed phenotypes for corresponding individual
             for (size_t i = 0; i < n_individuals; i++)
             {
-                std::vector<double> obs;
+                std::vector<float> obs;
                 for (size_t j = 0; j < n_traits; j++)
                 {
                     obs.push_back(t(i, j));
                 }
-                in_pop.phenotype_at(i, obs);
+                in_pop.phenotype_at_cpp(i, obs);
+            }
+
+            ta.clear();
+            te.clear();
+            t.clear();
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Trait::get_observations(Population &, std::vector<float> &)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Trait::get_observations(Population &, std::vector<float> &)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Trait::get_observations(Population &, std::vector<float> &)" << '\n';
+            throw;
+        }
+    }
+
+    //===============================================================================================================
+
+    void Trait::get_observations(Population &in_pop, std::vector<float> &env, std::vector<std::vector<float>> &out_t, std::vector<std::vector<short>> &out_g)
+    {
+        try
+        {
+            if (cleared)
+                throw std::string("The trait is configured, hence the call of set_trait() is required!");
+
+            evolm::matrix<size_t> shape(2, 1);
+            shape = a.shape();
+
+            size_t n_individuals = in_pop.size();
+            size_t n_traits = shape[1];
+
+            if (n_individuals < 1)
+                throw std::string("Cannot provide observation on empty population!");
+
+            if (env.size() != n_traits)
+                throw std::string("The demension of the array ENV array does not correspond to the number of traits!");
+
+            if (base_genome_structure != in_pop.get_genome_structure())
+                throw std::string("The genome structure of the base population is not the same as in the population being observed!");
+
+            realloc_traits(in_pop, n_traits);
+            calculate_trait(in_pop, env, n_traits);
+
+            evolm::matrix<float> t(n_individuals, n_traits);
+
+            for (size_t i = 0; i < n_traits; i++)
+            {
+                for (size_t j = 0; j < n_individuals; j++)
+                {
+                    t(j, i) = ta(j, i) + te(j, i) + t_mean(i, 0);
+                }
+            }
+
+            // register the observed phenotypes for corresponding individual
+            for (size_t i = 0; i < n_individuals; i++)
+            {
+                std::vector<float> obs;
+                for (size_t j = 0; j < n_traits; j++)
+                {
+                    obs.push_back(t(i, j));
+                }
+                in_pop.phenotype_at_cpp(i, obs);
+            }
+
+            t.to_vector2d(out_t);
+
+            ta.clear();
+            te.clear();
+            t.clear();
+
+            in_pop.get_all_genotypes(out_g);
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Trait::get_observations(Population &, std::vector<float> &, std::vector<std::vector<float>> &, std::vector<std::vector<short>> &)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Trait::get_observations(Population &, std::vector<float> &, std::vector<std::vector<float>> &, std::vector<std::vector<short>> &)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Trait::get_observations(Population &, std::vector<float> &, std::vector<std::vector<float>> &, std::vector<std::vector<short>> &)" << '\n';
+            throw;
+        }
+    }
+
+    //===============================================================================================================
+
+    void Trait::get_observations(Population &in_pop, std::vector<float> &env, const std::string &out_t, const std::string &out_g)
+    {
+        try
+        {
+            if (cleared)
+                throw std::string("The trait is configured, hence the call of set_trait() is required!");
+
+            evolm::matrix<size_t> shape(2, 1);
+            shape = a.shape();
+
+            size_t n_individuals = in_pop.size();
+            size_t n_traits = shape[1];
+
+            if (n_individuals < 1)
+                throw std::string("Cannot provide observation on empty population!");
+
+            if (env.size() != n_traits)
+                throw std::string("The demension of the array ENV array does not correspond to the number of traits!");
+
+            if (base_genome_structure != in_pop.get_genome_structure())
+                throw std::string("The genome structure of the base population is not the same as in the population being observed!");
+
+            realloc_traits(in_pop, n_traits);
+            calculate_trait(in_pop, env, n_traits);
+
+            evolm::matrix<float> t(n_individuals, n_traits);
+
+            for (size_t i = 0; i < n_traits; i++)
+            {
+                for (size_t j = 0; j < n_individuals; j++)
+                {
+                    t(j, i) = ta(j, i) + te(j, i) + t_mean(i, 0);
+                }
+            }
+
+            // register the observed phenotypes for corresponding individual
+            for (size_t i = 0; i < n_individuals; i++)
+            {
+                std::vector<float> obs;
+                for (size_t j = 0; j < n_traits; j++)
+                {
+                    obs.push_back(t(i, j));
+                }
+                in_pop.phenotype_at_cpp(i, obs);
+            }
+
+            t.printf(out_t, false); // not in append mode
+
+            ta.clear();
+            te.clear();
+            t.clear();
+
+            Utilites u;
+            u.fremove(out_g);
+
+            in_pop.get_all_genotypes(out_g);
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Trait::get_observations(Population &, std::vector<float> &, const std::string &, const std::string &)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Trait::get_observations(Population &, std::vector<float> &, const std::string &, const std::string &)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Trait::get_observations(Population &, std::vector<float> &, const std::string &, const std::string &)" << '\n';
+            throw;
+        }
+    }
+
+    //===============================================================================================================
+
+    void Trait::get_observations(Population &in_pop, std::vector<float> &env, const std::string &out_t)
+    {
+        try
+        {
+            if (cleared)
+                throw std::string("The trait is configured, hence the call of set_trait() is required!");
+
+            evolm::matrix<size_t> shape(2, 1);
+            shape = a.shape();
+
+            size_t n_individuals = in_pop.size();
+            size_t n_traits = shape[1];
+
+            if (n_individuals < 1)
+                throw std::string("Cannot provide observation on empty population!");
+
+            if (env.size() != n_traits)
+                throw std::string("The demension of the array ENV array does not correspond to the number of traits!");
+
+            if (base_genome_structure != in_pop.get_genome_structure())
+                throw std::string("The genome structure of the base population is not the same as in the population being observed!");
+
+            realloc_traits(in_pop, n_traits);
+            calculate_trait(in_pop, env, n_traits);
+
+            evolm::matrix<float> t(n_individuals, n_traits);
+
+            for (size_t i = 0; i < n_traits; i++)
+            {
+                for (size_t j = 0; j < n_individuals; j++)
+                {
+                    t(j, i) = ta(j, i) + te(j, i) + t_mean(i, 0);
+                }
+            }
+
+            // register the observed phenotypes for corresponding individual
+            for (size_t i = 0; i < n_individuals; i++)
+            {
+                std::vector<float> obs;
+                for (size_t j = 0; j < n_traits; j++)
+                {
+                    obs.push_back(t(i, j));
+                }
+                in_pop.phenotype_at_cpp(i, obs);
             }
 
             t.printf(out_t, false); // not in append mode
@@ -1278,26 +1984,26 @@ namespace evogen
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Trait::get_observations(Population &, std::vector<double> &, const std::string &)" << '\n';
+            std::cerr << "Exception in Trait::get_observations(Population &, std::vector<float> &, const std::string &)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Trait::get_observations(Population &, std::vector<double> &, const std::string &)" << '\n';
+            std::cerr << "Exception in Trait::get_observations(Population &, std::vector<float> &, const std::string &)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Trait::get_observations(Population &, std::vector<double> &, const std::string &)" << '\n';
+            std::cerr << "Exception in Trait::get_observations(Population &, std::vector<float> &, const std::string &)" << '\n';
             throw;
         }
     }
 
     //===============================================================================================================
 
-    void Trait::get_observations(Population &in_pop, std::vector<double> &env, std::vector<std::vector<double>> &out_t)
+    void Trait::get_observations(Population &in_pop, std::vector<float> &env, std::vector<std::vector<float>> &out_t)
     {
         try
         {
@@ -1322,7 +2028,7 @@ namespace evogen
             realloc_traits(in_pop, n_traits);
             calculate_trait(in_pop, env, n_traits);
 
-            evolm::matrix<double> t(n_individuals, n_traits);
+            evolm::matrix<float> t(n_individuals, n_traits);
 
             for (size_t i = 0; i < n_traits; i++)
             {
@@ -1335,12 +2041,12 @@ namespace evogen
             // register the observed phenotypes for corresponding individual
             for (size_t i = 0; i < n_individuals; i++)
             {
-                std::vector<double> obs;
+                std::vector<float> obs;
                 for (size_t j = 0; j < n_traits; j++)
                 {
                     obs.push_back(t(i, j));
                 }
-                in_pop.phenotype_at(i, obs);
+                in_pop.phenotype_at_cpp(i, obs);
             }
 
             t.to_vector2d(out_t);
@@ -1351,19 +2057,19 @@ namespace evogen
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Trait::get_observations(Population &, std::vector<double> &, std::vector<std::vector<double>> &)" << '\n';
+            std::cerr << "Exception in Trait::get_observations(Population &, std::vector<float> &, std::vector<std::vector<float>> &)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Trait::get_observations(Population &, std::vector<double> &, std::vector<std::vector<double>> &)" << '\n';
+            std::cerr << "Exception in Trait::get_observations(Population &, std::vector<float> &, std::vector<std::vector<float>> &)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Trait::get_observations(Population &, std::vector<double> &, std::vector<std::vector<double>> &)" << '\n';
+            std::cerr << "Exception in Trait::get_observations(Population &, std::vector<float> &, std::vector<std::vector<float>> &)" << '\n';
             throw;
         }
     }

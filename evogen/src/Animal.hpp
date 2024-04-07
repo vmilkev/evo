@@ -22,8 +22,8 @@ namespace evogen
         void set_alive(bool alive);
         void set_isgenotyped(bool genotyped);
         void set_sex(int sex);
-        void set_phenotype(std::vector<double> &phen);
-        void set_breeding_value(std::vector<double> &bv);
+        void set_phenotype(std::vector<float> &phen);
+        void set_breeding_value(std::vector<float> &bv);
 
         unsigned long get_id();
         unsigned long get_sire();
@@ -33,8 +33,8 @@ namespace evogen
         bool get_isgenotyped();
         bool get_active();
         int get_sex();
-        std::vector<double> get_phenotype();
-        std::vector<double> get_breeding_value();
+        std::vector<float> get_phenotype();
+        std::vector<float> get_breeding_value();
 
         void clear();
 
@@ -65,8 +65,8 @@ namespace evogen
             bool isgenotyped;
             int sex;
 
-            std::vector<double> phenotype;
-            std::vector<double> breeding_value;
+            std::vector<float> phenotype;
+            std::vector<float> breeding_value;
         };
         Animal::Property properties;
 

@@ -317,7 +317,7 @@ namespace evogen
 
     //===============================================================================================================
 
-    void Animal::set_phenotype(std::vector<double> &phen)
+    void Animal::set_phenotype(std::vector<float> &phen)
     {
         try
         {
@@ -329,26 +329,26 @@ namespace evogen
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Animal::set_phenotype(std::vector<double> &)" << '\n';
+            std::cerr << "Exception in Animal::set_phenotype(std::vector<float> &)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Animal::set_phenotype(std::vector<double> &)" << '\n';
+            std::cerr << "Exception in Animal::set_phenotype(std::vector<float> &)" << '\n';
             std::cerr <<"Reason: "<< e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Animal::set_phenotype(std::vector<double> &)" << '\n';
+            std::cerr << "Exception in Animal::set_phenotype(std::vector<float> &)" << '\n';
             throw;
         }
     }
 
     //===============================================================================================================
 
-    void Animal::set_breeding_value(std::vector<double> &bv)
+    void Animal::set_breeding_value(std::vector<float> &bv)
     {
         try
         {
@@ -360,19 +360,19 @@ namespace evogen
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Animal::set_breeding_value(std::vector<double> &)" << '\n';
+            std::cerr << "Exception in Animal::set_breeding_value(std::vector<float> &)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Animal::set_breeding_value(std::vector<double> &)" << '\n';
+            std::cerr << "Exception in Animal::set_breeding_value(std::vector<float> &)" << '\n';
             std::cerr <<"Reason: "<< e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Animal::set_breeding_value(std::vector<double> &)" << '\n';
+            std::cerr << "Exception in Animal::set_breeding_value(std::vector<float> &)" << '\n';
             throw;
         }
     }
@@ -623,9 +623,9 @@ namespace evogen
 
     //===============================================================================================================
 
-    std::vector<double> Animal::get_phenotype()
+    std::vector<float> Animal::get_phenotype()
     {
-        std::vector<double> out;
+        std::vector<float> out;
 
         try
         {
@@ -654,9 +654,9 @@ namespace evogen
 
     //===============================================================================================================
 
-    std::vector<double> Animal::get_breeding_value()
+    std::vector<float> Animal::get_breeding_value()
     {
-        std::vector<double> out;
+        std::vector<float> out;
 
         try
         {

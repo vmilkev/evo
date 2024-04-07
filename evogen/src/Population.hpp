@@ -8,6 +8,12 @@
 #include <memory>
 #include <numeric>
 
+#ifdef PYBIND
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
+#include <pybind11/numpy.h>
+#endif
+
 namespace evogen
 {
     class Population
@@ -53,11 +59,18 @@ namespace evogen
         void sex_at(size_t at, int sex);
         short sex_at(size_t at);
 
-        void phenotype_at(size_t at, std::vector<double> &phen); // do not make this public ?
-        std::vector<double> phenotype_at(size_t at);
+#ifdef PYBIND
+        void phenotype_at(size_t at, pybind11::array_t<float> phen); // do not make this public ?
+        pybind11::array_t<float> phenotype_at(size_t at);
 
-        void breedingvalue_at(size_t at, std::vector<double> &bv); // do not make this public ?
-        std::vector<double> breedingvalue_at(size_t at);
+        void breedingvalue_at(size_t at, pybind11::array_t<float> bv); // do not make this public ?
+        pybind11::array_t<float> breedingvalue_at(size_t at);
+#endif
+        void phenotype_at_cpp(size_t at, std::vector<float> &phen); // do not make this public ?
+        std::vector<float> phenotype_at_cpp(size_t at);
+
+        void breedingvalue_at_cpp(size_t at, std::vector<float> &bv); // do not make this public ?
+        std::vector<float> breedingvalue_at_cpp(size_t at);
 
         // ------------- Not publik in Python ------------------------
         std::vector<short> get_genome_at(size_t which_genome, size_t locus);
@@ -73,6 +86,7 @@ namespace evogen
         friend class Group;
 
         // ------------------ TESTING --------------------------------
+#ifdef UTEST
         void show_animals(size_t max_animals, size_t max_snps);
 
         void show_pop()
@@ -94,6 +108,7 @@ namespace evogen
                 std::cout<<"from active_individuals: i = "<<i<<", value = "<<active_individuals[i]<<"\n";
             }*/
         }
+#endif
 
     private:
         std::vector<Animal> individuals;

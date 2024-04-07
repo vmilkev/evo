@@ -468,7 +468,7 @@ namespace evogen
 
     //===============================================================================================================
 
-    void Group::mate(bool sexual_reproduction, int max_offspring, double success_rate)
+    void Group::mate(bool sexual_reproduction, int max_offspring, float success_rate)
     {
         try
         {
@@ -576,19 +576,19 @@ namespace evogen
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Group::mate(bool, int, double)" << '\n';
+            std::cerr << "Exception in Group::mate(bool, int, float)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Group::mate(bool, int, double)" << '\n';
+            std::cerr << "Exception in Group::mate(bool, int, float)" << '\n';
             std::cerr <<"Reason: "<< e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Group::mate(bool, int, double)" << '\n';
+            std::cerr << "Exception in Group::mate(bool, int, float)" << '\n';
             throw;
         }
     }
@@ -786,7 +786,609 @@ namespace evogen
 
     //===============================================================================================================
 
-    void Group::make_observation(Trait &trt, std::vector<double> &env)
+#ifdef PYBIND
+
+    void Group::make_observation(Trait &trt, pybind11::array_t<float> py_env)
+    {
+        try
+        {
+            if (trt.cleared)
+                throw std::string("The trait is configured, hence the call of set_trait() is required!");
+
+            evolm::matrix<size_t> shape(2, 1);
+            shape = trt.a.shape();
+
+            size_t gr_size = size();
+
+            if (gr_size < 1)
+                throw std::string("Cannot provide observation on empty group!");
+
+            for (size_t g = 0; g < gr_size; g++)
+            {
+                Population in_pop = get_population(g);
+                std::vector<size_t> individuals_list = get_individuals(g);
+
+                size_t n_individuals = individuals_list.size();
+
+                if (n_individuals < 1)
+                    throw std::string("Cannot provide observation on empty group => there are no selected individuals in the group!");
+
+                size_t n_traits = shape[1];
+
+                //---------------------------
+                std::vector<float> env;
+
+                pybind11::buffer_info buf = py_env.request();
+
+                if (buf.ndim != 1)
+                    throw std::runtime_error("Number of dimensions must be one");
+
+                float *ptr = static_cast<float *>(buf.ptr);
+
+                for (pybind11::ssize_t i = 0; i < buf.shape[0]; i++)
+                    env.push_back(ptr[i]);
+                //---------------------------
+
+                if (env.size() != n_traits)
+                    throw std::string("The demension of the array ENV array does not correspond to the number of traits!");
+
+                if (trt.base_genome_structure != in_pop.get_genome_structure())
+                    throw std::string("The genome structure of the base population is not the same as in the population being observed!");
+
+                trt.realloc_traits(n_individuals, n_traits);
+
+                trt.calculate_trait(in_pop, individuals_list, env, n_traits);
+
+                evolm::matrix<float> t(n_individuals, n_traits);
+
+                for (size_t i = 0; i < n_traits; i++)
+                {
+                    for (size_t j = 0; j < n_individuals; j++)
+                    {
+                        t(j, i) = trt.ta(j, i) + trt.te(j, i) + trt.t_mean(i, 0);
+                    }
+                }
+
+                // register the observed phenotypes for corresponding individual
+                for (size_t i = 0; i < n_individuals; i++)
+                {
+                    std::vector<float> obs;
+                    for (size_t j = 0; j < n_traits; j++)
+                    {
+                        obs.push_back( t(i,j) );
+                    }
+                    in_pop.phenotype_at_cpp(individuals_list[i],obs);
+                }
+
+                trt.ta.clear();
+                trt.te.clear();
+                t.clear();
+            }
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Group::make_observation(Trait &, pybind11::array_t<float>)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Group::make_observation(Trait &, pybind11::array_t<float>)" << '\n';
+            std::cerr <<"Reason: "<< e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Group::make_observation(Trait &, pybind11::array_t<float>)" << '\n';
+            throw;
+        }
+    }
+
+    //===============================================================================================================
+
+    void Group::make_observation(Trait &trt, pybind11::array_t<float> py_env, const std::string &out_trvalues)
+    {
+        try
+        {
+            if (trt.cleared)
+                throw std::string("The trait is configured, hence the call of set_trait() is required!");
+
+            Utilites u;
+            u.fremove(out_trvalues);
+
+            evolm::matrix<size_t> shape(2, 1);
+            shape = trt.a.shape();
+
+            size_t gr_size = size();
+
+            if (gr_size < 1)
+                throw std::string("Cannot provide observation on empty group!");
+
+            for (size_t g = 0; g < gr_size; g++)
+            {
+                Population in_pop = get_population(g);
+                std::vector<size_t> individuals_list = get_individuals(g);
+
+                size_t n_individuals = individuals_list.size();
+
+                if (n_individuals < 1)
+                    throw std::string("Cannot provide observation on empty group => there are no selected individuals in the group!");
+
+                size_t n_traits = shape[1];
+
+                //---------------------------
+                std::vector<float> env;
+
+                pybind11::buffer_info buf = py_env.request();
+
+                if (buf.ndim != 1)
+                    throw std::runtime_error("Number of dimensions must be one");
+
+                float *ptr = static_cast<float *>(buf.ptr);
+
+                for (pybind11::ssize_t i = 0; i < buf.shape[0]; i++)
+                    env.push_back(ptr[i]);
+                //---------------------------
+
+                if (env.size() != n_traits)
+                    throw std::string("The demension of the array ENV array does not correspond to the number of traits!");
+
+                if (trt.base_genome_structure != in_pop.get_genome_structure())
+                    throw std::string("The genome structure of the base population is not the same as in the population being observed!");
+
+                trt.realloc_traits(n_individuals, n_traits);
+
+                trt.calculate_trait(in_pop, individuals_list, env, n_traits);
+
+                evolm::matrix<float> t(n_individuals, n_traits);
+
+                for (size_t i = 0; i < n_traits; i++)
+                {
+                    for (size_t j = 0; j < n_individuals; j++)
+                    {
+                        t(j, i) = trt.ta(j, i) + trt.te(j, i) + trt.t_mean(i, 0);
+                    }
+                }
+
+                // register the observed phenotypes for corresponding individual
+                for (size_t i = 0; i < n_individuals; i++)
+                {
+                    std::vector<float> obs;
+                    for (size_t j = 0; j < n_traits; j++)
+                    {
+                        obs.push_back( t(i,j) );
+                    }
+                    in_pop.phenotype_at_cpp(individuals_list[i],obs);
+                }
+
+                t.printf(out_trvalues, true); // in append mode
+
+                trt.ta.clear();
+                trt.te.clear();
+                t.clear();
+            }
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Group::make_observation(Trait &, pybind11::array_t<float>, const std::string &)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Group::make_observation(Trait &, pybind11::array_t<float>, const std::string &)" << '\n';
+            std::cerr <<"Reason: "<< e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Group::make_observation(Trait &, pybind11::array_t<float>, const std::string &)" << '\n';
+            throw;
+        }
+    }
+
+    //===============================================================================================================
+
+    void Group::make_observation(Trait &trt, pybind11::array_t<float> py_env, const std::string &out_trvalues, const std::string &out_genotypes)
+    {
+        try
+        {
+            if (trt.cleared)
+                throw std::string("The trait is configured, hence the call of set_trait() is required!");
+
+            Utilites u;
+            u.fremove(out_trvalues);
+            u.fremove(out_genotypes);
+
+            evolm::matrix<size_t> shape(2, 1);
+            shape = trt.a.shape();
+
+            size_t gr_size = size();
+
+            if (gr_size < 1)
+                throw std::string("Cannot provide observation on empty group!");
+
+            for (size_t g = 0; g < gr_size; g++)
+            {
+                Population in_pop = get_population(g);
+                std::vector<size_t> individuals_list = get_individuals(g);
+
+                size_t n_individuals = individuals_list.size();
+
+                if (n_individuals < 1)
+                    throw std::string("Cannot provide observation on empty group => there are no selected individuals in the group!");
+
+                size_t n_traits = shape[1];
+
+                //---------------------------
+                std::vector<float> env;
+
+                pybind11::buffer_info buf = py_env.request();
+
+                if (buf.ndim != 1)
+                    throw std::runtime_error("Number of dimensions must be one");
+
+                float *ptr = static_cast<float *>(buf.ptr);
+
+                for (pybind11::ssize_t i = 0; i < buf.shape[0]; i++)
+                    env.push_back(ptr[i]);
+                //---------------------------
+
+                if (env.size() != n_traits)
+                    throw std::string("The demension of the array ENV array does not correspond to the number of traits!");
+
+                if (trt.base_genome_structure != in_pop.get_genome_structure())
+                    throw std::string("The genome structure of the base population is not the same as in the population being observed!");
+
+                trt.realloc_traits(n_individuals, n_traits);
+
+                trt.calculate_trait(in_pop, individuals_list, env, n_traits);
+
+                evolm::matrix<float> t(n_individuals, n_traits);
+
+                for (size_t i = 0; i < n_traits; i++)
+                {
+                    for (size_t j = 0; j < n_individuals; j++)
+                    {
+                        t(j, i) = trt.ta(j, i) + trt.te(j, i) + trt.t_mean(i, 0);
+                    }
+                }
+
+                // register the observed phenotypes for corresponding individual
+                for (size_t i = 0; i < n_individuals; i++)
+                {
+                    std::vector<float> obs;
+                    for (size_t j = 0; j < n_traits; j++)
+                    {
+                        obs.push_back( t(i,j) );
+                    }
+                    in_pop.phenotype_at_cpp(individuals_list[i],obs);
+                }
+
+                t.printf(out_trvalues, true); // in append mode
+
+                trt.ta.clear();
+                trt.te.clear();
+                t.clear();
+
+                in_pop.get_all_genotypes(out_genotypes); // in append mode
+            }
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Group::make_observation(Trait &, pybind11::array_t<float>, const std::string &, const std::string &)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Group::make_observation(Trait &, pybind11::array_t<float>, const std::string &, const std::string &)" << '\n';
+            std::cerr <<"Reason: "<< e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Group::make_observation(Trait &, pybind11::array_t<float>, const std::string &, const std::string &)" << '\n';
+            throw;
+        }
+    }
+
+    //===============================================================================================================
+
+    void Group::make_observation(Trait &trt, pybind11::array_t<float> py_env, pybind11::array_t<float> py_trvalues)
+    {
+        try
+        {
+            if (trt.cleared)
+                throw std::string("The trait is configured, hence the call of set_trait() is required!");
+
+            evolm::matrix<size_t> shape(2, 1);
+            shape = trt.a.shape();
+
+            size_t gr_size = size();
+
+            if (gr_size < 1)
+                throw std::string("Cannot provide observation on empty group!");
+
+            for (size_t g = 0; g < gr_size; g++)
+            {
+                Population in_pop = get_population(g);
+                std::vector<size_t> individuals_list = get_individuals(g);
+
+                size_t n_individuals = individuals_list.size();
+
+                if (n_individuals < 1)
+                    throw std::string("Cannot provide observation on empty group => there are no selected individuals in the group!");
+
+                size_t n_traits = shape[1];
+
+                //---------------------------
+                std::vector<float> env;
+
+                pybind11::buffer_info buf1 = py_env.request();
+
+                if (buf1.ndim != 1)
+                    throw std::runtime_error("Number of dimensions must be one");
+
+                float *ptr1 = static_cast<float *>(buf1.ptr);
+
+                for (pybind11::ssize_t i = 0; i < buf1.shape[0]; i++)
+                    env.push_back(ptr1[i]);
+                //---------------------------
+
+                if (env.size() != n_traits)
+                    throw std::string("The demension of the array ENV array does not correspond to the number of traits!");
+
+                if (trt.base_genome_structure != in_pop.get_genome_structure())
+                    throw std::string("The genome structure of the base population is not the same as in the population being observed!");
+
+                trt.realloc_traits(n_individuals, n_traits);
+
+                trt.calculate_trait(in_pop, individuals_list, env, n_traits);
+
+                evolm::matrix<float> t(n_individuals, n_traits);
+
+                for (size_t i = 0; i < n_traits; i++)
+                {
+                    for (size_t j = 0; j < n_individuals; j++)
+                    {
+                        t(j, i) = trt.ta(j, i) + trt.te(j, i) + trt.t_mean(i, 0);
+                    }
+                }
+
+                // register the observed phenotypes for corresponding individual
+                for (size_t i = 0; i < n_individuals; i++)
+                {
+                    std::vector<float> obs;
+                    for (size_t j = 0; j < n_traits; j++)
+                    {
+                        obs.push_back( t(i,j) );
+                    }
+                    in_pop.phenotype_at_cpp(individuals_list[i],obs);
+                }
+
+                //------------------------------
+                std::vector<std::vector<float>> out_trvalues;
+
+                t.to_vector2d(out_trvalues);
+
+                size_t N = out_trvalues.size();
+                size_t M = out_trvalues[0].size();
+
+                //  allocate the buffer
+                pybind11::array_t<float> py_trvalues2 = pybind11::array_t<float>( N * M );
+
+                pybind11::buffer_info buf2 = py_trvalues2.request();
+
+                if (buf2.ndim != 2)
+                    throw std::runtime_error("Number of dimensions must be two");
+
+                float *ptr2 = (float *) buf2.ptr;
+
+                for (size_t i = 0; i < N; i++) {
+                    for (size_t j = 0; j < M; j++) {
+                        ptr2[ i * M + j ] = out_trvalues[i][j];
+                    }
+                }
+                
+                // reshape array to match input shape
+                py_trvalues2.resize({N,M}); // maybe make it as: return py_trvalues ?
+                py_trvalues.resize({N,M});
+
+                py_trvalues = py_trvalues2;
+                //------------------------------
+
+                trt.ta.clear();
+                trt.te.clear();
+                t.clear();
+            }
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Group::make_observation(Trait &, pybind11::array_t<float>, pybind11::array_t<float>)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Group::make_observation(Trait &, pybind11::array_t<float>, pybind11::array_t<float>)" << '\n';
+            std::cerr <<"Reason: "<< e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Group::make_observation(Trait &, pybind11::array_t<float>, pybind11::array_t<float>)" << '\n';
+            throw;
+        }
+    }
+
+    //===============================================================================================================
+
+    void Group::make_observation(Trait &trt, pybind11::array_t<float> py_env, pybind11::array_t<float> py_trvalues, pybind11::array_t<int> py_genotypes)
+    {
+        try
+        {
+            if (trt.cleared)
+                throw std::string("The trait is configured, hence the call of set_trait() is required!");
+
+            evolm::matrix<size_t> shape(2, 1);
+            shape = trt.a.shape();
+
+            size_t gr_size = size();
+
+            if (gr_size < 1)
+                throw std::string("Cannot provide observation on empty group!");
+
+            for (size_t g = 0; g < gr_size; g++)
+            {
+                Population in_pop = get_population(g);
+                std::vector<size_t> individuals_list = get_individuals(g);
+
+                size_t n_individuals = individuals_list.size();
+
+                if (n_individuals < 1)
+                    throw std::string("Cannot provide observation on empty group => there are no selected individuals in the group!");
+
+                size_t n_traits = shape[1];
+
+                //---------------------------
+                std::vector<float> env;
+
+                pybind11::buffer_info buf1 = py_env.request();
+
+                if (buf1.ndim != 1)
+                    throw std::runtime_error("Number of dimensions must be one");
+
+                float *ptr1 = static_cast<float *>(buf1.ptr);
+
+                for (pybind11::ssize_t i = 0; i < buf1.shape[0]; i++)
+                    env.push_back(ptr1[i]);
+                //---------------------------
+
+                if (env.size() != n_traits)
+                    throw std::string("The demension of the array ENV array does not correspond to the number of traits!");
+
+                if (trt.base_genome_structure != in_pop.get_genome_structure())
+                    throw std::string("The genome structure of the base population is not the same as in the population being observed!");
+
+                trt.realloc_traits(n_individuals, n_traits);
+
+                trt.calculate_trait(in_pop, individuals_list, env, n_traits);
+
+                evolm::matrix<float> t(n_individuals, n_traits);
+
+                for (size_t i = 0; i < n_traits; i++)
+                {
+                    for (size_t j = 0; j < n_individuals; j++)
+                    {
+                        t(j, i) = trt.ta(j, i) + trt.te(j, i) + trt.t_mean(i, 0);
+                    }
+                }
+
+                // register the observed phenotypes for corresponding individual
+                for (size_t i = 0; i < n_individuals; i++)
+                {
+                    std::vector<float> obs;
+                    for (size_t j = 0; j < n_traits; j++)
+                    {
+                        obs.push_back( t(i,j) );
+                    }
+                    in_pop.phenotype_at_cpp(individuals_list[i],obs);
+                }
+
+                //------------------------------
+                std::vector<std::vector<float>> out_trvalues;
+
+                t.to_vector2d(out_trvalues);
+
+                size_t N = out_trvalues.size();
+                size_t M = out_trvalues[0].size();
+
+                //  allocate the buffer
+                pybind11::array_t<float> py_trvalues2 = pybind11::array_t<float>( N * M );
+
+                pybind11::buffer_info buf2 = py_trvalues2.request();
+
+                if (buf2.ndim != 2)
+                    throw std::runtime_error("Number of dimensions must be two");
+
+                float *ptr2 = (float *) buf2.ptr;
+
+                for (size_t i = 0; i < N; i++) {
+                    for (size_t j = 0; j < M; j++) {
+                        ptr2[ i * M + j ] = out_trvalues[i][j];
+                    }
+                }
+                
+                // reshape array to match input shape
+                py_trvalues2.resize({N,M}); // maybe make it as: return py_trvalues ?
+                py_trvalues.resize({N,M});
+
+                py_trvalues = py_trvalues2;
+                //------------------------------
+
+                trt.ta.clear();
+                trt.te.clear();
+                t.clear();
+
+                //--------------------------------------
+                std::vector<std::vector<short>> out_genotypes;
+
+                in_pop.get_all_genotypes(out_genotypes);
+
+                N = M = 0;
+
+                N = out_genotypes.size();
+                M = out_genotypes[0].size();
+
+                //  allocate the buffer
+                pybind11::array_t<int> py_genotypes2 = pybind11::array_t<int>( N * M );
+
+                pybind11::buffer_info buf3 = py_genotypes2.request();
+
+                if (buf3.ndim != 2)
+                    throw std::runtime_error("Number of dimensions must be two");
+
+                int *ptr3 = (int *) buf3.ptr;
+
+                for (size_t i = 0; i < N; i++) {
+                    for (size_t j = 0; j < M; j++) {
+                        ptr3[ i * M + j ] = (int)out_genotypes[i][j];
+                    }
+                }
+                
+                // reshape array to match input shape
+                py_genotypes2.resize({N,M}); // maybe make it as: return py_genotypes ?
+                py_genotypes.resize({N,M});
+
+                py_genotypes = py_genotypes2;
+                //--------------------------------------
+            }
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Group::make_observation(Trait &, pybind11::array_t<float>, pybind11::array_t<float>, pybind11::array_t<int>)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Group::make_observation(Trait &, pybind11::array_t<float>, pybind11::array_t<float>, pybind11::array_t<int>)" << '\n';
+            std::cerr <<"Reason: "<< e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Group::make_observation(Trait &, pybind11::array_t<float>, pybind11::array_t<float>, pybind11::array_t<int>)" << '\n';
+            throw;
+        }
+    }
+
+#else
+
+    //===============================================================================================================
+
+    void Group::make_observation(Trait &trt, std::vector<float> &env)
     {
         try
         {
@@ -823,7 +1425,7 @@ namespace evogen
 
                 trt.calculate_trait(in_pop, individuals_list, env, n_traits);
 
-                evolm::matrix<double> t(n_individuals, n_traits);
+                evolm::matrix<float> t(n_individuals, n_traits);
 
                 for (size_t i = 0; i < n_traits; i++)
                 {
@@ -836,12 +1438,12 @@ namespace evogen
                 // register the observed phenotypes for corresponding individual
                 for (size_t i = 0; i < n_individuals; i++)
                 {
-                    std::vector<double> obs;
+                    std::vector<float> obs;
                     for (size_t j = 0; j < n_traits; j++)
                     {
                         obs.push_back( t(i,j) );
                     }
-                    in_pop.phenotype_at(individuals_list[i],obs);
+                    in_pop.phenotype_at_cpp(individuals_list[i],obs);
                 }
 
                 trt.ta.clear();
@@ -851,26 +1453,26 @@ namespace evogen
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Group::make_observation(Trait &, std::vector<double> &)" << '\n';
+            std::cerr << "Exception in Group::make_observation(Trait &, std::vector<float> &)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Group::make_observation(Trait &, std::vector<double> &)" << '\n';
+            std::cerr << "Exception in Group::make_observation(Trait &, std::vector<float> &)" << '\n';
             std::cerr <<"Reason: "<< e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Group::make_observation(Trait &, std::vector<double> &)" << '\n';
+            std::cerr << "Exception in Group::make_observation(Trait &, std::vector<float> &)" << '\n';
             throw;
         }
     }
 
     //===============================================================================================================
 
-    void Group::make_observation(Trait &trt, std::vector<double> &env, const std::string &out_trvalues)
+    void Group::make_observation(Trait &trt, std::vector<float> &env, const std::string &out_trvalues)
     {
         try
         {
@@ -910,7 +1512,7 @@ namespace evogen
 
                 trt.calculate_trait(in_pop, individuals_list, env, n_traits);
 
-                evolm::matrix<double> t(n_individuals, n_traits);
+                evolm::matrix<float> t(n_individuals, n_traits);
 
                 for (size_t i = 0; i < n_traits; i++)
                 {
@@ -923,12 +1525,12 @@ namespace evogen
                 // register the observed phenotypes for corresponding individual
                 for (size_t i = 0; i < n_individuals; i++)
                 {
-                    std::vector<double> obs;
+                    std::vector<float> obs;
                     for (size_t j = 0; j < n_traits; j++)
                     {
                         obs.push_back( t(i,j) );
                     }
-                    in_pop.phenotype_at(individuals_list[i],obs);
+                    in_pop.phenotype_at_cpp(individuals_list[i],obs);
                 }
 
                 t.printf(out_trvalues, true); // in append mode
@@ -940,26 +1542,26 @@ namespace evogen
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Group::make_observation(Trait &, std::vector<double> &, const std::string &)" << '\n';
+            std::cerr << "Exception in Group::make_observation(Trait &, std::vector<float> &, const std::string &)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Group::make_observation(Trait &, std::vector<double> &, const std::string &)" << '\n';
+            std::cerr << "Exception in Group::make_observation(Trait &, std::vector<float> &, const std::string &)" << '\n';
             std::cerr <<"Reason: "<< e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Group::make_observation(Trait &, std::vector<double> &, const std::string &)" << '\n';
+            std::cerr << "Exception in Group::make_observation(Trait &, std::vector<float> &, const std::string &)" << '\n';
             throw;
         }
     }
 
     //===============================================================================================================
 
-    void Group::make_observation(Trait &trt, std::vector<double> &env, const std::string &out_trvalues, const std::string &out_genotypes)
+    void Group::make_observation(Trait &trt, std::vector<float> &env, const std::string &out_trvalues, const std::string &out_genotypes)
     {
         try
         {
@@ -1000,7 +1602,7 @@ namespace evogen
 
                 trt.calculate_trait(in_pop, individuals_list, env, n_traits);
 
-                evolm::matrix<double> t(n_individuals, n_traits);
+                evolm::matrix<float> t(n_individuals, n_traits);
 
                 for (size_t i = 0; i < n_traits; i++)
                 {
@@ -1013,12 +1615,12 @@ namespace evogen
                 // register the observed phenotypes for corresponding individual
                 for (size_t i = 0; i < n_individuals; i++)
                 {
-                    std::vector<double> obs;
+                    std::vector<float> obs;
                     for (size_t j = 0; j < n_traits; j++)
                     {
                         obs.push_back( t(i,j) );
                     }
-                    in_pop.phenotype_at(individuals_list[i],obs);
+                    in_pop.phenotype_at_cpp(individuals_list[i],obs);
                 }
 
                 t.printf(out_trvalues, true); // in append mode
@@ -1032,26 +1634,26 @@ namespace evogen
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Group::make_observation(Trait &, std::vector<double> &, const std::string &, const std::string &)" << '\n';
+            std::cerr << "Exception in Group::make_observation(Trait &, std::vector<float> &, const std::string &, const std::string &)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Group::make_observation(Trait &, std::vector<double> &, const std::string &, const std::string &)" << '\n';
+            std::cerr << "Exception in Group::make_observation(Trait &, std::vector<float> &, const std::string &, const std::string &)" << '\n';
             std::cerr <<"Reason: "<< e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Group::make_observation(Trait &, std::vector<double> &, const std::string &, const std::string &)" << '\n';
+            std::cerr << "Exception in Group::make_observation(Trait &, std::vector<float> &, const std::string &, const std::string &)" << '\n';
             throw;
         }
     }
 
     //===============================================================================================================
 
-    void Group::make_observation(Trait &trt, std::vector<double> &env, std::vector<std::vector<double>> &out_trvalues)
+    void Group::make_observation(Trait &trt, std::vector<float> &env, std::vector<std::vector<float>> &out_trvalues)
     {
         try
         {
@@ -1088,7 +1690,7 @@ namespace evogen
 
                 trt.calculate_trait(in_pop, individuals_list, env, n_traits);
 
-                evolm::matrix<double> t(n_individuals, n_traits);
+                evolm::matrix<float> t(n_individuals, n_traits);
 
                 for (size_t i = 0; i < n_traits; i++)
                 {
@@ -1101,12 +1703,12 @@ namespace evogen
                 // register the observed phenotypes for corresponding individual
                 for (size_t i = 0; i < n_individuals; i++)
                 {
-                    std::vector<double> obs;
+                    std::vector<float> obs;
                     for (size_t j = 0; j < n_traits; j++)
                     {
                         obs.push_back( t(i,j) );
                     }
-                    in_pop.phenotype_at(individuals_list[i],obs);
+                    in_pop.phenotype_at_cpp(individuals_list[i],obs);
                 }
 
                 t.to_vector2d(out_trvalues);
@@ -1118,26 +1720,26 @@ namespace evogen
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Group::make_observation(Trait &, std::vector<double> &, std::vector<std::vector<double>> &)" << '\n';
+            std::cerr << "Exception in Group::make_observation(Trait &, std::vector<float> &, std::vector<std::vector<float>> &)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Group::make_observation(Trait &, std::vector<double> &, std::vector<std::vector<double>> &)" << '\n';
+            std::cerr << "Exception in Group::make_observation(Trait &, std::vector<float> &, std::vector<std::vector<float>> &)" << '\n';
             std::cerr <<"Reason: "<< e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Group::make_observation(Trait &, std::vector<double> &, std::vector<std::vector<double>> &)" << '\n';
+            std::cerr << "Exception in Group::make_observation(Trait &, std::vector<float> &, std::vector<std::vector<float>> &)" << '\n';
             throw;
         }
     }
 
     //===============================================================================================================
 
-    void Group::make_observation(Trait &trt, std::vector<double> &env, std::vector<std::vector<double>> &out_trvalues, std::vector<std::vector<short>> &out_genotypes)
+    void Group::make_observation(Trait &trt, std::vector<float> &env, std::vector<std::vector<float>> &out_trvalues, std::vector<std::vector<short>> &out_genotypes)
     {
         try
         {
@@ -1174,7 +1776,7 @@ namespace evogen
 
                 trt.calculate_trait(in_pop, individuals_list, env, n_traits);
 
-                evolm::matrix<double> t(n_individuals, n_traits);
+                evolm::matrix<float> t(n_individuals, n_traits);
 
                 for (size_t i = 0; i < n_traits; i++)
                 {
@@ -1187,12 +1789,12 @@ namespace evogen
                 // register the observed phenotypes for corresponding individual
                 for (size_t i = 0; i < n_individuals; i++)
                 {
-                    std::vector<double> obs;
+                    std::vector<float> obs;
                     for (size_t j = 0; j < n_traits; j++)
                     {
                         obs.push_back( t(i,j) );
                     }
-                    in_pop.phenotype_at(individuals_list[i],obs);
+                    in_pop.phenotype_at_cpp(individuals_list[i],obs);
                 }
 
                 t.to_vector2d(out_trvalues);
@@ -1206,23 +1808,24 @@ namespace evogen
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Group::make_observation(Trait &, std::vector<double> &, std::vector<std::vector<double>> &, std::vector<std::vector<short>> &)" << '\n';
+            std::cerr << "Exception in Group::make_observation(Trait &, std::vector<float> &, std::vector<std::vector<float>> &, std::vector<std::vector<short>> &)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Group::make_observation(Trait &, std::vector<double> &, std::vector<std::vector<double>> &, std::vector<std::vector<short>> &)" << '\n';
+            std::cerr << "Exception in Group::make_observation(Trait &, std::vector<float> &, std::vector<std::vector<float>> &, std::vector<std::vector<short>> &)" << '\n';
             std::cerr <<"Reason: "<< e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Group::make_observation(Trait &, std::vector<double> &, std::vector<std::vector<double>> &, std::vector<std::vector<short>> &)" << '\n';
+            std::cerr << "Exception in Group::make_observation(Trait &, std::vector<float> &, std::vector<std::vector<float>> &, std::vector<std::vector<short>> &)" << '\n';
             throw;
         }
     }
 
+#endif
     //===============================================================================================================
 
 

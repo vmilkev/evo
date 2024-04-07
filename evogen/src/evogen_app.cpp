@@ -60,7 +60,7 @@ int main(int argc, char *argv[])
 		std::ofstream myfile_g("tests/data/gamma_random.txt");
 
 		// std::vector<int> uni_numbers = u2.get_uni_rand(1000, 1, 100, false);
-		std::vector<double> gamma_numbers = u.get_gamma_rand(1000, 2.0, 2.0, false);
+		std::vector<float> gamma_numbers = u.get_gamma_rand(1000, 2.0, 2.0, false);
 
 		for (auto i = 0; i < 1000; i++)
 		{
@@ -85,17 +85,17 @@ int main(int argc, char *argv[])
 
 		std::cout << "pop is ready."<<"\n";
 
-		std::vector<double> tr_mean{40.0, 5.0, 0.5};							   // (2) trait means
-		std::vector<double> qtl_prop{0.65, 0.65, 0.65, 0.65}; // (3) proportion of snps selected as qtls
-		//std::vector<double> qtl_prop{1.0, 1.0, 1.0, 1.0};
-		std::vector<std::vector<double>> cor_g; // (4) genomic correlations
-		std::vector<std::vector<double>> cor_e; // (5) rsidual correlations
-		std::vector<double> g1{1.0, 0.5, 0.7};
-		std::vector<double> g2{0.5, 1.0, 0.2};
-		std::vector<double> g3{0.7, 0.2, 1.0};
-		std::vector<double> e1{1.0, 0.3, 0.5};
-		std::vector<double> e2{0.3, 1.0, 0.4};
-		std::vector<double> e3{0.5, 0.4, 1.0};
+		std::vector<float> tr_mean{40.0, 5.0, 0.5};							   // (2) trait means
+		std::vector<float> qtl_prop{0.65, 0.65, 0.65, 0.65}; // (3) proportion of snps selected as qtls
+		//std::vector<float> qtl_prop{1.0, 1.0, 1.0, 1.0};
+		std::vector<std::vector<float>> cor_g; // (4) genomic correlations
+		std::vector<std::vector<float>> cor_e; // (5) rsidual correlations
+		std::vector<float> g1{1.0, 0.5, 0.7};
+		std::vector<float> g2{0.5, 1.0, 0.2};
+		std::vector<float> g3{0.7, 0.2, 1.0};
+		std::vector<float> e1{1.0, 0.3, 0.5};
+		std::vector<float> e2{0.3, 1.0, 0.4};
+		std::vector<float> e3{0.5, 0.4, 1.0};
 		cor_g.push_back(g1);
 		cor_g.push_back(g2);
 		cor_g.push_back(g3);
@@ -103,27 +103,29 @@ int main(int argc, char *argv[])
 		cor_e.push_back(e2);
 		cor_e.push_back(e3);
 
-		std::vector<double> var_g{100.0, 10.0, 0.1}; // (6) genomic variances
-		std::vector<double> var_e{200.0, 20.0, 0.3}; // (7) residual variances
+		std::vector<float> var_g{100.0, 10.0, 0.1}; // (6) genomic variances
+		std::vector<float> var_e{200.0, 20.0, 0.3}; // (7) residual variances
 
-		std::vector<double> env{0.0, 0.0, 0.0}; // (8) enviironment
+		std::vector<float> env{0.0, 0.0, 0.0}; // (8) enviironment
 
 		// (i) For uniform distribution, model 1
-		std::vector<double> k_range_U{-1.0, 1.0}; // range of k parameter
+		std::vector<float> k_range_U{-1.0, 1.0}; // range of k parameter
 		// (ii) For normal distribution, model 2
-		std::vector<double> k_range_N{0.0, 0.5}; // mean & std
+		std::vector<float> k_range_N{0.0, 0.5}; // mean & std
 		// (iii) For gamma distribution, mdodel 3
-		std::vector<double> k_range_G{0.05}; // expected value of k in loci; is '1/b' param. in the distribution
+		std::vector<float> k_range_G{0.05}; // expected value of k in loci; is '1/b' param. in the distribution
 
 		size_t which_model = 1;
 
 		std::cout << "Setting trait:"<<"\n";
 		evogen::Trait T(pop, tr_mean, qtl_prop, cor_g, var_g, cor_e, var_e, env, which_model, k_range_U);
-		//T.set_trait(pop, tr_mean, qtl_prop, cor_g, var_g, cor_e, var_e, env, which_model, k_range_U);
+
+		evogen::Trait T2;
+		T2.set_trait(pop, tr_mean, qtl_prop, cor_g, var_g, cor_e, var_e, env, which_model, k_range_U);
 
 		std::cout << "Make observations on pop:"<<"\n";
-		T.get_observations(pop, env, "trait_pop.dat");
-		//T.get_observations(pop, env, "trait.dat", "genotypes.dat");
+		T.get_observations(pop, env, "T_trait_pop.dat");
+		T2.get_observations(pop, env, "T2_trait.dat", "T2_genotypes.dat");
 
 		std::cout << "Creating groups:"<<"\n";
 		evogen::Group G, G2;
@@ -283,8 +285,6 @@ int main(int argc, char *argv[])
 		pop3.show_pop();
 
 		T.clear();/**/
-
-
 	}
 	catch (const std::exception &e)
 	{
