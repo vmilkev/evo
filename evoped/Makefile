@@ -35,7 +35,7 @@ ifeq ($(UNAME_OS),Darwin) # using apple's Accelerate
 	CFLAGS_APP := -I$(SRCDIR) -I$(EXTSRC)
 	CFLAGS_PYLIB := -DPYBIND $(PYBINDINCL) -I$(EXTSRC)
 
-	EXTRA_CFLAGS := -Wall -Wextra -pedantic -Wno-c99-extensions -D UTEST -O3 -Xpreprocessor -fopenmp -I/opt/homebrew/opt/openblas/include -I/opt/homebrew/opt/libomp/include -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -std=c++17
+	EXTRA_CFLAGS := -Wall -Wextra -pedantic -Wno-c99-extensions -D UTEST -O3 -Xpreprocessor -fopenmp -I/opt/homebrew/opt/openblas/include -I/opt/homebrew/opt/libomp/include -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -std=c++17 -pthread
 
 	LIBFLAGS_PY := -undefined dynamic_lookup -shared -lpthread -lm -lomp -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -L/opt/homebrew/opt/libomp/lib -L/opt/homebrew/opt/openblas/lib -lopenblas
 	LIBFLAGS_TEST := -undefined dynamic_lookup -lpthread -lm -lomp -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -L/opt/homebrew/opt/libomp/lib -L/opt/homebrew/opt/openblas/lib -lopenblas
@@ -79,16 +79,24 @@ CXX: $(TARGET_PYLIB) $(TARGET_TEST) $(TARGET_APP)
 
 #----------------------------------------------------------------
 SOURCES_ALL := $(wildcard $(SRCDIR)/*.cpp)
+
 SOURCES = $(filter-out $(SRCDIR)/evoped_app.cpp, $(wildcard $(SRCDIR)/*.cpp))
 
 OBJECT_PYL := $(patsubst $(SRCDIR)/%,$(BDIR_PYLIB)/%,$(SOURCES:.cpp=.o))
+OBJECT_PYL += $(BDIR_PYLIB)/sparse_matrix.o
 
 OBJECT_APP := $(filter-out $(BDIR_APP)/wrapper.o, $(patsubst $(SRCDIR)/%,$(BDIR_APP)/%,$(SOURCES_ALL:.cpp=.o)))
+OBJECT_APP += $(BDIR_APP)/sparse_matrix.o
 
 SOURCES_TST := $(wildcard $(TESTDIR)/$(SRCDIR)/*.cpp)
 OBJECT_TST := $(patsubst $(TSRCDIR)/%,$(BDIR_TST)/%,$(SOURCES_TST:.cpp=.o))
 OBJECT_TST += $(patsubst $(SRCDIR)/%,$(BDIR_PYLIB)/%,$(SOURCES:.cpp=.o))
+OBJECT_TST += $(BDIR_APP)/sparse_matrix.o
 
+#$(info $$SOURCES_ALL is [${SOURCES_ALL}])
+#$(info $$SOURCES is [${SOURCES}])
+#$(info $$OBJECT_TST is [${OBJECT_TST}])
+#$(info $$OBJECT_APP is [${OBJECT_APP}])
 #----------------------------------------------------------------
 # build lib for python
 $(TARGET_PYLIB): $(OBJECT_PYL)
@@ -124,6 +132,19 @@ $(BDIR_APP)/%.o: $(SRCDIR)/%.cpp
 	@echo " Compilling c++ app ..."
 	@mkdir -p $(BDIR_APP)
 	$(CXX) -c $(CFLAGS_APP) $(EXTRA_CFLAGS) -o $@ $< 
+
+# --------------------------------------------------------------
+# Compiling external c++ file for APP
+$(BDIR_APP)/%.o: $(EXTSRC)/sparse_matrix.cpp
+	@echo " Compilling c++ app ..."
+	@mkdir -p $(BDIR_APP)
+	$(CXX) -c $(CFLAGS_APP) $(EXTRA_CFLAGS) -o $@ $< 
+
+# Compiling external c++ file for python lib
+$(BDIR_PYLIB)/%.o: $(EXTSRC)/sparse_matrix.cpp
+	@echo " Compilling pylib ..."
+	@mkdir -p $(BDIR_PYLIB)
+	$(CXX) -c $(CFLAGS_PYLIB) $(EXTRA_CFLAGS) -o $@ $< 
 
 #----------------------------------------------------------------
 

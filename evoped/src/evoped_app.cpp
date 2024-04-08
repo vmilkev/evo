@@ -1,4 +1,6 @@
 #include <iostream>
+#include <chrono>
+#include<thread>
 
 #include "Amat.hpp"
 #include "Gmat.hpp"
@@ -6,11 +8,12 @@
 
 int main()
 {
-
-    evoped::Amat ap;
+    evoped::Amat<double> ap;
     evolm::matrix<double> iA;
+    evolm::smatrix<double> iA_s;
     std::vector<std::int64_t> a_id;
     evolm::matrix<double> irA;
+    evolm::smatrix<double> irA_s;
     std::vector<std::int64_t> ra_id;
     evolm::matrix<double> iA22;
     std::vector<std::int64_t> ai22_id;
@@ -22,34 +25,53 @@ int main()
     evolm::matrix<double> rA;
     std::vector<std::int64_t> ara_id;
 
+std::cout<<"Start testing:"<<"\n";
 
-    ap.make_matrix("tests/data/ped_632.dat", true); // full A(-1)
-    //ap.make_matrix("tests/data/sstep_050/data/id4trace.PED", true); // full A(-1)
-    ap.get_matrix("iA", iA, a_id, false);
-    iA.symtorec();
-    iA.print("Full A(-1)");
+    auto start = std::chrono::high_resolution_clock::now();
+
+    //ap.make_matrix("/Users/au383883/Documents/MY/codebase/evo/evolm/tests/data/large_data/DMU/data/dmu_pedigree_yy_20240125.txt", true, true); // full A(-1)
+
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+    std::cout <<"full A(-1) (milliseconds): "<< duration.count() << std::endl;
+
+        //ap.make_matrix("tests/data/ped_632.dat", true); // full A(-1)
+        //ap.make_matrix("tests/data/sstep_050/data/id4trace.PED", true); // full A(-1)
+    //ap.get_matrix("iA", iA_s, a_id, false);
+        //iA.symtorec();
+    //iA_s.print("Full A(-1)");
 
     std::cout<<"n IDs in A(-1): "<<a_id.size()<<"\n";
-    for (auto &e: a_id)
-        std::cout<<e<<" ";
+    //for (auto &e: a_id)
+    //    std::cout<<e<<" ";
     std::cout<<"\n";
-exit(1);
-/*    std::cout<<"making reduced A(-1)"<<"\n";ll
-    
-    ap.make_matrix("tests/data/ped_bkg.dat", "tests/data/typed2", true); // reduced A(-1)
-    //ap.make_matrix("tests/data/sstep_050/data/id4trace.PED", "tests/data/sstep_050/data/typed_050.dat", true); // reduced A(-1)
-    ap.get_matrix("irA", irA, ra_id);
-    irA.print("Reduced A(-1)");
-*/
+
+    /*    std::cout<<"making reduced A(-1)"<<"\n";ll
+        
+        ap.make_matrix("tests/data/ped_bkg.dat", "tests/data/typed2", true); // reduced A(-1)
+        //ap.make_matrix("tests/data/sstep_050/data/id4trace.PED", "tests/data/sstep_050/data/typed_050.dat", true); // reduced A(-1)
+        ap.get_matrix("irA", irA, ra_id);
+        irA.print("Reduced A(-1)");
+    */
 std::cout<<"making all:"<<"\n";
 
-    ap.make_all("tests/data/sstep_050/data/id4trace.PED", "tests/data/sstep_050/data/typed_050.dat"); // relatively big data
-    //ap.make_all("tests/data/ped_bkg.dat", "tests/data/typed2"); // reduced A(-1)
+    start = std::chrono::high_resolution_clock::now();
+
+    ap.make_all("/Users/au383883/Documents/MY/codebase/evo/evolm/tests/data/large_data/DMU/data/dmu_pedigree_yy_20240125.txt",
+                "/Users/au383883/Documents/MY/codebase/evo/evolm/tests/data/large_data/DMU/YY/yy.grm.id",
+                true);
+
+    stop = std::chrono::high_resolution_clock::now();
+    duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+    std::cout <<"All (milliseconds): "<< duration.count() << std::endl;
+
+    //ap.make_all("tests/data/sstep_050/data/id4trace.PED", "tests/data/sstep_050/data/typed_050.dat", false); // relatively big data
+    //ap.make_all("tests/data/ped_bkg.dat", "tests/data/typed2", false); // reduced A(-1)
 
 std::cout<<"getting iA"<<"\n";
-    ap.get_matrix("iA", iA, a_id, false);
+    ap.get_matrix("iA", iA_s, a_id, false);
 std::cout<<"getting irA"<<"\n";
-    ap.get_matrix("irA", irA, ra_id, false);
+    ap.get_matrix("irA", irA_s, ra_id, false);
 std::cout<<"getting iA22"<<"\n";
     ap.get_matrix("iA22", iA22, ai22_id, false);
 std::cout<<"getting A22"<<"\n";
@@ -75,7 +97,7 @@ std::cout<<"getting A22"<<"\n";
     //    std::cout<<e<<" ";
     std::cout<<"\n";
 
-
+exit(1);
     evoped::Gmat gmat;
     evolm::matrix<double> iG;
     std::vector<std::int64_t> g_id;

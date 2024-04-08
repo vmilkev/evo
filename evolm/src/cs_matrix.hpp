@@ -683,15 +683,18 @@ namespace evolm
                      double val = M(1,1);   // val = 0.8.
         */
 
+#ifdef UTEST // use this only when debugging and testing
         if (ondisk)
             throw std::string("Matrix is empty. Use fread() to relocate data to memory. matrix<T>::operator()");
-
+#endif
         if (!compact)
             return A[atRow * numCol + atCol];
         else
         {
-            //if ( atCol > atRow )
-            //    throw std::string("The column value is greater than the row value. This is not allowed for symmetric matrix in compact (L-store) format!");
+#ifdef UTEST // use this only when debugging and testing
+            if ( atCol > atRow )
+                throw std::string("The column value is greater than the row value. This is not allowed for symmetric matrix in compact (L-store) format!");
+#endif
             return A[atRow * (atRow + 1) / 2 + atCol];
         }
     }
@@ -712,9 +715,10 @@ namespace evolm
                      double val = M(1,1);   // val = 0.8.
         */
 
+#ifdef UTEST // use this only when debugging and testing
         if (ondisk)
             throw std::string("Matrix is empty. Use fread() to relocate data to memory. matrix<T>::operator()");
-
+#endif
         if (!compact)
             return A[atRow * numCol + atCol];
         else
@@ -743,9 +747,10 @@ namespace evolm
 
         */
 
+#ifdef UTEST // use this only when debugging and testing
         if (ondisk)
             throw std::string("Matrix is empty. Use fread() to relocate data to memory. matrix<T>::operator[]");
-
+#endif
         return A[i];
     }
 
@@ -771,9 +776,10 @@ namespace evolm
 
         */
 
+#ifdef UTEST // use this only when debugging and testing
         if (ondisk)
             throw std::string("Matrix is empty. Use fread() to relocate data to memory. matrix<T>::operator[]");
-
+#endif
         return A[i];
     }
 
@@ -2195,7 +2201,7 @@ namespace evolm
 
         dotprod(A, rhs.A, C.A, numRow/*, rhs.numRow*/, numCol, rhs.numCol);
 
-        return matrix(C);
+        return C;//matrix(C);
     }
 
     //===============================================================================================================
@@ -2489,7 +2495,9 @@ namespace evolm
         std::swap(resizedElements, tmpObj.resizedElements);
         
         if ( ondisk ) // exchange file names only if rhs is not on memory!
+        {
             std::swap(binFilename, tmpObj.binFilename);
+        }
         
         std::swap(allocated, tmpObj.allocated);
         std::swap(A, tmpObj.A);

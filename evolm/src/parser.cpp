@@ -548,7 +548,7 @@ namespace evolm
             while ( isspace( *exp_ptr ) )
                 ++exp_ptr; // Skip delimiter
 
-            if ( strchr( "+-*/%^=()~|:", *exp_ptr ) )
+            if ( strchr( "+-*/%^=()", *exp_ptr ) )
             {
                 toke_type = DELIMITER;
                 // Move to the next symbol
@@ -568,8 +568,6 @@ namespace evolm
             }
 
             *temp = '\0';
-
-            std::cout <<"token: "<<token<<" ";
         }
         catch (const std::string &e)
         {
@@ -602,7 +600,7 @@ namespace evolm
         // If the parameter 'c' is delimiter, return true
         try
         {
-            if ( strchr( " +-*/%^=()~|:", c ) || c == 9 || c == '\r' || c == 0 )
+            if ( strchr( " +-*/%^=()", c ) || c == 9 || c == '\r' || c == 0 )
                 return 1;
             
             return 0;

@@ -35,7 +35,7 @@ ifeq ($(UNAME_OS),Darwin) # using apple's Accelerate
 	CFLAGS_PYLIB := -DPYBIND $(PYBINDINCL)
 	CFLAGS_CLIB :=
 
-	EXTRA_CFLAGS := -Wall -Wextra -pedantic -Wno-c99-extensions -D UTEST -O3 -Xpreprocessor -fopenmp -I/opt/homebrew/opt/openblas/include -I/opt/homebrew/opt/libomp/include -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -std=c++14
+	EXTRA_CFLAGS := -Wall -Wextra -pedantic -Wno-c99-extensions -D UTEST -O3 -Xpreprocessor -fopenmp -I/opt/homebrew/opt/openblas/include -I/opt/homebrew/opt/libomp/include -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -std=c++17 -pthread
 
 	LIBFLAGS := -undefined dynamic_lookup -shared -lpthread -lm -lomp -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -L/opt/homebrew/opt/libomp/lib -L/opt/homebrew/opt/openblas/lib -lopenblas
 	LIBFLAGS_TEST := -undefined dynamic_lookup -lpthread -lm -lomp -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -L/opt/homebrew/opt/libomp/lib -L/opt/homebrew/opt/openblas/lib -lopenblas
@@ -44,12 +44,12 @@ else
 	ifeq ($(UNAME_OS),Linux)
 #		ifeq ( $(SOURSE_BLAS_IS_INTEL), 1) # using Intel's MKL
 		ifdef SOURSE_BLAS_IS_INTEL
-			CFLAGS_TEST := -O3 -qopenmp -I$(SRCDIR) -DMKL_ILP64 -I${MKLROOT}/include $(PYBINDINCL) -std=c++14
-			CFLAGS_APP := -O3 -qopenmp -I$(SRCDIR) -DMKL_ILP64 -I${MKLROOT}/include -std=c++14
-			CFLAGS_PYLIB := -O3 -qopenmp -DPYBIND -DMKL_ILP64 -I${MKLROOT}/include $(PYBINDINCL) -fPIC -std=c++14
-			CFLAGS_CLIB := -O3 -qopenmp -DMKL_ILP64 -I${MKLROOT}/include -fPIC -std=c++14
+			CFLAGS_TEST := -O3 -qopenmp -I$(SRCDIR) -DMKL_ILP64 -I${MKLROOT}/include $(PYBINDINCL) -std=c++17
+			CFLAGS_APP := -O3 -qopenmp -I$(SRCDIR) -DMKL_ILP64 -I${MKLROOT}/include -std=c++17
+			CFLAGS_PYLIB := -O3 -qopenmp -DPYBIND -DMKL_ILP64 -I${MKLROOT}/include $(PYBINDINCL) -fPIC -std=c++17
+			CFLAGS_CLIB := -O3 -qopenmp -DMKL_ILP64 -I${MKLROOT}/include -fPIC -std=c++17
 			
-			EXTRA_CFLAGS := -D UTEST -D intelmkl -Wall
+			EXTRA_CFLAGS := -D UTEST -D intelmkl -Wall -pthread
 			EXTRA_LIBFLAGS := -L$(BDIR_CLIB) -l$(APPNAME)
 			EXTRA_LIBFLAGS_2 :=
 			

@@ -16,7 +16,10 @@ namespace evolm
     class IOInterface
     {
     public:
+    
+        IOInterface();
         void set_fname(std::string file);                                 // Setting IO file name
+        void set_missing(float val);                                      // indicates which numbers recognised as missing
         void fgetdata(size_t samples,
                       size_t variants,
                       std::vector<std::vector<int>> &out);                // Reads a binary SNP data stored in the PLINK bed format
@@ -25,8 +28,9 @@ namespace evolm
         void fgetdata(std::vector<std::vector<int>> &out);                // Reads ASCII SNP data
         template <typename T>
         void fgetdata(std::vector<std::vector<T>> &out);                  // Reads general ASCII formated data
-        void fgetvar(std::string &var_name,
-                     Effects &out_var);                                   // Extract a data for a specific variable accessed by the name 'var_name'
+        void fgetvar(const std::string &var_name,                         // Extract a data for a specific variable accessed by the name 'var_name'
+                     Effects &out_var,          
+                     const std::string &ref_var = std::string());         // Reference variable name (observations var name) which used to track missing records
 
     private:
         template <typename T>
@@ -48,6 +52,8 @@ namespace evolm
 
         std::string io_file;                                              // IO file name
         std::map<size_t, size_t> snp_id;                                  // KEY: the consecutive index; the VALUE: observation ID
+
+        float miss_constant;
     };
 
 } // end of namespace evolm

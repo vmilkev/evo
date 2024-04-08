@@ -3,34 +3,39 @@
 namespace evoped
 {
     //===============================================================================================================
-
-    Amat::Amat()
+    
+    template <typename T>
+    Amat<T>::Amat()
     {
         try
         {
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Amat::Amat()" << '\n';
+            std::cerr << "Exception in Amat<T>::Amat()" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Amat::Amat()" << '\n';
+            std::cerr << "Exception in Amat<T>::Amat()" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Amat::Amat()" << '\n';
+            std::cerr << "Exception in Amat<T>::Amat()" << '\n';
             throw;
         }
     }
 
+    template Amat<float>::Amat();
+    template Amat<double>::Amat();
+
     //===============================================================================================================
 
-    Amat::~Amat()
+    template <typename T>
+    Amat<T>::~Amat()
     {
         try
         {
@@ -38,26 +43,30 @@ namespace evoped
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Amat::Amat()" << '\n';
+            std::cerr << "Exception in Amat<T>::Amat()" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Amat::Amat()" << '\n';
+            std::cerr << "Exception in Amat<T>::Amat()" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Amat::Amat()" << '\n';
+            std::cerr << "Exception in Amat<T>::Amat()" << '\n';
             throw;
         }
     }
 
+    template Amat<float>::~Amat();
+    template Amat<double>::~Amat();
+
     //===============================================================================================================
 
-    void Amat::map_to_matr(std::map<PedPair, double> &amap, std::vector<std::int64_t> &ids, bool use_ainv)
+    template <typename T>
+    void Amat<T>::map_to_matr(std::map<PedPair, T> &amap, std::vector<std::int64_t> &ids, bool use_ainv, bool use_large)
     {
         try
         {
@@ -75,55 +84,86 @@ namespace evoped
             if ( limit < amap.size() )
                 throw std::string("The number of elements in calculated A(-1) matrix is higher than the number of traced IDs!!");
 
-            u.get_RecodedIdMap(rid_map, ids);
+            u.get_RecodedIdMap(rid_map, ids); // list of real ids => std::map for the new consecutive list starting from 1
 
             if (rid_map.empty())
                 throw std::string("Recoded IDs map is empty!");
 
             if ( !A.empty())
                 A.clear();
-            
-            A.resize(ids.size());
 
-//#pragma omp parallel for // this does not work ???
-            for (auto const &elem : amap)
+            if ( !A_s.empty())
+                A_s.clear();
+
+            if ( use_large )
+                A_s.resize(ids.size());
+            else
+                A.resize(ids.size());
+
+            if ( use_large )
             {
-                std::int64_t g_row = elem.first.val_1;
-                std::int64_t g_col = elem.first.val_2;
-                double g_val = elem.second;
+                for (auto const &elem : amap)
+                {
+                    std::int64_t g_row = elem.first.val_1; // id
+                    std::int64_t g_col = elem.first.val_2; // id
+                    T g_val = elem.second;
 
-                size_t r = rid_map[ g_row ];
-                size_t c = rid_map[ g_col ];
-                size_t ind = r * (r - 1) / 2 + c - 1;
-                if (c > r)
-                    ind = c * (c - 1) / 2 + r - 1;
-                A[ind] = g_val;
+                    if ( std::abs(g_val) <= 0.000001 ) // because of the sparse container, we are not storing 0.0 values
+                        continue;
+                    
+                    size_t r = rid_map[ g_row ]; // position in the list if ids, consecutive index of real id in the list of all ids
+                    size_t c = rid_map[ g_col ]; // position in the list if ids, consecutive index of real id in the list of all ids
+                    size_t ind = r * (r - 1) / 2 + c - 1; // r & c start from 1, but not from 0
+                    if (c > r)
+                        ind = c * (c - 1) / 2 + r - 1;
+                    A_s[ind] = g_val;
+                }
+            }
+            else
+            {
+                for (auto const &elem : amap)
+                {
+                    std::int64_t g_row = elem.first.val_1; // id
+                    std::int64_t g_col = elem.first.val_2; // id
+                    T g_val = elem.second;
+
+                    size_t r = rid_map[ g_row ]; // position in the list if ids, consecutive index of real id in the list of all ids
+                    size_t c = rid_map[ g_col ]; // position in the list if ids, consecutive index of real id in the list of all ids
+                    size_t ind = r * (r - 1) / 2 + c - 1; // r & c start from 1, but not from 0
+                    if (c > r)
+                        ind = c * (c - 1) / 2 + r - 1;
+                    A[ind] = g_val;
+                }
             }
 
             rid_map.clear();
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Amat::map_to_matr(std::map<PedPair, double> &, std::vector<std::int64_t> &, bool)" << '\n';
+            std::cerr << "Exception in Amat<T>::map_to_matr(std::map<PedPair, T> &, std::vector<std::int64_t> &, bool, bool)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Amat::map_to_matr(std::map<PedPair, double> &, std::vector<std::int64_t> &, bool)" << '\n';
+            std::cerr << "Exception in Amat<T>::map_to_matr(std::map<PedPair, T> &, std::vector<std::int64_t> &, bool, bool)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Amat::map_to_matr(std::map<PedPair, double> &, std::vector<std::int64_t> &, bool)" << '\n';
+            std::cerr << "Exception in Amat<T>::map_to_matr(std::map<PedPair, T> &, std::vector<std::int64_t> &, bool, bool)" << '\n';
             throw;
         }
     }
 
+    template void Amat<float>::map_to_matr(std::map<PedPair, float> &amap, std::vector<std::int64_t> &ids, bool use_ainv, bool use_large);
+    template void Amat<double>::map_to_matr(std::map<PedPair, double> &amap, std::vector<std::int64_t> &ids, bool use_ainv, bool use_large);
+
     //===============================================================================================================
 
-    void Amat::make_matrix(const std::string &ped_file, bool use_ainv)
+    template <typename T>
+    void Amat<T>::make_matrix(const std::string &ped_file, bool use_ainv, bool use_large)
     {
         // Making A or A(-1) based on full pedigree
         try
@@ -148,53 +188,71 @@ namespace evoped
             if ( !inbrF.empty() )
                 inbrF.erase(inbrF.begin(), inbrF.end());
 
-            std::map<PedPair, double> ainv;
+            std::map<PedPair, T> ainv;
 
             if ( use_ainv )
                 get_ainv(pedigree, ainv, true);
             else
                 get_a(pedigree, ainv);
- 
+
             pedigree.clear();
+
             pedigree_from_file.clear();
+
             birth_id_map.clear();
+
             pedID.clear();
+
             pedID.shrink_to_fit();
 
-            map_to_matr(ainv, traced_pedID, use_ainv); // converting ainv map to A or A(-1) matrix
+            map_to_matr(ainv, traced_pedID, use_ainv, use_large); // converting ainv map to A or A(-1) matrix
 
             ainv.clear();
 
             id_iA = traced_pedID;
-            A.fwrite();
-            iA = A;            
-            A.clear();
+
+            if (use_large)
+            {
+                A_s.fwrite();
+                iA_s = A_s;            
+                A_s.resize();
+            }
+            else
+            {
+                A.fwrite();
+                iA = A;            
+                A.clear();
+            }
+
             traced_pedID.clear();
             traced_pedID.shrink_to_fit();
-
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Amat::make_matrix(std::string &, bool)" << '\n';
+            std::cerr << "Exception in Amat<T>::make_matrix(std::string &, bool, bool)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Amat::make_matrix(std::string &, bool)" << '\n';
+            std::cerr << "Exception in Amat<T>::make_matrix(std::string &, bool, bool)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Amat::make_matrix(std::string &, bool)" << '\n';
+            std::cerr << "Exception in Amat<T>::make_matrix(std::string &, bool, bool)" << '\n';
             throw;
         }
     }
 
+    template void Amat<float>::make_matrix(const std::string &ped_file, bool use_ainv, bool use_large);
+    template void Amat<double>::make_matrix(const std::string &ped_file, bool use_ainv, bool use_large);
+
     //===============================================================================================================
 
-    void Amat::make_matrix(const std::string &ped_file, const std::string &g_file, bool use_ainv)
+    template <typename T>
+    void Amat<T>::make_matrix(const std::string &ped_file, const std::string &g_file, bool use_ainv, bool use_large)
     {
         // Making A(-1) based on reduced pedigree traced on IDs in the file 'g_file'
         try
@@ -222,7 +280,7 @@ namespace evoped
             if ( !inbrF.empty() )
                 inbrF.erase(inbrF.begin(), inbrF.end());
 
-            std::map<PedPair, double> r_ainv;
+            std::map<PedPair, T> r_ainv;
 
             if ( use_ainv )
                 get_ainv(r_pedigree, r_ainv, true);
@@ -237,55 +295,68 @@ namespace evoped
             pedID.clear();
             pedID.shrink_to_fit();
 
-            map_to_matr(r_ainv, traced_pedID, use_ainv); // converting r_ainv map to A(-1) matrix
+            map_to_matr(r_ainv, traced_pedID, use_ainv, use_large); // converting r_ainv map to A(-1) matrix
 
             r_ainv.clear();
 
             id_irA = traced_pedID;
-            A.fwrite();
-            irA = A;            
-            A.clear();
+
+            if (use_large)
+            {
+                A_s.fwrite();
+                irA_s = A_s;            
+                A_s.resize();
+            }
+            else
+            {
+                A.fwrite();
+                irA = A;            
+                A.clear();
+            }
+
             traced_pedID.clear();
             traced_pedID.shrink_to_fit();
 
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Amat::make_matrix(std::string &, std::string &, bool)" << '\n';
+            std::cerr << "Exception in Amat<T>::make_matrix(std::string &, std::string &, bool, bool)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Amat::make_matrix(std::string &, std::string &, bool)" << '\n';
+            std::cerr << "Exception in Amat<T>::make_matrix(std::string &, std::string &, bool, bool)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Amat::make_matrix(std::string &, std::string &, bool)" << '\n';
+            std::cerr << "Exception in Amat<T>::make_matrix(std::string &, std::string &, bool, bool)" << '\n';
             throw;
         }
     }
 
-
+    template void Amat<float>::make_matrix(const std::string &ped_file, const std::string &g_file, bool use_ainv, bool use_large);
+    template void Amat<double>::make_matrix(const std::string &ped_file, const std::string &g_file, bool use_ainv, bool use_large);
 
     //===============================================================================================================
 
-    void Amat::make_all(const std::string &ped_file, const std::string &g_file)
+    template <typename T>
+    void Amat<T>::make_all(const std::string &ped_file, const std::string &g_file, bool use_large)
     {
         // Making all matrices required for ssBlup: A(-1), red_A(-1), A22, A22(-1)
         try
         {
             // -----------------------------------------------------
             // ---------- full A(-1) -------------------------------
-
+std::cout<<"full A(-1) ..."<<"\n";
             std::vector<std::int64_t> pedID;
             std::map<PedPair, PedPair> pedigree_from_file;
             std::map<PedPair, PedPair> pedigree;
-
+std::cout<<"reading pedigree ..."<<"\n";
             fread_pedigree(ped_file, pedigree_from_file, pedID);
-
+std::cout<<"Done."<<"\n";
             if (pedID.empty())
                 throw std::string("Empty pedigree IDs!");
 
@@ -294,34 +365,42 @@ namespace evoped
 
             if (!traced_pedID.empty())
                 traced_pedID.erase(traced_pedID.begin(), traced_pedID.end());
-
+std::cout<<"tracing pedigree ..."<<"\n";
             trace_pedigree(pedigree_from_file, pedigree, pedID); // tracing full pedigree
-
+std::cout<<"Done."<<"\n";
             if ( !inbrF.empty() )
                 inbrF.erase(inbrF.begin(), inbrF.end());
 
-            std::map<PedPair, double> ainv;
-
-            get_ainv(pedigree, ainv, true);
- 
+            std::map<PedPair, T> ainv;
+std::cout<<"making A(-1) ..."<<"\n";
+            get_ainv(pedigree, ainv, true); // making A(-1)
+std::cout<<"Done."<<"\n"; 
             pedigree.clear();
             pedID.clear();
             pedID.shrink_to_fit();
-
-            map_to_matr(ainv, traced_pedID, true); // converting ainv map to A or A(-1) matrix
-
+std::cout<<"map_to_matr ..."<<"\n";
+            map_to_matr(ainv, traced_pedID, true, use_large); // converting ainv map to A or A(-1) matrix
+std::cout<<"Done."<<"\n"; 
             ainv.clear();
 
             id_iA = traced_pedID;
             
-            A.fwrite(); // 1. Wrire to binary
-            iA = A;     // 2. Copy matrix by just exchanging the internal binary file name
-            //iA.fwrite();
-            A.clear();  // 3. Clears the memory and gets new name for internal binary file
-
+            if ( use_large )
+            {
+                A_s.fwrite(); // 1. Wrire to binary
+                iA_s = A_s;   // 2. Copy matrix by exchanging the internal binary file name
+                A_s.resize();
+            }
+            else
+            {
+                A.fwrite(); // 1. Wrire to binary
+                iA = A;     // 2. Copy matrix by exchanging the internal binary file name
+                A.clear();  // 3. Clears the memory and gets new name for internal binary file
+            }
+std::cout<<"Done."<<"\n";
             // -----------------------------------------------------
             // ---------- reduced A(-1) ----------------------------
-
+std::cout<<"reduced A(-1)"<<"\n";
             std::vector<std::int64_t> genotypedID;
             std::map<PedPair, PedPair> r_pedigree;
           
@@ -338,27 +417,35 @@ namespace evoped
             if ( !inbrF.empty() )
                 inbrF.erase(inbrF.begin(), inbrF.end());
 
-            std::map<PedPair, double> r_ainv;
+            std::map<PedPair, T> r_ainv;
 
-            get_ainv(r_pedigree, r_ainv, true);
+            get_ainv(r_pedigree, r_ainv, true); // making reduced A(-1)
 
             pedigree_from_file.clear();
 
-            map_to_matr(r_ainv, traced_pedID, true); // converting r_ainv map to A(-1) matrix
+            map_to_matr(r_ainv, traced_pedID, true, use_large); // converting r_ainv map to A(-1) matrix
 
             r_ainv.clear();
 
             id_irA = traced_pedID;
 
-            A.fwrite(); // 1. Wrire to binary
-            irA = A;    // 2. Copy matrix by just exchanging the internal binary file name
-            //irA.fwrite();
-
-            A.clear();  // 3. Clears the memory and gets new name for internal binary file
-
+            if ( use_large )
+            {
+                A_s.fwrite(); // 1. Wrire to binary
+                irA_s = A_s;     // 2. Copy matrix by just exchanging the internal binary file name
+                A_s.resize();
+            }
+            else
+            {
+                A.fwrite(); // 1. Wrire to binary
+                irA = A;     // 2. Copy matrix by just exchanging the internal binary file name
+                A.clear();  // 3. Clears the memory and gets new name for internal binary file
+            }
+std::cout<<"Done."<<"\n";
             // -----------------------------------------------------
+            // These two matrices are considered always dense !
             // -------------------- A22 ----------------------------
-
+std::cout<<"A22"<<"\n";
             get_A22(r_pedigree, genotypedID);
 
             id_A22 = genotypedID;
@@ -366,50 +453,78 @@ namespace evoped
             r_pedigree.clear();
             birth_id_map.clear();
 
+size_t non_serro = 0;
+for (size_t i = 0; i < A.size(); i++)
+{
+    if (A[i] != 0.0)
+        non_serro++;
+}
+std::cout<<"Sparsity of A22: "<< (1.0 - (double)non_serro/A.size())*100.0<<"\n";
+
+                        // Here we are using always dense matrix
             A.fwrite(); // 1. Wrire to binary
             A22 = A;    // 2. Copy matrix by just exchanging the internal binary file name
-            //A22.fwrite();
-
             A.clear();  // 3. Clears the memory and gets new name for internal binary file
-
+std::cout<<"Done."<<"\n";
             // -----------------------------------------------------
             // -------------------- A22(-1) ------------------------
+std::cout<<"A22(-1)"<<"\n";
+            if ( use_large )
+            {
+                irA_s.fread();
+                get_iA22(irA_s, id_irA, genotypedID);
+                irA_s.fwrite();
+                
+                A_s.fwrite(); // 1. Wrire to binary
+                iA22_s = A_s;   // 2. Copy matrix by just exchanging the internal binary file name
+                A_s.resize();  // 3. Clears the memory and gets new name for internal binary file
+                
+                //A.fwrite(); // 1. Wrire to binary
+                //iA22 = A;   // 2. Copy matrix by just exchanging the internal binary file name
+                //A.clear();  // 3. Clears the memory and gets new name for internal binary file
 
-            irA.fread();
+            }
+            else
+            {
+                irA.fread();
+                get_iA22(irA, id_irA, genotypedID);                
+                irA.fwrite();
+                
+                A.fwrite(); // 1. Wrire to binary
+                iA22 = A;   // 2. Copy matrix by just exchanging the internal binary file name
+                A.clear();  // 3. Clears the memory and gets new name for internal binary file
+            }
 
-            get_iA22(irA, id_irA, genotypedID);
-
-            A.fwrite(); // 1. Wrire to binary
-            irA.fwrite();
-            iA22 = A;   // 2. Copy matrix by just exchanging the internal binary file name
-            //iA22.fwrite();
-            A.clear();  // 3. Clears the memory and gets new name for internal binary file
             genotypedID.clear();
             genotypedID.shrink_to_fit();
-
+std::cout<<"Done."<<"\n";
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Amat::make_all(std::string &, std::string &)" << '\n';
+            std::cerr << "Exception in Amat<T>::make_all(std::string &, std::string &, bool)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Amat::make_all(std::string &, std::string &)" << '\n';
+            std::cerr << "Exception in Amat<T>::make_all(std::string &, std::string &, bool)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Amat::make_all(std::string &, std::string &)" << '\n';
+            std::cerr << "Exception in Amat<T>::make_all(std::string &, std::string &, bool)" << '\n';
             throw;
         }
     }
 
+    template void Amat<float>::make_all(const std::string &ped_file, const std::string &g_file, bool use_large);
+    template void Amat<double>::make_all(const std::string &ped_file, const std::string &g_file, bool use_large);
+
     //===============================================================================================================
 
-    void Amat::get_iA22(evolm::matrix<double>& full_matr, std::vector<std::int64_t>& matr_ids, std::vector<std::int64_t>& selected_ids)
+    template <typename T>
+    void Amat<T>::get_iA22(evolm::matrix<T>& full_matr, std::vector<std::int64_t>& matr_ids, std::vector<std::int64_t>& selected_ids)
     {
         try
         {
@@ -460,10 +575,10 @@ namespace evoped
 
             // Next steps: A22(-1) = A22 - A21 * A11(-1) * A12;
 
-            evolm::matrix<double> a22; // in order to differrentiate from the 'global' A22
-            evolm::matrix<double> A11;
-            evolm::matrix<double> A21;
-            evolm::matrix<double> A12;
+            evolm::matrix<T> a22; // in order to differrentiate from the 'global' A22
+            evolm::matrix<T> A11;
+            evolm::matrix<T> A21;
+            evolm::matrix<T> A12;
 
             // -------------------- A11 -----------------------
 
@@ -533,7 +648,7 @@ namespace evoped
             // --------------- A21 * A11(-1) * A12 ------------
 
             A11.fread();
-            evolm::matrix<double> res;
+            evolm::matrix<T> res;
 
             res = A21 * A11;
             
@@ -584,16 +699,22 @@ namespace evoped
             evolm::matrix<size_t> shapeofa22;
             shapeofa22 = a22.shape();
 
-            A.resize(shapeofa22[0]);
+            //A.resize(shapeofa22[0]); 1
 
             res.rectosym();
 
 #pragma omp parallel for
             for (size_t i = 0; i < a22.size(); i++)
-                A[i] = a22[i] - res[i];
-            
+            {
+                //A[i] = a22[i] - res[i]; 2
+                res[i] = a22[i] - res[i]; // 2
+            }
+
             a22.fclear();
-            a22.clear();            
+            a22.clear();
+
+            A = res; // 1
+
             res.fclear();
             res.clear();            
             // ------------------------------------------------
@@ -601,26 +722,347 @@ namespace evoped
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Amat::get_iA22(evolm::matrix<double>&, std::vector<std::int64_t>&, std::vector<std::int64_t>&, bool)" << '\n';
+            std::cerr << "Exception in Amat<T>::get_iA22(evolm::matrix<T>&, std::vector<std::int64_t>&, std::vector<std::int64_t>&, bool)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Amat::get_iA22(evolm::matrix<double>&, std::vector<std::int64_t>&, std::vector<std::int64_t>&, bool)" << '\n';
+            std::cerr << "Exception in Amat<T>::get_iA22(evolm::matrix<T>&, std::vector<std::int64_t>&, std::vector<std::int64_t>&, bool)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Amat::get_iA22(evolm::matrix<double>&, std::vector<std::int64_t>&, std::vector<std::int64_t>&, bool)" << '\n';
+            std::cerr << "Exception in Amat<T>::get_iA22(evolm::matrix<T>&, std::vector<std::int64_t>&, std::vector<std::int64_t>&, bool)" << '\n';
             throw;
         }
     }
 
+    template void Amat<float>::get_iA22(evolm::matrix<float>& full_matr, std::vector<std::int64_t>& matr_ids, std::vector<std::int64_t>& selected_ids);
+    template void Amat<double>::get_iA22(evolm::matrix<double>& full_matr, std::vector<std::int64_t>& matr_ids, std::vector<std::int64_t>& selected_ids);
+
     //===============================================================================================================
 
-    void Amat::fread_pedigree(const std::string &ped_file, std::map<PedPair, PedPair> &out_ped, std::vector<std::int64_t> &out_ids)
+    template <typename T>
+    void Amat<T>::get_iA22(evolm::smatrix<T>& full_matr, std::vector<std::int64_t>& matr_ids, std::vector<std::int64_t>& selected_ids)
+    {
+        try
+        {
+std::cout<<"Entering for making iA22"<<"\n";
+            Utilities2 u;
+
+            size_t n_rows = full_matr.nrows();
+            size_t n_cols = full_matr.ncols();
+
+            if ( n_rows != n_cols )
+                throw std::string("The passed matrix has wrong dimension: number of raws is not the same as number of columns!");
+
+            if ( n_rows != matr_ids.size() )
+                throw std::string("The passed matrix has wrong dimension!");
+
+            if ( full_matr.size() > full_matr.max_key() + 1 )
+                throw std::string("The number of elements in the passed matrix is greater then expected!");
+
+            if ( selected_ids.size() > matr_ids.size() )
+                throw std::string("The number of elements in the passed selected IDs array is greater then the number of IDs in the passed matrix!");
+
+            if ( !u.is_value_in_vect(matr_ids, selected_ids) )
+                throw std::string("There are IDs in the selected IDs array which are not part of the passed matrix!");
+
+            // --------------------------------
+            if ( !A_s.empty() )
+            {
+                A_s.resize();
+                //A.fclear();
+                //A.clear();                
+            }
+
+            // Create the list of IDs which are in matr_ids but not in selected_ids vectors
+
+            std::vector<std::int64_t> not_selected_ids;
+
+            for ( size_t i = 0; i < matr_ids.size(); i++ )
+            {
+                int res = u.find_invect( selected_ids, matr_ids[i] );
+                if ( res == -1 )
+                    not_selected_ids.push_back( matr_ids[i] );
+            }
+
+            if ( ( selected_ids.size() + not_selected_ids.size() ) != matr_ids.size() )
+                throw std::string("The sum of IDs from from two vectors is not equal to number of IDs in the matrix!");
+            
+            // ------------------------------------------------
+
+            // Next steps: A22(-1) = A22 - A21 * A11(-1) * A12;
+
+            evolm::smatrix<T> a22; // in order to differrentiate from the 'global' A22
+            evolm::smatrix<T> A11;
+            evolm::smatrix<T> A21;
+            evolm::smatrix<T> A12;
+            evolm::matrix<T> A11d; // this is the temporal storage for making inverse
+
+            // -------------------- A11 -----------------------
+std::cout<<"   Making A11 ..."<<"\n";
+            A11d.resize( not_selected_ids.size() );
+
+            std::vector<size_t> non_selected_pos;
+            for (size_t i = 0; i < not_selected_ids.size(); i++)
+                non_selected_pos.push_back( u.find_invect( matr_ids, not_selected_ids[i] ) );
+
+            std::vector<size_t> selected_pos;
+            for (size_t i = 0; i < selected_ids.size(); i++)
+                selected_pos.push_back( u.find_invect( matr_ids, selected_ids[i] ) );
+
+#pragma omp parallel for
+            for (size_t i = 0; i < not_selected_ids.size(); i++)
+            {
+                size_t pos_i = non_selected_pos[i];
+                T value = (T)0;
+                T zerro_value = (T)0;
+
+                for (size_t j = 0; j <= i; j++)
+                {
+                    size_t pos_j = non_selected_pos[j];
+
+                    if ( pos_i >= pos_j )
+                    {
+                        value = full_matr.get_nonzero( pos_i, pos_j );
+
+                        if ( value != zerro_value )
+                            A11d(i,j) = value;
+                        else
+                            A11d(i,j) = zerro_value;
+                    }
+                    else
+                    {
+                        value = full_matr.get_nonzero( pos_j, pos_i );
+
+                        if ( value != zerro_value )
+                            A11d(i,j) = value;
+                        else
+                            A11d(i,j) = zerro_value;
+                    }
+                }
+            }
+std::cout<<"   Get sparsity of A11 ..."<<"\n";
+            size_t non_zeros = 0;
+            for (size_t i = 0; i < A11d.size(); i++)
+            {
+                if (A11d[i] != 0.0)
+                    non_zeros++;
+            }
+std::cout<<"        sparsity = "<< (1.0-(T)non_zeros/(T)A11d.size())*100.0 <<"\n";
+
+            A11d.symtorec();
+std::cout<<"      inverting A11 ..."<<"\n";
+            A11d.invert();
+
+std::cout<<"A11d => A11 ..."<<"\n";
+            A11.resize( not_selected_ids.size(), not_selected_ids.size() );
+            for (size_t i = 0; i < not_selected_ids.size(); i++)
+            {
+                for (size_t j = 0; j < not_selected_ids.size(); j++)
+                {
+                    if ( A11d(i,j) != 0.0 )
+                        A11(i,j) = A11d(i,j);
+                }
+            }
+//A11d.print("A11d");
+//A11.print("A11");
+            A11d.fclear();
+            A11d.clear();
+
+            A11.fwrite();
+std::cout<<"   Done."<<"\n";
+            // ------------------------------------------------
+            //
+            // -------------------- A21 -----------------------
+std::cout<<"   Making A21 ..."<<"\n";
+            A21.resize(selected_ids.size(), not_selected_ids.size());
+
+//#pragma omp parallel for
+            for (size_t i = 0; i < selected_ids.size(); i++)
+            {
+                size_t pos_i = selected_pos[i];
+                T value = (T)0;
+                T zerro_value = (T)0;
+
+                for (size_t j = 0; j < not_selected_ids.size(); j++)
+                {
+                    size_t pos_j = non_selected_pos[j];
+
+                    if ( pos_i >= pos_j )
+                    {
+                        value = full_matr.get_nonzero( pos_i, pos_j );
+
+                        if ( value != zerro_value )
+                            A21(i,j) = value;
+                        //else
+                            //A21(i,j) = 0.0;
+                    }
+                    else
+                    {
+                        value = full_matr.get_nonzero( pos_j, pos_i );
+
+                        if ( value != zerro_value )
+                            A21(i,j) = value;
+                        //else
+                            //A21(i,j) = 0.0;
+                    }
+                }
+            }
+//A21.print("A21");
+std::cout<<"   Done."<<"\n";
+
+std::cout<<"        sparsity of A21 = "<< (1.0-(T)A21.size()/(T)A21.max_key())*100.0 <<"\n";
+            // ------------------------------------------------
+            //
+            // -------------------- A12 -----------------------
+std::cout<<"   Making A12 ..."<<"\n";
+std::cout<<"   A12 = A21"<<"\n";
+            A12 = A21;
+std::cout<<"   A12.transpose()"<<"\n";
+            A12.transpose();
+//A12.print("A12");
+
+            A12.fwrite();
+std::cout<<"   Done."<<"\n";
+            // ------------------------------------------------
+            //
+            // --------------- A21 * A11(-1) * A12 ------------
+std::cout<<"   Some reading and multiplication ..."<<"\n";
+            A11.fread();
+            evolm::smatrix<T> res;
+std::cout<<"      A21 * A11 ... "<<"elements in A21: "<<A21.size()<<", A11: "<<A11.size()<<"\n";
+            res = A21 * A11;
+//res.print("A21 * A11");
+
+            A11.fclear();
+            A11.clear();
+            //A11.resize();
+
+            A21.fclear();
+            A21.clear();
+std::cout<<"resizing of A21."<<"\n";
+            //A21.resize();
+
+            A12.fread();
+std::cout<<"      res * A12 ..."<<"\n";
+            //res = res * A12; <= this does not work!!! Clean res afterwards!
+            //evolm::smatrix<T> res2;
+            res = res * A12;
+//res.print("res * A12");
+std::cout<<"fclear of A12."<<"\n";
+            A12.fclear();
+            A12.clear();
+            //A12.resize();
+
+            res.rectosym();
+std::cout<<"   Done."<<"\n";            
+            // ------------------------------------------------
+            //
+            // -------------------- A22 -----------------------
+std::cout<<"   Making A22 ..."<<"\n";
+            a22.resize( selected_ids.size() );
+
+//#pragma omp parallel for
+            for (size_t i = 0; i < selected_ids.size(); i++)
+            {
+                size_t pos_i = selected_pos[i];
+                T value = (T)0;
+                T zerro_value = (T)0;
+
+                for (size_t j = 0; j <= i; j++)
+                {
+                    size_t pos_j = selected_pos[j];
+
+                    if ( pos_i >= pos_j )
+                    {
+                        value = full_matr.get_nonzero( pos_i, pos_j );
+
+                        if ( value != zerro_value )
+                            a22(i,j) = value;
+                        //else
+                            //a22(i,j) = 0.0;
+                    }
+                    else
+                    {
+                        value = full_matr.get_nonzero( pos_j, pos_i );
+
+                        if ( value != zerro_value )
+                            a22(i,j) = value;
+                        //else
+                            //a22(i,j) = 0.0;
+                    }
+                }
+            }
+//a22.print("a22");
+            non_selected_pos.clear();
+            non_selected_pos.shrink_to_fit();
+            selected_pos.clear();
+            selected_pos.shrink_to_fit();
+std::cout<<"   Done."<<"\n";
+            // ------------------------------------------------
+            //
+            // ------------------ A22 - res -------------------
+std::cout<<"   Finalising ..."<<"\n";
+            //evolm::matrix<size_t> shapeofa22;
+            //shapeofa22 = a22.shape();
+
+std::cout<<"        sparsity of a22 = "<< (1.0-(T)a22.size()/(T)a22.max_key())*100.0 <<"\n";
+
+//#pragma omp parallel for
+            //for (size_t i = 0; i < a22.size(); i++)
+                //res[i] = a22[i] - res[i];
+            //res.resize();
+            res = a22 - res;
+
+//res.print("a22[i] - res[i] d");   
+            
+            //a22.fclear();
+            //a22.clear();
+            a22.resize();
+
+            //A = res;
+            A_s = res;
+
+            //res.fclear();
+            //res.clear();
+            res.resize();
+
+std::cout<<"   Done."<<"\n";
+
+std::cout<<"        sparsity of A22(-1) = "<< (1.0-(T)A_s.size()/(T)A_s.max_key())*100.0 <<", rows & cols: "<<A_s.nrows()<<" "<<A_s.ncols()<<"\n";
+
+            // ------------------------------------------------
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Amat<T>::get_iA22(evolm::smatrix<T>&, std::vector<std::int64_t>&, std::vector<std::int64_t>&, bool)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Amat<T>::get_iA22(evolm::smatrix<T>&, std::vector<std::int64_t>&, std::vector<std::int64_t>&, bool)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Amat<T>::get_iA22(evolm::smatrix<T>&, std::vector<std::int64_t>&, std::vector<std::int64_t>&, bool)" << '\n';
+            throw;
+        }
+    }
+
+    template void Amat<float>::get_iA22(evolm::smatrix<float>& full_matr, std::vector<std::int64_t>& matr_ids, std::vector<std::int64_t>& selected_ids);
+    template void Amat<double>::get_iA22(evolm::smatrix<double>& full_matr, std::vector<std::int64_t>& matr_ids, std::vector<std::int64_t>& selected_ids);
+
+    //===============================================================================================================
+
+    template <typename T>
+    void Amat<T>::fread_pedigree(const std::string &ped_file, std::map<PedPair, PedPair> &out_ped, std::vector<std::int64_t> &out_ids)
     {
         try
         {
@@ -632,7 +1074,7 @@ namespace evoped
 
             char *end;
             const char *p;
-            std::vector<double> tmp_list;
+            std::vector<T> tmp_list;
 
             std::ifstream ped;
             ped.open(ped_file, std::fstream::in);
@@ -643,7 +1085,7 @@ namespace evoped
             while (getline(ped, line))
             {
                 p = line.c_str();
-                for (double f = std::strtod(p, &end); p != end; f = std::strtod(p, &end))
+                for (T f = std::strtod(p, &end); p != end; f = std::strtod(p, &end))
                 {
                     p = end;
                     if (errno == ERANGE)
@@ -675,26 +1117,30 @@ namespace evoped
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Amat::fread_pedigree(const std::string &, std::map<PedPair, PedPair> &, std::vector<std::int64_t> &)" << '\n';
+            std::cerr << "Exception in Amat<T>::fread_pedigree(const std::string &, std::map<PedPair, PedPair> &, std::vector<std::int64_t> &)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Amat::fread_pedigree(const std::string &, std::map<PedPair, PedPair> &, std::vector<std::int64_t> &)" << '\n';
+            std::cerr << "Exception in Amat<T>::fread_pedigree(const std::string &, std::map<PedPair, PedPair> &, std::vector<std::int64_t> &)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Amat::fread_pedigree(const std::string &, std::map<PedPair, PedPair> &, std::vector<std::int64_t> &)" << '\n';
+            std::cerr << "Exception in Amat<T>::fread_pedigree(const std::string &, std::map<PedPair, PedPair> &, std::vector<std::int64_t> &)" << '\n';
             throw;
         }
     }
 
+    template void Amat<float>::fread_pedigree(const std::string &ped_file, std::map<PedPair, PedPair> &out_ped, std::vector<std::int64_t> &out_ids);
+    template void Amat<double>::fread_pedigree(const std::string &ped_file, std::map<PedPair, PedPair> &out_ped, std::vector<std::int64_t> &out_ids);
+
     //===============================================================================================================
 
-    void Amat::fread_genotyped_id(const std::string &g_file, std::vector<std::int64_t> &out_ids)
+    template <typename T>
+    void Amat<T>::fread_genotyped_id(const std::string &g_file, std::vector<std::int64_t> &out_ids)
     {
         // reads genotyped and core IDs from typed file into the vectors: genotyped, core
         try
@@ -707,7 +1153,7 @@ namespace evoped
 
             char *end;
             const char *p;
-            std::vector<double> tmp_list;
+            std::vector<T> tmp_list;
 
             std::ifstream ped;
             ped.open(g_file, std::fstream::in);
@@ -719,7 +1165,7 @@ namespace evoped
             {
                 p = line.c_str();
 
-                for (double f = std::strtod(p, &end); p != end; f = std::strtod(p, &end))
+                for (T f = std::strtod(p, &end); p != end; f = std::strtod(p, &end))
                 {
                     p = end;
                     if (errno == ERANGE)
@@ -755,26 +1201,30 @@ namespace evoped
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Amat::fread_genotyped_id(const std::string &, std::vector<std::int64_t> &)" << '\n';
+            std::cerr << "Exception in Amat<T>::fread_genotyped_id(const std::string &, std::vector<std::int64_t> &)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Amat::fread_genotyped_id(const std::string &, std::vector<std::int64_t> &)" << '\n';
+            std::cerr << "Exception in Amat<T>::fread_genotyped_id(const std::string &, std::vector<std::int64_t> &)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Amat::fread_genotyped_id(const std::string &, std::vector<std::int64_t> &)" << '\n';
+            std::cerr << "Exception in Amat<T>::fread_genotyped_id(const std::string &, std::vector<std::int64_t> &)" << '\n';
             throw;
         }
     }
 
+    template void Amat<float>::fread_genotyped_id(const std::string &g_file, std::vector<std::int64_t> &out_ids);
+    template void Amat<double>::fread_genotyped_id(const std::string &g_file, std::vector<std::int64_t> &out_ids);
+
     //===============================================================================================================
 
-    void Amat::trace_pedigree(std::map<PedPair, PedPair> &in_ped, std::map<PedPair, PedPair> &out_ped, std::vector<std::int64_t> &traced_id)
+    template <typename T>
+    void Amat<T>::trace_pedigree(std::map<PedPair, PedPair> &in_ped, std::map<PedPair, PedPair> &out_ped, std::vector<std::int64_t> &traced_id)
     {
         try
         {
@@ -865,26 +1315,30 @@ namespace evoped
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Amat::trace_pedigree(std::map<PedPair, PedPair> &, std::map<PedPair, PedPair> &, std::vector<std::int64_t> &)" << '\n';
+            std::cerr << "Exception in Amat<T>::trace_pedigree(std::map<PedPair, PedPair> &, std::map<PedPair, PedPair> &, std::vector<std::int64_t> &)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Amat::trace_pedigree(std::map<PedPair, PedPair> &, std::map<PedPair, PedPair> &, std::vector<std::int64_t> &)" << '\n';
+            std::cerr << "Exception in Amat<T>::trace_pedigree(std::map<PedPair, PedPair> &, std::map<PedPair, PedPair> &, std::vector<std::int64_t> &)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Amat::trace_pedigree(std::map<PedPair, PedPair> &, std::map<PedPair, PedPair> &, std::vector<std::int64_t> &)" << '\n';
+            std::cerr << "Exception in Amat<T>::trace_pedigree(std::map<PedPair, PedPair> &, std::map<PedPair, PedPair> &, std::vector<std::int64_t> &)" << '\n';
             throw;
         }
     }
 
+    template void Amat<float>::trace_pedigree(std::map<PedPair, PedPair> &in_ped, std::map<PedPair, PedPair> &out_ped, std::vector<std::int64_t> &traced_id);
+    template void Amat<double>::trace_pedigree(std::map<PedPair, PedPair> &in_ped, std::map<PedPair, PedPair> &out_ped, std::vector<std::int64_t> &traced_id);
+
     //===============================================================================================================
 
-    std::int64_t Amat::pos_inped(std::map<std::int64_t, std::int64_t> &codemap, std::int64_t id)
+    template <typename T>
+    std::int64_t Amat<T>::pos_inped(std::map<std::int64_t, std::int64_t> &codemap, std::int64_t id)
     {
         try
         {
@@ -897,26 +1351,30 @@ namespace evoped
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Amat::pos_inped(std::map<std::int64_t, std::int64_t> &, std::int64_t)" << '\n';
+            std::cerr << "Exception in Amat<T>::pos_inped(std::map<std::int64_t, std::int64_t> &, std::int64_t)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Amat::pos_inped(std::map<std::int64_t, std::int64_t> &, std::int64_t)" << '\n';
+            std::cerr << "Exception in Amat<T>::pos_inped(std::map<std::int64_t, std::int64_t> &, std::int64_t)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Amat::pos_inped(std::map<std::int64_t, std::int64_t> &, std::int64_t)" << '\n';
+            std::cerr << "Exception in Amat<T>::pos_inped(std::map<std::int64_t, std::int64_t> &, std::int64_t)" << '\n';
             throw;
         }
     }
 
+    template std::int64_t Amat<float>::pos_inped(std::map<std::int64_t, std::int64_t> &codemap, std::int64_t id);
+    template std::int64_t Amat<double>::pos_inped(std::map<std::int64_t, std::int64_t> &codemap, std::int64_t id);
+
     //===============================================================================================================
 
-    void Amat::get_dinv(std::map<PedPair, PedPair> &ped, std::vector<double> &dinv, bool inbreed)
+    template <typename T>
+    void Amat<T>::get_dinv(std::map<PedPair, PedPair> &ped, std::vector<T> &dinv, bool inbreed)
     {
         // diagonal elements of A(-1)
         // Algorithm: M.Sargolzaei et al. 'A fast algorithm for computing inbreeding ...' (works correct!)
@@ -953,9 +1411,9 @@ namespace evoped
                 std::vector<std::int64_t> Link(m, 0);                                                  // will contain new ID of ancestors at position of their original ID
                 std::vector<std::int64_t> MaxIdP(m + 1, 0);                                            // will contain maximum new ID of parents for each paternal group at position of the new ID of each sire
 
-                std::vector<double> F((n + 1), 0.0); // inbreeding coefficients
-                std::vector<double> B((m + 1), 0.0); // within family segregation variances
-                std::vector<double> x((m + 1), 0.0); // x arrays
+                std::vector<T> F((n + 1), 0.0); // inbreeding coefficients
+                std::vector<T> B((m + 1), 0.0); // within family segregation variances
+                std::vector<T> x((m + 1), 0.0); // x arrays
 
                 // set values for the unknown parent
                 F[0] = -1.0;
@@ -1064,17 +1522,17 @@ namespace evoped
 
                     if (s && d)
                     {
-                        double g = 1.0 / (0.5 - 0.25 * (F[s] + F[d]));
+                        T g = 1.0 / (0.5 - 0.25 * (F[s] + F[d]));
                         dinv.push_back(g);
                     }
                     else if (!s && !d)
                     {
-                        double g = 1.0;
+                        T g = 1.0;
                         dinv.push_back(g);
                     }
                     else
                     {
-                        double g;
+                        T g;
                         if (s)
                             g = 1.0 / (0.75 - 0.25 * (F[s]));
                         else
@@ -1104,37 +1562,41 @@ namespace evoped
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Amat::get_dinv(std::map<PedPair, PedPair> &, std::vector<double> &, bool)" << '\n';
+            std::cerr << "Exception in Amat<T>::get_dinv(std::map<PedPair, PedPair> &, std::vector<T> &, bool)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Amat::get_dinv(std::map<PedPair, PedPair> &, std::vector<double> &, bool)" << '\n';
+            std::cerr << "Exception in Amat<T>::get_dinv(std::map<PedPair, PedPair> &, std::vector<T> &, bool)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Amat::get_dinv(std::map<PedPair, PedPair> &, std::vector<double> &, bool)" << '\n';
+            std::cerr << "Exception in Amat<T>::get_dinv(std::map<PedPair, PedPair> &, std::vector<T> &, bool)" << '\n';
             throw;
         }
     }
 
+    template void Amat<float>::get_dinv(std::map<PedPair, PedPair> &ped, std::vector<float> &dinv, bool inbreed);
+    template void Amat<double>::get_dinv(std::map<PedPair, PedPair> &ped, std::vector<double> &dinv, bool inbreed);
+
     //===============================================================================================================
 
-    void Amat::get_ainv(std::map<PedPair, PedPair> &ped, std::map<PedPair, double> &ai, bool inbreed)
+    template <typename T>
+    void Amat<T>::get_ainv(std::map<PedPair, PedPair> &ped, std::map<PedPair, T> &ai, bool inbreed)
     {
         // Calculates A(-1) matrix (as map representation)
         try
         {
             PedPair akey;
-            std::vector<double> di; // store D(-1)
+            std::vector<T> di; // store D(-1)
 
             get_dinv(ped, di, inbreed);
 
             std::int64_t s, d, id;
-            double dinv;
+            T dinv;
 
             for (auto const &elem : ped)
             {
@@ -1238,26 +1700,30 @@ namespace evoped
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Amat::get_ainv(std::map<PedPair, PedPair> &, std::map<PedPair, double> &, bool)" << '\n';
+            std::cerr << "Exception in Amat<T>::get_ainv(std::map<PedPair, PedPair> &, std::map<PedPair, T> &, bool)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Amat::get_ainv(std::map<PedPair, PedPair> &, std::map<PedPair, double> &, bool)" << '\n';
+            std::cerr << "Exception in Amat<T>::get_ainv(std::map<PedPair, PedPair> &, std::map<PedPair, T> &, bool)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Amat::get_ainv(std::map<PedPair, PedPair> &, std::map<PedPair, double> &, bool)" << '\n';
+            std::cerr << "Exception in Amat<T>::get_ainv(std::map<PedPair, PedPair> &, std::map<PedPair, T> &, bool)" << '\n';
             throw;
         }
     }
 
+    template void Amat<float>::get_ainv(std::map<PedPair, PedPair> &ped, std::map<PedPair, float> &ai, bool inbreed);
+    template void Amat<double>::get_ainv(std::map<PedPair, PedPair> &ped, std::map<PedPair, double> &ai, bool inbreed);
+
     //===============================================================================================================
 
-    void Amat::get_a(std::map<PedPair, PedPair> &in_ped, std::map<PedPair, double> &out_a)
+    template <typename T>
+    void Amat<T>::get_a(std::map<PedPair, PedPair> &in_ped, std::map<PedPair, T> &out_a)
     {
         // Calculates A matrix (as map representation)
         try
@@ -1382,26 +1848,30 @@ namespace evoped
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Amat::get_a(std::map<PedPair, PedPair> &, std::map<PedPair, double> &)" << '\n';
+            std::cerr << "Exception in Amat<T>::get_a(std::map<PedPair, PedPair> &, std::map<PedPair, T> &)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Amat::get_a(std::map<PedPair, PedPair> &, std::map<PedPair, double> &)" << '\n';
+            std::cerr << "Exception in Amat<T>::get_a(std::map<PedPair, PedPair> &, std::map<PedPair, T> &)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Amat::get_a(std::map<PedPair, PedPair> &, std::map<PedPair, double> &)" << '\n';
+            std::cerr << "Exception in Amat<T>::get_a(std::map<PedPair, PedPair> &, std::map<PedPair, T> &)" << '\n';
             throw;
         }
     }
 
+    template void Amat<float>::get_a(std::map<PedPair, PedPair> &in_ped, std::map<PedPair, float> &out_a);
+    template void Amat<double>::get_a(std::map<PedPair, PedPair> &in_ped, std::map<PedPair, double> &out_a);
+
     //===============================================================================================================
 
-    void Amat::get_inbreeding(std::vector<double> &out)
+    template <typename T>
+    void Amat<T>::get_inbreeding(std::vector<T> &out)
     {
         try
         {
@@ -1409,73 +1879,81 @@ namespace evoped
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Amat::get_inbreeding(std::vector<double> &)" << '\n';
+            std::cerr << "Exception in Amat<T>::get_inbreeding(std::vector<T> &)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Amat::get_inbreeding(std::vector<double> &)" << '\n';
+            std::cerr << "Exception in Amat<T>::get_inbreeding(std::vector<T> &)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Amat::get_inbreeding(std::vector<double> &)" << '\n';
+            std::cerr << "Exception in Amat<T>::get_inbreeding(std::vector<T> &)" << '\n';
             throw;
         }
     }
 
+    template void Amat<float>::get_inbreeding(std::vector<float> &out);
+    template void Amat<double>::get_inbreeding(std::vector<double> &out);
+
     //===============================================================================================================
     
-        void Amat::clear()
+    template <typename T>
+    void Amat<T>::clear()
+    {
+        try
         {
-            try
-            {
-                birth_id_map.clear();
-                A.fclear();
-                A.clear();                
-                traced_pedID.clear();
-                traced_pedID.shrink_to_fit();
-                inbrF.clear();
-                inbrF.shrink_to_fit();
-                iA.fclear();
-                iA.clear();
-                irA.fclear();                
-                irA.clear();
-                iA22.fclear();
-                iA22.clear();
-                A22.fclear();
-                A22.clear();                
-                id_iA.clear();
-                id_iA.shrink_to_fit();
-                id_irA.clear();
-                id_irA.shrink_to_fit();
-                id_A22.clear();
-                id_A22.shrink_to_fit();
-            }
-            catch (const std::exception &e)
-            {
-                std::cerr << "Exception in Amat::clear()" << '\n';
-                std::cerr << e.what() << '\n';
-                throw;
-            }
-            catch (const std::string &e)
-            {
-                std::cerr << "Exception in Amat::clear()" << '\n';
-                std::cerr << "Reason: " << e << '\n';
-                throw;
-            }
-            catch (...)
-            {
-                std::cerr << "Exception in Amat::clear()" << '\n';
-                throw;
-            }
+            birth_id_map.clear();
+            A.fclear();
+            A.clear();                
+            traced_pedID.clear();
+            traced_pedID.shrink_to_fit();
+            inbrF.clear();
+            inbrF.shrink_to_fit();
+            iA.fclear();
+            iA.clear();
+            irA.fclear();                
+            irA.clear();
+            iA22.fclear();
+            iA22.clear();
+            A22.fclear();
+            A22.clear();                
+            id_iA.clear();
+            id_iA.shrink_to_fit();
+            id_irA.clear();
+            id_irA.shrink_to_fit();
+            id_A22.clear();
+            id_A22.shrink_to_fit();
         }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Amat<T>::clear()" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Amat<T>::clear()" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Amat<T>::clear()" << '\n';
+            throw;
+        }
+    }
+
+    template void Amat<float>::clear();
+    template void Amat<double>::clear();
 
     //===============================================================================================================
 
-    void Amat::get_matrix(const std::string &name, evolm::matrix<double> &arr, std::vector<std::int64_t> &out, bool keep_ondisk)
+    template <typename T>
+    void Amat<T>::get_matrix(const std::string &name, evolm::matrix<T> &arr, std::vector<std::int64_t> &out, bool keep_ondisk)
     {
         // Note, we operate with L-stored format, hence return lower triangular part
         try
@@ -1563,26 +2041,132 @@ namespace evoped
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Amat::get_matrix(const std::string &, evolm::matrix<double> &, std::vector<std::int64_t> &, bool)" << '\n';
+            std::cerr << "Exception in Amat<T>::get_matrix(const std::string &, evolm::matrix<T> &, std::vector<std::int64_t> &, bool)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Amat::get_matrix(const std::string &, evolm::matrix<double> &, std::vector<std::int64_t> &, bool)" << '\n';
+            std::cerr << "Exception in Amat<T>::get_matrix(const std::string &, evolm::matrix<T> &, std::vector<std::int64_t> &, bool)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Amat::get_matrix(const std::string &, evolm::matrix<double> &, std::vector<std::int64_t> &, bool)" << '\n';
+            std::cerr << "Exception in Amat<T>::get_matrix(const std::string &, evolm::matrix<T> &, std::vector<std::int64_t> &, bool)" << '\n';
             throw;
         }
     }
 
+    template void Amat<float>::get_matrix(const std::string &name, evolm::matrix<float> &arr, std::vector<std::int64_t> &out, bool keep_ondisk);
+    template void Amat<double>::get_matrix(const std::string &name, evolm::matrix<double> &arr, std::vector<std::int64_t> &out, bool keep_ondisk);
+
     //===============================================================================================================
 
-    void Amat::get_matrix(const std::string &name, std::vector<double> &arr, std::vector<std::int64_t> &out, bool keep_ondisk)
+    template <typename T>
+    void Amat<T>::get_matrix(const std::string &name, evolm::smatrix<T> &arr, std::vector<std::int64_t> &out, bool keep_ondisk)
+    {
+        // Note, we operate with L-stored format, hence return lower triangular part
+        try
+        {
+            if ( name == "A" )
+            {
+                // we use iA as a container for A as well
+                iA_s.fread();
+                arr = iA_s;
+                out = id_iA;
+                if (keep_ondisk)
+                    iA_s.fwrite();
+                else
+                {
+                    iA_s.fclear();
+                    iA_s.clear();
+                }
+            }
+            if ( name == "rA" )
+            {
+                // we use irA as a container for rA as well
+                irA_s.fread();
+                arr = irA_s;
+                out = id_irA;
+                if (keep_ondisk)
+                    irA_s.fwrite();
+                else
+                {
+                    irA_s.fclear();
+                    irA_s.clear();
+                }
+            }
+            if ( name == "iA" )
+            {
+                iA_s.fread();
+                arr = iA_s;
+                out = id_iA;
+                if (keep_ondisk)
+                    iA_s.fwrite();
+                else
+                {
+                    iA_s.fclear();
+                    iA_s.clear();
+                }
+            }
+            if ( name == "irA" )
+            {
+                irA_s.fread();
+                arr = irA_s;
+                out = id_irA;
+                if (keep_ondisk)
+                    irA_s.fwrite();
+                else
+                {
+                    irA_s.fclear();
+                    irA_s.clear();
+                }
+            }
+            if ( name == "iA22" )
+            {
+                iA22_s.fread();
+                arr = iA22_s;
+                out = id_A22;
+                if (keep_ondisk)
+                    iA22_s.fwrite();
+                else
+                {
+                    iA22_s.fclear();
+                    iA22_s.clear();
+                }
+            }
+            if ( name == "A22" ) // this is always dense
+            {
+                throw std::string("The A22 matrix is always dense. Use the same but overloaded method which allows dense matrices!");
+            }
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Amat<T>::get_matrix(const std::string &, evolm::smatrix<T> &, std::vector<std::int64_t> &, bool)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Amat<T>::get_matrix(const std::string &, evolm::smatrix<T> &, std::vector<std::int64_t> &, bool)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Amat<T>::get_matrix(const std::string &, evolm::smatrix<T> &, std::vector<std::int64_t> &, bool)" << '\n';
+            throw;
+        }
+    }
+
+    template void Amat<float>::get_matrix(const std::string &name, evolm::smatrix<float> &arr, std::vector<std::int64_t> &out, bool keep_ondisk);
+    template void Amat<double>::get_matrix(const std::string &name, evolm::smatrix<double> &arr, std::vector<std::int64_t> &out, bool keep_ondisk);
+
+    //===============================================================================================================
+
+    template <typename T>
+    void Amat<T>::get_matrix(const std::string &name, std::vector<T> &arr, std::vector<std::int64_t> &out, bool keep_ondisk)
     {
         // This method is for Python interfacing;
         // Note, we operate with L-stored format, hence return lower triangular part
@@ -1671,26 +2255,30 @@ namespace evoped
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Amat::get_matrix(const std::string &, std::vector<double> &, std::vector<std::int64_t> &, bool)" << '\n';
+            std::cerr << "Exception in Amat<T>::get_matrix(const std::string &, std::vector<T> &, std::vector<std::int64_t> &, bool)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Amat::get_matrix(const std::string &, std::vector<double> &, std::vector<std::int64_t> &, bool)" << '\n';
+            std::cerr << "Exception in Amat<T>::get_matrix(const std::string &, std::vector<T> &, std::vector<std::int64_t> &, bool)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Amat::get_matrix(const std::string &, std::vector<double> &, std::vector<std::int64_t> &, bool)" << '\n';
+            std::cerr << "Exception in Amat<T>::get_matrix(const std::string &, std::vector<T> &, std::vector<std::int64_t> &, bool)" << '\n';
             throw;
         }
     }
 
+    template void Amat<float>::get_matrix(const std::string &name, std::vector<float> &arr, std::vector<std::int64_t> &out, bool keep_ondisk);
+    template void Amat<double>::get_matrix(const std::string &name, std::vector<double> &arr, std::vector<std::int64_t> &out, bool keep_ondisk);
+
     //===============================================================================================================
 
-    void Amat::get_A22(std::map <PedPair, PedPair> &ped, std::vector<std::int64_t> &genotypedID)
+    template <typename T>
+    void Amat<T>::get_A22(std::map <PedPair, PedPair> &ped, std::vector<std::int64_t> &genotypedID)
     {
         try
         {
@@ -1730,7 +2318,7 @@ namespace evoped
     #pragma omp parallel for
             for (size_t i = 0; i < m; i++)
             {
-                std::vector<double> w(n+1, 0.0);
+                std::vector<T> w(n+1, 0.0);
                 std::vector<std::int64_t> v(n+1, 0);
 
                 size_t ii = gen_map[GenID[i]]; // gives position of recoded (1...n) genotyped IDs
@@ -1748,31 +2336,35 @@ namespace evoped
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Amat::get_A22(std::map <PedPai, PedPair> &, std::vector<std::int64_t> &, evolm::matrix<double> &)" << '\n';
+            std::cerr << "Exception in Amat<T>::get_A22(std::map <PedPai, PedPair> &, std::vector<std::int64_t> &, evolm::matrix<T> &)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Amat::get_A22(std::map <PedPai, PedPai> &, std::vector<std::int64_t> &, evolm::matrix<double> &)" << '\n';
+            std::cerr << "Exception in Amat<T>::get_A22(std::map <PedPai, PedPai> &, std::vector<std::int64_t> &, evolm::matrix<T> &)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Amat::get_A22(std::map <PedPai, PedPai> &, std::vector<std::int64_t> &, evolm::matrix<double> &)" << '\n';
+            std::cerr << "Exception in Amat<T>::get_A22(std::map <PedPai, PedPai> &, std::vector<std::int64_t> &, evolm::matrix<T> &)" << '\n';
             throw;
         }
     }
 
+    template void Amat<float>::get_A22(std::map <PedPair, PedPair> &ped, std::vector<std::int64_t> &genotypedID);
+    template void Amat<double>::get_A22(std::map <PedPair, PedPair> &ped, std::vector<std::int64_t> &genotypedID);
+
     //===============================================================================================================
 
-    void Amat::getA22vector(std::vector <double> &w, std::vector <std::int64_t> &v, std::vector<std::vector<std::int64_t> > &Ped)
+    template <typename T>
+    void Amat<T>::getA22vector(std::vector <T> &w, std::vector <std::int64_t> &v, std::vector<std::vector<std::int64_t> > &Ped)
     {
         try
         {
             size_t n = w.size()-1;
-            std::vector<double> q(n+1, 0.0);
+            std::vector<T> q(n+1, 0.0);
 
             for (size_t i = n; i >= 1; i--) {
                 q[i] += v[i];
@@ -1787,7 +2379,7 @@ namespace evoped
                 auto s = Ped[i][0];
                 auto d = Ped[i][1];
                 auto di = (std::count (Ped[i].begin(), Ped[i].end(), 0)+2.0)/4.0 - 0.25 * (inbrF[s] + inbrF[d]);
-                double temp = 0.0;
+                T temp = (T)0;
                 if (s) temp += w[s];
                 if (d) temp += w[d];
                 w[i] = 0.5*temp;
@@ -1796,22 +2388,25 @@ namespace evoped
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Amat::getA22vector(std::vector <double> &, std::vector <std::int64_t> &, std::vector<std::vector<std::int64_t> > &)" << '\n';
+            std::cerr << "Exception in Amat<T>::getA22vector(std::vector <T> &, std::vector <std::int64_t> &, std::vector<std::vector<std::int64_t> > &)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Amat::getA22vector(std::vector <double> &, std::vector <std::int64_t> &, std::vector<std::vector<std::int64_t> > &)" << '\n';
+            std::cerr << "Exception in Amat<T>::getA22vector(std::vector <T> &, std::vector <std::int64_t> &, std::vector<std::vector<std::int64_t> > &)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Amat::getA22vector(std::vector <double> &, std::vector <std::int64_t> &, std::vector<std::vector<std::int64_t> > &)" << '\n';
+            std::cerr << "Exception in Amat<T>::getA22vector(std::vector <T> &, std::vector <std::int64_t> &, std::vector<std::vector<std::int64_t> > &)" << '\n';
             throw;
         }
     }
+
+    template void Amat<float>::getA22vector(std::vector <float> &w, std::vector <std::int64_t> &v, std::vector<std::vector<std::int64_t> > &Ped);
+    template void Amat<double>::getA22vector(std::vector <double> &w, std::vector <std::int64_t> &v, std::vector<std::vector<std::int64_t> > &Ped);
 
     //===============================================================================================================
 

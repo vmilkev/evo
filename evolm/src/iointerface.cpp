@@ -4,6 +4,48 @@ namespace evolm
 {
         //===============================================================================================================
 
+        IOInterface::IOInterface()
+        {
+                try
+                {
+                        miss_constant = -999.0;
+                }
+                catch (const std::exception &e)
+                {
+                        std::cerr << "Exception in IOInterface::IOInterface()" << '\n';
+                        std::cerr << e.what() << '\n';
+                        throw e;
+                }
+                catch (...)
+                {
+                        std::cerr << "Exception in IOInterface::IOInterface()" << '\n';
+                        throw;
+                }
+        }
+
+        //===============================================================================================================
+
+        void IOInterface::set_missing(float val)
+        {
+                try
+                {
+                        miss_constant = val;
+                }
+                catch (const std::exception &e)
+                {
+                        std::cerr << "Exception in IOInterface::set_missing(float)" << '\n';
+                        std::cerr << e.what() << '\n';
+                        throw e;
+                }
+                catch (...)
+                {
+                        std::cerr << "Exception in IOInterface::set_missing(float)" << '\n';
+                        throw;
+                }
+        }
+
+        //===============================================================================================================
+
         void IOInterface::set_fname(std::string file)
         {
                 try
@@ -292,11 +334,13 @@ namespace evolm
 
         //===============================================================================================================
 
-        void IOInterface::fgetvar(std::string &var_name, Effects &out_var)
+        void IOInterface::fgetvar( const std::string &var_name, Effects &out_var, const std::string &ref_var )
         {
                 /*
                         Extract a data for a specific variable accessed by the name 'var_name';
-                        and convert it to an effects matrix according to a determined type of the data.
+                        cConvert it to an effects matrix according to a determined type of the data;
+                        Variable ref_var (usually observation var) is used as reference to track missing records,
+                        the missing values pointed by miss_constant member.
 
                         File format:
 
@@ -478,19 +522,19 @@ namespace evolm
                 }
                 catch (const std::exception &e)
                 {
-                        std::cerr << "Exception in IOInterface::fgetvar(std::string &, Effects &)" << '\n';
+                        std::cerr << "Exception in IOInterface::fgetvar(const std::string &, Effects &, const std::string &)" << '\n';
                         std::cerr << "Reason => " << e.what() << '\n';
                         throw e;
                 }
                 catch (const std::string err)
                 {
-                        std::cerr << "Exception in IOInterface::fgetvar(std::string &, Effects &)" << '\n';
+                        std::cerr << "Exception in IOInterface::fgetvar(const std::string &, Effects &, const std::string &)" << '\n';
                         std::cerr << "Reason => " << err << '\n';
                         throw err;
                 }
                 catch (...)
                 {
-                        std::cerr << "Exception in IOInterface::fgetvar(std::string &, Effects &)" << '\n';
+                        std::cerr << "Exception in IOInterface::fgetvar(const std::string &, Effects &, const std::string &)" << '\n';
                         throw;
                 }
         }
@@ -718,12 +762,12 @@ namespace evolm
                 try
                 {
                         std::regex boolean_expr = std::regex("^false|true$");  // type 1
-                        std::regex float_expr = std::regex("^\\d+\\.\\d+$");   // type 2
+                        std::regex float_expr = std::regex("^[+-]?([0-9]+([.][0-9]*)|[.][0-9]+)$");//("^\\d+\\.\\d+$");   // type 2
                         std::regex integer_expr = std::regex("^\\d+$");        // type 3
                         std::regex string_expr = std::regex("[a-zA-Z_#0-9]+"); // type 4
 
                         int datatype = 0;
-
+//std::cout<<"str_token: "<<str_token<<"\n";
                         if (std::regex_match(str_token, boolean_expr))
                                 datatype = 1;
                         else if (std::regex_match(str_token, float_expr))
