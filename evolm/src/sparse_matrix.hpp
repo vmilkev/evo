@@ -15,6 +15,7 @@
 
 #include <stdlib.h>*/
 #include <map>
+#include <unordered_map>
 
 #ifndef _min
 #define _min(x, y) (((x) < (y)) ? (x) : (y))

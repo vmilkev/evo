@@ -11,7 +11,7 @@ EXTSRC := ../evolm/src
 
 # determine OS and source of BLAS lib
 UNAME_OS := $(shell uname -s)
-SOURSE_BLAS_IS_INTEL := 0
+SOURSE_BLAS_IS_INTEL := 0 # uncomment if do not want to define iit
 
 # determine compiler
 ifeq ($(UNAME_OS),Darwin)
@@ -24,6 +24,10 @@ else
 		CXX := g++
 	endif
 endif
+
+$(info $$CXX is [${CXX}])
+$(info $$UNAME_OS is [${UNAME_OS}])
+$(info $$SOURSE_BLAS_IS_INTEL is [${SOURSE_BLAS_IS_INTEL}])
 
 PWDADDR := $(shell pwd)
 PYBINDINCL := $(shell python3 -m pybind11 --includes)
@@ -51,15 +55,15 @@ else
 			
 			EXTRA_CFLAGS := -O3 -qopenmp -D UTEST -D intelmkl -Wall -DMKL_ILP64 -I"${MKLROOT}/include" -std=c++17
 						
-			LIBFLAGS_PY := -shared -qopenmp -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_ilp64.a ${MKLROOT}/lib/intel64/libmkl_core.a ${MKLROOT}/lib/intel64/libmkl_intel_thread.a -Wl,--end-group -lpthread -lm
-			LIBFLAGS_TEST := -qopenmp -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_ilp64.a ${MKLROOT}/lib/intel64/libmkl_core.a ${MKLROOT}/lib/intel64/libmkl_intel_thread.a -Wl,--end-group -lpthread -lm
+			LIBFLAGS_PY := -shared -qopenmp -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_ilp64.a ${MKLROOT}/lib/intel64/libmkl_core.a ${MKLROOT}/lib/intel64/libmkl_intel_thread.a -Wl,--end-group -lpthread -lm -ldl
+			LIBFLAGS_TEST := -qopenmp -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_ilp64.a ${MKLROOT}/lib/intel64/libmkl_core.a ${MKLROOT}/lib/intel64/libmkl_intel_thread.a -Wl,--end-group -lpthread -lm -ldl
 			
 			EXTRA_LIBFLAGS :=
 			EXTRA_LIBFLAGS_2 :=
 		else # using openBLAS
-			CFLAGS_APP := -I$(SRCDIR) -I(EXTSRC)
-			CFLAGS_PYLIB := -DPYBIND $(PYBINDINCL) -I(EXTSRC) -fPIC
-			EXTRA_CFLAGS := -Wall -Wextra -pedantic -D UTEST -03 -fopenmp -I/opt/openBLAS/include -std=c++17
+			CFLAGS_APP := -I$(SRCDIR) -I$(EXTSRC)
+			CFLAGS_PYLIB := -DPYBIND $(PYBINDINCL) -I$(EXTSRC) -fPIC
+			EXTRA_CFLAGS := -Wall -Wextra -pedantic -D UTEST -O3 -fopenmp -I/opt/openBLAS/include -std=c++17
 			LIBFLAGS_PY := -shared -lpthread -lm -lgomp /opt/openBLAS/lib/libopenblas.a
 			LIBFLAGS_TEST := -lpthread -lm -lgomp /opt/openBLAS/lib/libopenblas.a
 		endif

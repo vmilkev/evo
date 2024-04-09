@@ -11,7 +11,7 @@ EXTSRC := ../evolm/src
 
 # determine OS and source of BLAS lib
 UNAME_OS := $(shell uname -s)
-SOURSE_BLAS_IS_INTEL := 0
+SOURSE_BLAS_IS_INTEL := 1
 
 # determine compiler
 ifeq ($(UNAME_OS),Darwin)
@@ -29,6 +29,10 @@ endif
 PWDADDR := $(shell pwd)
 PYBINDINCL := $(shell python3 -m pybind11 --includes)
 PYSUFF := $(shell python3-config --extension-suffix)
+
+$(info $$CXX is [${CXX}])
+$(info $$UNAME_OS is [${UNAME_OS}])
+$(info $$SOURSE_BLAS_IS_INTEL is [${SOURSE_BLAS_IS_INTEL}])
 
 ifeq ($(UNAME_OS),Darwin) # using apple's Accelerate
 #	CFLAGS_TEST :=  -I$(SRCDIR) $(PYBINDINCL)
