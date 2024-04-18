@@ -4,6 +4,7 @@ import sys
 sys.path.append('release') # Mac
 
 import evogen
+import numpy as np
 
 def simple_test_all():
     print("Testing Population:")
@@ -77,7 +78,20 @@ def simple_test_all():
     print("Make observations on G:")
     
     G.make_observation(T,env)
-    
+
+    #obs = np.zeros( shape=(1,1), dtype=np.float32 ) # working
+    obs = np.zeros( shape=(1), dtype=np.float32 ) # working
+    G.make_observation(T,env, obs)
+
+    gen = np.zeros( shape=(1), dtype=np.int32 ) # note! it is important to pass a correct typpe!
+    G.make_observation(T,env, obs, gen)
+
+    print("collected observations:")
+    print(obs)
+    print(obs.shape)
+    print(gen.shape)
+    print(gen)
+
     print("pop size = ", pop.size())
     print("pop capacity = ", pop.capacity())
 

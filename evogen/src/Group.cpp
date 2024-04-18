@@ -113,6 +113,9 @@ namespace evogen
 
     size_t Group::size()
     {
+        /*
+            Return the number of different populations consisting the group.
+        */
         size_t out = 0;
 
         try
@@ -144,6 +147,9 @@ namespace evogen
 
     size_t Group::size_at(size_t at)
     {
+        /*
+            Returns the number of individuals in the group belonnging to a population at the position at in the group.
+        */
         size_t out = 0;
 
         try
@@ -178,6 +184,10 @@ namespace evogen
 
     void Group::remove()
     {
+        /*
+            For all individuals in the group: Remove individuals from their original populations and from the group.
+            This is also clears the group.
+        */
         try
         {
             if ( individuals_list.size() > 0 && pop_list.size() > 0 )
@@ -226,6 +236,9 @@ namespace evogen
 
     void Group::add(Population &pop)
     {
+        /*
+            Adds all individuals from the population pop to the group.
+        */
         try
         {
             std::vector<std::reference_wrapper<Population>>::iterator position = std::find( pop_list.begin(), pop_list.end(), std::ref(pop) );
@@ -264,6 +277,9 @@ namespace evogen
 
     void Group::add(Group &grp)
     {
+        /*
+            Adds all individuals from the group grp to the calling group.
+        */
         try
         {
             for (size_t i = 0; i < grp.size(); i++)
@@ -326,6 +342,9 @@ namespace evogen
 
     void Group::add(Population &pop, size_t which_one)
     {
+        /*
+            Adds the specific individual (determined as the position which_one) from the population pop to the group.
+        */
         try
         {
             if ( which_one < 0 || which_one > pop.active_individuals.size()-1 )
@@ -430,6 +449,10 @@ namespace evogen
 
     void Group::move(Population &pop)
     {
+        /*
+            Relocate all individuals in the group to the population pop.
+            The relocated individuals will be removed from their original populations.
+        */
         try
         {
             for (size_t i = 0; i < pop_list.size(); i++)
@@ -624,6 +647,11 @@ namespace evogen
 
     void Group::regroup_newborn( Group &grp )
     {
+        /*
+            Move all new-born individuals from the calling group to another group grp.
+            The individuals will be cleared from the calling group
+            but will retain the connections to their original populations.
+        */
         try
         {
             Group tmp;
@@ -688,6 +716,9 @@ namespace evogen
 
     void Group::aging(int delta_t)
     {
+        /*
+            Adds delta_t to the age of every individual in the group
+        */
         try
         {
             for (size_t i = 0; i < pop_list.size(); i++)
@@ -755,6 +786,10 @@ namespace evogen
 
     void Group::kill()
     {
+        /*
+            Disables all individuals in the calling group.
+            This method changes the alive status of an individual to FALSE.
+        */
         try
         {
             for (size_t i = 0; i < pop_list.size(); i++)
@@ -1175,10 +1210,14 @@ namespace evogen
                 size_t N = out_trvalues.size();
                 size_t M = out_trvalues[0].size();
 
-                //  allocate the buffer
-                pybind11::array_t<float> py_trvalues2 = pybind11::array_t<float>( N * M );
+                // reshape array to match input shape
+                py_trvalues.resize( {N,M}, false );
 
-                pybind11::buffer_info buf2 = py_trvalues2.request();
+                //  allocate the buffer
+                //pybind11::array_t<float> py_trvalues2 = pybind11::array_t<float>( N * M );
+                //int dim1 = py_trvalues.shape()[0], dim2 = py_trvalues.shape()[1];
+
+                pybind11::buffer_info buf2 = py_trvalues.request();
 
                 if (buf2.ndim != 2)
                     throw std::runtime_error("Number of dimensions must be two");
@@ -1190,13 +1229,7 @@ namespace evogen
                         ptr2[ i * M + j ] = out_trvalues[i][j];
                     }
                 }
-                
-                // reshape array to match input shape
-                py_trvalues2.resize({N,M}); // maybe make it as: return py_trvalues ?
-                py_trvalues.resize({N,M});
-
-                py_trvalues = py_trvalues2;
-                //------------------------------
+                // --------------------------------------------------
 
                 trt.ta.clear();
                 trt.te.clear();
@@ -1304,10 +1337,10 @@ namespace evogen
                 size_t N = out_trvalues.size();
                 size_t M = out_trvalues[0].size();
 
-                //  allocate the buffer
-                pybind11::array_t<float> py_trvalues2 = pybind11::array_t<float>( N * M );
+                py_trvalues.resize( {N,M}, false );
 
-                pybind11::buffer_info buf2 = py_trvalues2.request();
+                //  allocate the buffer
+                pybind11::buffer_info buf2 = py_trvalues.request();
 
                 if (buf2.ndim != 2)
                     throw std::runtime_error("Number of dimensions must be two");
@@ -1319,12 +1352,6 @@ namespace evogen
                         ptr2[ i * M + j ] = out_trvalues[i][j];
                     }
                 }
-                
-                // reshape array to match input shape
-                py_trvalues2.resize({N,M}); // maybe make it as: return py_trvalues ?
-                py_trvalues.resize({N,M});
-
-                py_trvalues = py_trvalues2;
                 //------------------------------
 
                 trt.ta.clear();
@@ -1341,10 +1368,12 @@ namespace evogen
                 N = out_genotypes.size();
                 M = out_genotypes[0].size();
 
-                //  allocate the buffer
-                pybind11::array_t<int> py_genotypes2 = pybind11::array_t<int>( N * M );
+                py_genotypes.resize( {N,M}, false );
 
-                pybind11::buffer_info buf3 = py_genotypes2.request();
+                //std::cout<<"indiv, snps: "<<N<<" "<<M<<"\n";
+
+                //  allocate the buffer
+                pybind11::buffer_info buf3 = py_genotypes.request();
 
                 if (buf3.ndim != 2)
                     throw std::runtime_error("Number of dimensions must be two");
@@ -1354,14 +1383,9 @@ namespace evogen
                 for (size_t i = 0; i < N; i++) {
                     for (size_t j = 0; j < M; j++) {
                         ptr3[ i * M + j ] = (int)out_genotypes[i][j];
+                        //std::cout<<"ptr3: "<<ptr3[ i * M + j ]<<"\n";
                     }
                 }
-                
-                // reshape array to match input shape
-                py_genotypes2.resize({N,M}); // maybe make it as: return py_genotypes ?
-                py_genotypes.resize({N,M});
-
-                py_genotypes = py_genotypes2;
                 //--------------------------------------
             }
         }
