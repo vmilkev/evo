@@ -8,12 +8,7 @@
 #include <iostream>
 #include <algorithm>
 #include <math.h>
-
-#ifdef intelmkl
-#include <experimental/filesystem>
-#else
 #include <filesystem>
-#endif
 
 namespace evogen
 {

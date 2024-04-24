@@ -321,11 +321,7 @@ namespace evogen
     {
         try
         {
-#ifdef intelmkl
-            std::experimental::filesystem::remove(file_name);
-#else
             std::filesystem::remove(file_name);
-#endif
         }
         catch (const std::exception &e)
         {

@@ -4,12 +4,7 @@
 #include <iostream>
 #include <random>
 #include <chrono>
-
-#ifdef intelmkl
-#include <experimental/filesystem>
-#else
 #include <filesystem>
-#endif
 
 namespace evogen
 {
