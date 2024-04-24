@@ -20,6 +20,12 @@ namespace evogen
 
     void Population::aging(int delta_t)
     {
+        /*
+            Increase an age of every individual in a population:
+            new_age = current_age + delta_t.
+            delta_t - the amount of time added to the current age of a particular individual;
+                      the time unit is arbitrary.
+        */
         try
         {
             for (size_t i = 0; i < size(); i++)
@@ -267,7 +273,7 @@ namespace evogen
             size_t n_haplotypes = haplotypes.size();
             size_t n_markers = haplotypes[0].size();
 
-            std::cout << "haplotypes, markers: " << n_haplotypes << ". " << n_markers << "\n";
+            //std::cout << "haplotypes, markers: " << n_haplotypes << ". " << n_markers << "\n";
 
             if (n_haplotypes % 2 != 0)
             {

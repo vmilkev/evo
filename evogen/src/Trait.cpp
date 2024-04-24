@@ -1363,10 +1363,10 @@ namespace evogen
             size_t N = out_t.size();
             size_t M = out_t[0].size();
 
-            //  allocate the buffer
-            pybind11::array_t<float> py_trvalues = pybind11::array_t<float>( N * M );
+            py_t.resize( {N,M}, false );
 
-            pybind11::buffer_info buf2 = py_trvalues.request();
+            //  allocate the buffer
+            pybind11::buffer_info buf2 = py_t.request();
 
             if (buf2.ndim != 2)
                 throw std::runtime_error("Number of dimensions must be two");
@@ -1378,12 +1378,6 @@ namespace evogen
                     ptr2[ i * M + j ] = out_t[i][j];
                 }
             }
-            
-            // reshape array to match input shape
-            py_trvalues.resize({N,M}); // maybe make it as: return py_trvalues ?
-            py_t.resize({N,M});
-
-            py_t = py_trvalues;
             //------------------------------
 
             ta.clear();
@@ -1467,10 +1461,10 @@ namespace evogen
             size_t N = out_t.size();
             size_t M = out_t[0].size();
 
-            //  allocate the buffer
-            pybind11::array_t<float> py_trvalues = pybind11::array_t<float>( N * M );
+            py_t.resize( {N,M}, false );
 
-            pybind11::buffer_info buf2 = py_trvalues.request();
+            //  allocate the buffer
+            pybind11::buffer_info buf2 = py_t.request();
 
             if (buf2.ndim != 2)
                 throw std::runtime_error("Number of dimensions must be two");
@@ -1482,12 +1476,6 @@ namespace evogen
                     ptr2[ i * M + j ] = out_t[i][j];
                 }
             }
-            
-            // reshape array to match input shape
-            py_trvalues.resize({N,M}); // maybe make it as: return py_trvalues ?
-            py_t.resize({N,M});
-
-            py_t = py_trvalues;
             //------------------------------
 
             ta.clear();
@@ -1504,10 +1492,10 @@ namespace evogen
             N = out_g.size();
             M = out_g[0].size();
 
-            //  allocate the buffer
-            pybind11::array_t<int> py_genotypes = pybind11::array_t<int>( N * M );
+            py_g.resize( {N,M}, false );
 
-            pybind11::buffer_info buf3 = py_genotypes.request();
+            //  allocate the buffer
+            pybind11::buffer_info buf3 = py_g.request();
 
             if (buf3.ndim != 2)
                 throw std::runtime_error("Number of dimensions must be two");
@@ -1519,14 +1507,7 @@ namespace evogen
                     ptr3[ i * M + j ] = (int)out_g[i][j];
                 }
             }
-            
-            // reshape array to match input shape
-            py_genotypes.resize({N,M}); // maybe make it as: return py_genotypes ?
-            py_g.resize({N,M});
-
-            py_g = py_genotypes;
             //--------------------------------------
-
         }
         catch (const std::exception &e)
         {

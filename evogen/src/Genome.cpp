@@ -281,6 +281,11 @@ namespace evogen
 
     short Genome::asign_snp_variant(float ref_allele_probability)
     {
+        /*
+            ref_allele_probability - is the probability of appearance of a reference allele in a loci
+            snp_variant is 0 => num. of ref. alleles is 1
+            snp_variant is 1 => num. of ref. alleles is 0
+        */
         short snp_variant = 0;
 
         try
@@ -290,9 +295,9 @@ namespace evogen
             int id = u.get_randi(1, 100);
 
             if (id <= ref_allele_probability * 100)
-                snp_variant = 1;
+                snp_variant = 0; // in this loci we observe a reference allele, the snp_variant is 0
             else
-                snp_variant = 0;
+                snp_variant = 1; // in this loci we observe an alternative allele, the snp_variant is 1
         }
         catch (const std::exception &e)
         {
