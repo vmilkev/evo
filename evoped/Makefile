@@ -18,6 +18,7 @@ ifeq ($(UNAME_OS),Darwin)
 #	@echo " Using clang++ compiler ..."
 	CXX := clang++
 else
+	SHELL := /bin/bash
 #	ifeq ( $(SOURSE_BLAS_IS_INTEL), 1)
 	ifdef SOURSE_BLAS_IS_INTEL
 		CXX := icpx
