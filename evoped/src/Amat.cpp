@@ -852,11 +852,34 @@ std::cout<<"   Get sparsity of A11 ..."<<"\n";
                 if (A11d[i] != 0.0)
                     non_zeros++;
             }
-std::cout<<"        sparsity = "<< (1.0-(T)non_zeros/(T)A11d.size())*100.0 <<"\n";
+std::cout<<"        non zeros = "<< non_zeros << ", expected all in rect: "<< not_selected_ids.size()*not_selected_ids.size() <<"\n";
+std::cout<<"        sparsity of symmetric = "<< (1.0-(T)non_zeros/(T)A11d.size())*100.0 <<"\n";
+std::cout<<"        sparsity of rect = "<< (1.0-(T)non_zeros/(T)( not_selected_ids.size()*not_selected_ids.size() ))*100.0 <<"\n";
 
             A11d.symtorec();
+
+std::cout<<"   Get sparsity of rectangular A11 ..."<<"\n";
+            non_zeros = 0;
+            for (size_t i = 0; i < A11d.size(); i++)
+            {
+                if (A11d[i] != 0.0)
+                    non_zeros++;
+            }
+std::cout<<"        non zeros = "<< non_zeros << ", expected all in rect: "<< A11d.size() <<"\n";
+std::cout<<"        sparsity = "<< (1.0-(T)non_zeros/(T)A11d.size())*100.0 <<"\n";
+
 std::cout<<"      inverting A11 ..."<<"\n";
             A11d.invert();
+
+std::cout<<"   Get sparsity of inverted A11 ..."<<"\n";
+            non_zeros = 0;
+            for (size_t i = 0; i < A11d.size(); i++)
+            {
+                if (A11d[i] != 0.0)
+                    non_zeros++;
+            }
+std::cout<<"        non zeros = "<< non_zeros << ", expected all in rect: "<< A11d.size() <<"\n";
+std::cout<<"        sparsity = "<< (1.0-(T)non_zeros/(T)A11d.size())*100.0 <<"\n";
 
 std::cout<<"A11d => A11 ..."<<"\n";
             A11.resize( not_selected_ids.size(), not_selected_ids.size() );

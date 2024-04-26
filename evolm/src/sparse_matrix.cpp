@@ -573,6 +573,8 @@ namespace evolm
         {
             const auto processor_count = std::thread::hardware_concurrency(); //may return 0 when not able to detect
 
+            std::cout<<"cores found: "<<processor_count<<"\n";
+
             size_t n_threads = processor_count;
             size_t map_size = in.size();
             size_t work_load = 0;
@@ -710,7 +712,9 @@ namespace evolm
             rhs.transpose(); // transpose because: res = lhs * transpose(rhs)
             
             std::vector<size_t> loads;
-            thread_loads(rhs,loads); // get the number of rhs's rows per aavailable threads 
+            thread_loads(rhs,loads); // get the number of rhs's rows per aavailable threads
+
+            std::cout<<"v1, num loads: "<<loads.size()<<"\n";
 
             std::vector<size_t> elements_inrow;
             values_inrow(*this, elements_inrow); // get the number of non-zerro elements in each row of lhs
@@ -745,6 +749,8 @@ namespace evolm
 
             std::vector<size_t> loads;
             thread_loads(*this,loads);
+
+            std::cout<<"v2, num loads: "<<loads.size()<<"\n";
 
             std::vector<size_t> elements_inrow;
             values_inrow(rhs, elements_inrow);
