@@ -593,6 +593,8 @@ namespace evolm
                 }
             }
 
+            std::cout<<"use n_threads: "<<n_threads<<", work_load: "<<work_load<<"\n";
+
             typename std::map<size_t,T>::iterator it = in.A.begin();
 
             size_t last_index = work_load; // approx. load
@@ -791,11 +793,13 @@ namespace evolm
                 C.A.insert(vec_matr[i].A.begin(), vec_matr[i].A.end());
                 vec_matr[i].resize();
             }
-
+std::cout<<"C.transpose() ..."<<"\n";
             C.transpose(); // transpose to get correct result because we do transpose(res) = transpose(rhs) * lhs
+std::cout<<"    Done."<<"\n";
         }
-
+std::cout<<"rhs.transpose() ..."<<"\n";
         rhs.transpose(); // return the rhs to the original state, hence transpose it again
+std::cout<<"    Done."<<"\n";
         
         return C;
     }
@@ -1612,7 +1616,7 @@ if (current_element%100 == 0 && thr_id == 0)
             {
                 smatrix<T> C(numCol, numRow); // temporal container for the transposed matrx
 
-                size_t row = 0;
+                /*size_t row = 0;
                 size_t col = 0;
 
                 std::map <size_t, T> B;
@@ -1622,9 +1626,9 @@ if (current_element%100 == 0 && thr_id == 0)
                     row = row_inrec(key); // to which row the key belongs 
                     col = col_inrec(key, row); // knowing the row find the col
                     B[ C.key_inrec(col,row) ] = value;
-                }
+                }*/
 
-                /* This parallel version is not better than consecutive for up to 100K-by-100K matrix (did not tested bigger ...)
+                //This parallel version is not better than consecutive for up to 100K-by-100K matrix (did not tested bigger ...)
                 std::vector<size_t> loads;
                 thread_loads(*this, loads);
 
@@ -1644,7 +1648,7 @@ if (current_element%100 == 0 && thr_id == 0)
                 {
                     C.A.insert( vect_matr[i].A.begin(), vect_matr[i].A.end() );
                     vect_matr[i].resize();
-                }*/
+                }
 
                 size_t new_row = numCol;
                 size_t new_col = numRow;
@@ -1654,9 +1658,11 @@ if (current_element%100 == 0 && thr_id == 0)
 
                 A.clear();
 
-                A.insert(B.begin(), B.end());
+                //A.insert(B.begin(), B.end());
+                A.insert(C.A.begin(), C.A.end());
 
-                B.clear();
+                //B.clear();
+                C.clear();
             }
             else
             {
