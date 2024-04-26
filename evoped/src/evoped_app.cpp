@@ -57,8 +57,11 @@ std::cout<<"making all:"<<"\n";
 
     start = std::chrono::high_resolution_clock::now();
 
-    ap.make_all("/Users/au383883/Documents/MY/codebase/evo/evolm/tests/data/large_data/DMU/data/dmu_pedigree_yy_20240125.txt",
+    /*ap.make_all("/Users/au383883/Documents/MY/codebase/evo/evolm/tests/data/large_data/DMU/data/dmu_pedigree_yy_20240125.txt",
                 "/Users/au383883/Documents/MY/codebase/evo/evolm/tests/data/large_data/DMU/YY/yy.grm.id",
+                true);*/
+    ap.make_all("../evolm/tests/data/large_data/DMU/data/dmu_pedigree_yy_20240125.txt",
+                "../evolm/tests/data/large_data/DMU/YY/yy.grm.id",
                 true);
 
     stop = std::chrono::high_resolution_clock::now();
