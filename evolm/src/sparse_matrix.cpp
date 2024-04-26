@@ -761,13 +761,22 @@ namespace evolm
             ustorage cpy_rhs(rhs);
 
             for(size_t i = 0; i < loads.size(); i++) // for each thread create temp smatrix container holding the results for specific columns
+            {
+                std::cout<<"construccting matrix "<<i<<" with row & col: "<<rhs.numRow<<" "<<numRow<<"\n";
                 vec_matr.emplace_back( rhs.numRow, numRow ); // we use rhs.numRow instead of rhs.numCol because rhs is transposed now
+            }
 
             for(size_t i = 0; i < loads.size(); i++)
+            {
+                std::cout<<"construccting thread "<<i<<" with num elements_inrow: "<<elements_inrow[i]<<"\n";
                 vec_threads.emplace_back( &smatrix::dot_operation_unordered, this, std::ref(cpy_rhs), std::ref(*this), std::ref(vec_matr[i]), std::ref(loads), std::ref(elements_inrow), i );
+            }
 
             for (auto &v : vec_threads)
+            {
+                std::cout<<"joining ..."<<"\n";
                 v.join();
+            }
 
             cpy_rhs.clear();
 

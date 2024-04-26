@@ -852,6 +852,7 @@ std::cout<<"   Get sparsity of A11 ..."<<"\n";
                 if (A11d[i] != 0.0)
                     non_zeros++;
             }
+std::cout<<"        A11d: not_selected_ids.size() is "<<not_selected_ids.size()<<"\n";
 std::cout<<"        non zeros = "<< non_zeros << ", expected all in rect: "<< not_selected_ids.size()*not_selected_ids.size() <<"\n";
 std::cout<<"        sparsity of symmetric = "<< (1.0-(T)non_zeros/(T)A11d.size())*100.0 <<"\n";
 std::cout<<"        sparsity of rect = "<< (1.0-(T)non_zeros/(T)( not_selected_ids.size()*not_selected_ids.size() ))*100.0 <<"\n";
