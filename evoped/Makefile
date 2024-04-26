@@ -34,7 +34,8 @@ $(info $$CXX is [${CXX}])
 $(info $$UNAME_OS is [${UNAME_OS}])
 $(info $$SOURSE_BLAS_IS_INTEL is [${SOURSE_BLAS_IS_INTEL}])
 
-ifeq ($(UNAME_OS),Darwin) # using apple's Accelerate
+ifeq ($(UNAME_OS),Darwin)
+$(info compiling for OpenBlas libs on MacOS)
 #	CFLAGS_TEST :=  -I$(SRCDIR) $(PYBINDINCL)
 	CFLAGS_APP := -I$(SRCDIR) -I$(EXTSRC)
 	CFLAGS_PYLIB := -DPYBIND $(PYBINDINCL) -I$(EXTSRC)
@@ -50,11 +51,12 @@ else
 	ifeq ($(UNAME_OS),Linux)
 #		ifeq ( $(SOURSE_BLAS_IS_INTEL), 1) # using Intel's MKL
 		ifdef SOURSE_BLAS_IS_INTEL
+$(info compiling for Intel libs on Linux)
 #			CFLAGS_TEST :=  -I$(SRCDIR) $(PYBINDINCL) 
 			CFLAGS_APP := -I$(SRCDIR) -I$(EXTSRC)
 			CFLAGS_PYLIB := -DPYBIND $(PYBINDINCL) -I$(EXTSRC) -fPIC
 			
-			EXTRA_CFLAGS := -O3 -qopenmp -D UTEST -D intelmkl -Wall -DMKL_ILP64 -I"${MKLROOT}/include" -std=c++17
+			EXTRA_CFLAGS := -O3 -qopenmp -D UTEST -D intelmkl -Wall -DMKL_ILP64 -I"${MKLROOT}/include" -std=c++17  -pthread
 						
 			LIBFLAGS_PY := -shared -qopenmp -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_ilp64.a ${MKLROOT}/lib/intel64/libmkl_core.a ${MKLROOT}/lib/intel64/libmkl_intel_thread.a -Wl,--end-group -lpthread -lm
 			LIBFLAGS_TEST := -qopenmp -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_ilp64.a ${MKLROOT}/lib/intel64/libmkl_core.a ${MKLROOT}/lib/intel64/libmkl_intel_thread.a -Wl,--end-group -lpthread -lm
@@ -64,7 +66,7 @@ else
 		else # using openBLAS
 			CFLAGS_APP := -I$(SRCDIR) -I(EXTSRC)
 			CFLAGS_PYLIB := -DPYBIND $(PYBINDINCL) -I(EXTSRC) -fPIC
-			EXTRA_CFLAGS := -Wall -Wextra -pedantic -D UTEST -03 -fopenmp -I/opt/openBLAS/include -std=c++17
+			EXTRA_CFLAGS := -Wall -Wextra -pedantic -D UTEST -03 -fopenmp -I/opt/openBLAS/include -std=c++17  -pthread
 			LIBFLAGS_PY := -shared -lpthread -lm -lgomp /opt/openBLAS/lib/libopenblas.a
 			LIBFLAGS_TEST := -lpthread -lm -lgomp /opt/openBLAS/lib/libopenblas.a
 		endif

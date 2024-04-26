@@ -4501,6 +4501,8 @@ namespace evolm
         lapack_int *ipiv;
 
 #ifdef intelmkl
+        std::cout<<"intelmkl is defined"<<"\n";
+
         ipiv = (lapack_int *)mkl_malloc(row * sizeof(lapack_int), sizeof(T) * 8);
 #else
         ipiv = (lapack_int *)malloc(row * sizeof(lapack_int));
@@ -4520,6 +4522,9 @@ namespace evolm
             ipiv[i] = 1;
 
         info = LAPACKE_dgetrf(matrix_order, row, col, _A, col, ipiv);
+
+        std::cout<<"info of LAPACKE_dgetrf: "<<info<<"\n";
+
         //info = LAPACKE_dsytrf( matrix_order, 'L', row, _A, col, ipiv ); // Bunch-Kaufman factorization
     
         if (info != 0)
@@ -4533,6 +4538,9 @@ namespace evolm
         }
 
         info = LAPACKE_dgetri(matrix_order, row, _A, row, ipiv);
+
+        std::cout<<"info of LAPACKE_dgetri: "<<info<<"\n";
+
         //info = LAPACKE_dsytri ( matrix_order, 'L', row, _A, col, ipiv ); // due to Bunch-Kaufman factorization
 
         if (info != 0)
