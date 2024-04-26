@@ -755,6 +755,11 @@ namespace evolm
             std::vector<size_t> elements_inrow;
             values_inrow(rhs, elements_inrow);
 
+            size_t num_elements = 0;
+            for (size_t i = 0; i < elements_inrow.size(); i++)
+                num_elements += elements_inrow[i];
+            std::cout<<"elements_inrow.size() = "<<elements_inrow.size()<<", total elements: "<<num_elements<<"\n";
+
             std::vector<std::thread> vec_threads;
             std::vector< smatrix<T> > vec_matr;
 
@@ -782,6 +787,7 @@ namespace evolm
 
             for(size_t i = 0; i < loads.size(); i++)
             {
+                std::cout<<"gathering results, from thread no. "<<i<<"\n";
                 C.A.insert(vec_matr[i].A.begin(), vec_matr[i].A.end());
                 vec_matr[i].resize();
             }
@@ -1075,7 +1081,7 @@ if (current_element%500 == 0 && thr_id == 0)
                     val_lst.push_back(value); // we are in the new row now, so do not miss very first data
                     it++;
                 }
-if (current_element%500 == 0 && thr_id == 0)
+if (current_element%100 == 0 && thr_id == 0)
     std::cout<<"\rcompletes, %: "<<current_element*100/n_values<<std::flush;
 
             }
