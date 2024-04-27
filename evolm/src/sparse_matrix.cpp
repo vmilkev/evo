@@ -746,13 +746,18 @@ namespace evolm
         else  // the lhs's matrix density is lower than at rhs, hence: transpose(res) = transpose(rhs) * lhs
         {
             C.resize(rhs.numCol, numRow);
-            
+
+std::cout<<"rhs.transpose() ..."<<"\n";            
             rhs.transpose(); // transpose because we do transpose(res) = transpose(rhs) * lhs
+std::cout<<"    Done."<<"\n";
 
             std::vector<size_t> loads;
             thread_loads(*this,loads);
 
-            std::cout<<"v2, num loads: "<<loads.size()<<"\n";
+            std::cout<<"v2, num loads: "<<loads.size()<<"; the first 10 loads:"<<"\n";
+            for (size_t i = 0; i < 10; i++)
+                std::cout<<loads[i]<<" ";
+            std::cout<<"\n";
 
             std::vector<size_t> elements_inrow;
             values_inrow(rhs, elements_inrow);
@@ -1614,9 +1619,9 @@ if (current_element%100 == 0 && thr_id == 0)
 
             if (!compact)
             {
-                smatrix<T> C(numCol, numRow); // temporal container for the transposed matrx
+                /*smatrix<T> C(numCol, numRow); // temporal container for the transposed matrx
 
-                /*size_t row = 0;
+                size_t row = 0;
                 size_t col = 0;
 
                 std::map <size_t, T> B;
@@ -1629,8 +1634,16 @@ if (current_element%100 == 0 && thr_id == 0)
                 }*/
 
                 //This parallel version is not better than consecutive for up to 100K-by-100K matrix (did not tested bigger ...)
+
+                std::cout<<"In transpose, get loads ..."<<"\n";
+
                 std::vector<size_t> loads;
                 thread_loads(*this, loads);
+
+                std::cout<<"Transpose, num loads: "<<loads.size()<<"; the first 10 loads:"<<"\n";
+                for (size_t i = 0; i < 10; i++)
+                    std::cout<<loads[i]<<" ";
+                std::cout<<"\n";
 
                 std::vector<smatrix> vect_matr;
                 std::vector<std::thread> vect_thr;
@@ -1644,12 +1657,6 @@ if (current_element%100 == 0 && thr_id == 0)
                 for(size_t i = 0; i < loads.size(); i++)
                     vect_thr[i].join();
 
-                for(size_t i = 0; i < loads.size(); i++)
-                {
-                    C.A.insert( vect_matr[i].A.begin(), vect_matr[i].A.end() );
-                    vect_matr[i].resize();
-                }
-
                 size_t new_row = numCol;
                 size_t new_col = numRow;
 
@@ -1658,11 +1665,25 @@ if (current_element%100 == 0 && thr_id == 0)
 
                 A.clear();
 
-                //A.insert(B.begin(), B.end());
-                A.insert(C.A.begin(), C.A.end());
+                for(size_t i = 0; i < loads.size(); i++)
+                {
+                    std::cout<<"In transpose, merging ..."<<"\n";
+                    A.insert( vect_matr[i].A.begin(), vect_matr[i].A.end() );
+                    vect_matr[i].resize();
+                }
 
-                //B.clear();
-                C.clear();
+                /*size_t new_row = numCol;
+                size_t new_col = numRow;
+
+                numRow = new_row;
+                numCol = new_col;
+
+                A.clear();
+
+                A.insert(B.begin(), B.end());
+
+                B.clear();
+                C.clear();*/
             }
             else
             {
