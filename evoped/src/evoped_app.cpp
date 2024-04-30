@@ -8,16 +8,21 @@
 
 int main()
 {
-    evoped::Amat<double> ap;
+    evoped::Amat<float> ap;
+
     evolm::matrix<double> iA;
     evolm::smatrix<double> iA_s;
+    evolm::smatrix<float> iA_sf;
     std::vector<std::int64_t> a_id;
     evolm::matrix<double> irA;
     evolm::smatrix<double> irA_s;
+    evolm::smatrix<float> irA_sf;
     std::vector<std::int64_t> ra_id;
     evolm::matrix<double> iA22;
+    evolm::matrix<float> iA22f;
     std::vector<std::int64_t> ai22_id;
     evolm::matrix<double> A22;
+    evolm::matrix<float> A22f;
     std::vector<std::int64_t> a22_id;
 
     evolm::matrix<double> A;
@@ -72,13 +77,13 @@ std::cout<<"making all:"<<"\n";
     //ap.make_all("tests/data/ped_bkg.dat", "tests/data/typed2", false); // reduced A(-1)
 
 std::cout<<"getting iA"<<"\n";
-    ap.get_matrix("iA", iA_s, a_id, false);
+    ap.get_matrix("iA", iA_sf, a_id, false);
 std::cout<<"getting irA"<<"\n";
-    ap.get_matrix("irA", irA_s, ra_id, false);
+    ap.get_matrix("irA", irA_sf, ra_id, false);
 std::cout<<"getting iA22"<<"\n";
-    ap.get_matrix("iA22", iA22, ai22_id, false);
+    ap.get_matrix("iA22", iA22f, ai22_id, false);
 std::cout<<"getting A22"<<"\n";
-    ap.get_matrix("A22", A22, a22_id, false);
+    ap.get_matrix("A22", A22f, a22_id, false);
 
     std::cout<<"n IDs in A(-1): "<<a_id.size()<<"\n";
     //for (auto &e: a_id)

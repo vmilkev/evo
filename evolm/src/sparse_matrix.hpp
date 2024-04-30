@@ -7,13 +7,6 @@
 #include <random>
 #include <thread>
 #include <algorithm>
-/*#include <utility>
-#include <iterator>
-#include <cstring>
-#include <vector>
-#include <typeinfo>
-
-#include <stdlib.h>*/
 #include <map>
 #include <unordered_map>
 
@@ -85,8 +78,96 @@ namespace evolm
             size_t numCol;
             bool compact;
         };
-        
-        std::map <size_t, T> A;                   /* The main matrix container. */
+
+        struct ordstorage
+        {
+            std::map <size_t, T> A;
+
+            ordstorage(const smatrix &obj)
+            {
+                compact = obj.compact;
+                numCol = obj.numCol;
+                numRow = obj.numRow;
+                A.insert(obj.A.begin(), obj.A.end()); //A = obj.A;
+            };
+
+            ~ordstorage()
+            {
+                A.clear();
+            };
+
+            T get_nonzero(size_t atRow, size_t atCol)
+            {
+                typename std::map<size_t, T>::iterator it;
+                size_t key = 0;
+                if (!compact)
+                    key = atRow * numCol + atCol;
+                else
+                    key = atRow * (atRow + 1) / 2 + atCol;
+
+                it = A.find( key );
+
+                if (it != A.end())
+                    return it->second;
+                else
+                    return (T)0;
+            };
+
+            size_t col_inrec(size_t key, size_t row)
+            {
+#ifdef UTEST // use this only when debugging and testing
+                if (compact)
+                    throw std::string("The row_inrec(size_t key, size_t col) should be called only on rectangular matrix!");
+#endif
+                return (size_t) ( key - row * numCol );
+            };
+
+            size_t row_inrec(size_t key, size_t col)
+            {
+#ifdef UTEST // use this only when debugging and testing
+                if (compact)
+                    throw std::string("The row_inrec(size_t key, size_t col) should be called only on rectangular matrix!");
+#endif
+                return (size_t) (key - col) / numCol;
+            };
+
+            size_t row_inrec(size_t key)
+            {
+#ifdef UTEST // use this only when debugging and testing
+                if (compact)
+                    throw std::string("The row_inrec(size_t key, size_t col) should be called only on rectangular matrix!");
+#endif
+                return (size_t)( key / numCol );
+            };
+
+            size_t size()
+            {
+                return A.size();
+            };
+
+            size_t nrows()
+            {
+                return numRow;
+            };
+
+            size_t ncols()
+            {
+                return numCol;
+            };
+
+            void clear()
+            {
+                A.clear();
+            };
+
+            size_t numRow;
+            size_t numCol;
+            bool compact;
+        };
+
+        //std::map <size_t, T> A; /* The main matrix container. */
+        std::unordered_map <size_t, T> A; /* The main matrix container. */
+
         size_t numRow;          /* Number of rows in dense matrix. */
         size_t numCol;          /* Number of columns in dense matrix. */
         size_t max_elements;    /* Number of max possible elements in dense matrix. */
@@ -113,9 +194,10 @@ namespace evolm
         
         size_t find_invect(std::vector<size_t> &where, size_t what); /* finds the specific value in a vector */
         size_t find_inrange(std::vector<size_t> &where, size_t what); /* find the position in vector of the values less then what */
-        void dot_operation_ordered(smatrix &lhs, smatrix &rhs, smatrix &out, std::vector<size_t> &range_vect, size_t thr_id);
         void dot_operation_unordered(ustorage &lhs, smatrix &rhs, smatrix &out, std::vector<size_t> &range_vect, std::vector<size_t> &lhs_elements, size_t thr_id);
-        void thread_loads(smatrix &in, std::vector<size_t> &out);
+        void dot_operation(smatrix &lhs, ordstorage &rhs, smatrix &out, std::vector<size_t> &range_vect, std::vector<size_t> &lhs_elements, size_t thr_id);
+        void thread_loads(smatrix &in, std::vector<size_t> &out, bool simple_distribution);
+        void thread_loads(ordstorage &in, std::vector<size_t> &out, bool simple_distribution);
         void values_inrow(smatrix &in, std::vector<size_t> &out_elements);
         void transpose_operation(smatrix &in, smatrix &out, std::vector<size_t> &loads_vect, size_t thr_id);
 

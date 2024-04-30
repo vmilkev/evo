@@ -264,6 +264,7 @@ namespace evolm
             /*
                 Copy constructor.
             */
+            debug_file = "SMATRIX.log";
             compact = obj.compact;
             rectangular = obj.rectangular;
             symetric = obj.symetric;
@@ -567,7 +568,7 @@ namespace evolm
     //===============================================================================================================
 
     template <typename T>
-    void smatrix<T>::thread_loads(smatrix &in, std::vector<size_t> &out)
+    void smatrix<T>::thread_loads(smatrix &in, std::vector<size_t> &out, bool simple_distribution)
     {        
         try
         {
@@ -595,46 +596,147 @@ namespace evolm
 
             std::cout<<"use n_threads: "<<n_threads<<", work_load: "<<work_load<<"\n";
 
-            typename std::map<size_t,T>::iterator it = in.A.begin();
+            size_t last_index = 0; // approx. load
 
-            size_t last_index = work_load; // approx. load
-
-            while ( last_index < map_size )
+            if ( simple_distribution )
             {
-                std::advance(it, last_index); // move iterator to position of expected last element in the row
-                size_t i_row = in.row_inrec( it->first );
-                size_t next_row = i_row;
-
-                while (next_row == i_row) // find of a very last element of row close to the expected work_load position
+                for (size_t i = 0; i < n_threads - 1; i++)
                 {
-                    it++; // do point iterator to the next element
-                    if ( last_index++ >= (map_size - 1) )
-                        break;
-                    i_row = in.row_inrec( it->first ); // determine its row
+                    last_index += work_load;
+                    out.push_back(last_index);                    
                 }
-                last_index--;
-                out.push_back(last_index);
-                last_index += work_load;
-                it = in.A.begin();
+                out.push_back( map_size-1 );
             }
+            else
+            {
+                //typename std::map<size_t,T>::iterator it = in.A.begin(); // here we work on ordered conteiner !!!
+                typename std::unordered_map<size_t, T>::iterator it = in.A.begin();
 
-            if ( out.empty() || (last_index - work_load) < (map_size -1))
-                out.push_back(map_size-1);
+                last_index = work_load; // approx. load
+
+                while ( last_index < map_size )
+                {
+                    std::advance(it, last_index); // move iterator to position of expected last element in the row
+                    size_t i_row = in.row_inrec( it->first );
+                    size_t next_row = i_row;
+
+                    while (next_row == i_row) // find of a very last element of row close to the expected work_load position
+                    {
+                        it++; // do point iterator to the next element
+                        if ( last_index++ >= (map_size - 1) )
+                            break;
+                        i_row = in.row_inrec( it->first ); // determine its row
+                    }
+                    last_index--;
+                    out.push_back(last_index);
+                    last_index += work_load;
+                    it = in.A.begin();
+                }
+
+                if ( out.empty() || (last_index - work_load) < (map_size -1))
+                    out.push_back(map_size-1);
+            }
         }
         catch(const std::exception& e)
         {
-            std::cerr << "Exception in smatrix<T>::thread_loads(smatrix &, std::vector<size_t> &)" << '\n';
+            std::cerr << "Exception in smatrix<T>::thread_loads(smatrix &, std::vector<size_t> &, bool)" << '\n';
             std::cerr << e.what() << '\n';
         }
         catch(...)
         {
-            std::cerr << "Exception in smatrix<T>::thread_loads(smatrix &, std::vector<size_t> &)" << '\n';
+            std::cerr << "Exception in smatrix<T>::thread_loads(smatrix &, std::vector<size_t> &, bool)" << '\n';
         }
     }
 
-    template void smatrix<float>::thread_loads(smatrix &in, std::vector<size_t> &out);
-    template void smatrix<double>::thread_loads(smatrix &in, std::vector<size_t> &out);
-    template void smatrix<int>::thread_loads(smatrix &in, std::vector<size_t> &out);
+    template void smatrix<float>::thread_loads(smatrix &in, std::vector<size_t> &out, bool);
+    template void smatrix<double>::thread_loads(smatrix &in, std::vector<size_t> &out, bool);
+    template void smatrix<int>::thread_loads(smatrix &in, std::vector<size_t> &out, bool);
+
+    //===============================================================================================================
+
+    template <typename T>
+    void smatrix<T>::thread_loads(ordstorage &in, std::vector<size_t> &out, bool simple_distribution)
+    {        
+        try
+        {
+            const auto processor_count = std::thread::hardware_concurrency(); //may return 0 when not able to detect
+
+            std::cout<<"cores found: "<<processor_count<<"\n";
+
+            size_t n_threads = processor_count;
+            size_t map_size = in.size();
+            size_t work_load = 0;
+            work_load = (size_t)( map_size / n_threads ); // expected work load per thread
+            size_t max_load = 1; // max load (elements in range) per thread (should be probably changed!)
+
+            if (work_load <= max_load) // correct the number of assigned threads (is more the case for a small data or large max_load)
+            {
+                n_threads = (size_t)n_threads / 2.0;
+                work_load = (size_t)( map_size / n_threads );
+
+                if (work_load <= max_load)
+                {
+                    n_threads = 1;
+                    work_load = map_size;
+                }
+            }
+
+            std::cout<<"use n_threads: "<<n_threads<<", work_load: "<<work_load<<"\n";
+
+            size_t last_index = 0; // approx. load
+
+            if ( simple_distribution )
+            {
+                for (size_t i = 0; i < n_threads - 1; i++)
+                {
+                    last_index += work_load;
+                    out.push_back(last_index);                    
+                }
+                out.push_back( map_size-1 );
+            }
+            else
+            {
+                typename std::map<size_t,T>::iterator it = in.A.begin();
+
+                last_index = work_load; // approx. load
+
+                while ( last_index < map_size )
+                {
+                    std::advance(it, last_index); // move iterator to position of expected last element in the row
+                    size_t i_row = in.row_inrec( it->first );
+                    size_t next_row = i_row;
+
+                    while (next_row == i_row) // find of a very last element of row close to the expected work_load position
+                    {
+                        it++; // do point iterator to the next element
+                        if ( last_index++ >= (map_size - 1) )
+                            break;
+                        i_row = in.row_inrec( it->first ); // determine its row
+                    }
+                    last_index--;
+                    out.push_back(last_index);
+                    last_index += work_load;
+                    it = in.A.begin();
+                }
+
+                if ( out.empty() || (last_index - work_load) < (map_size -1))
+                    out.push_back(map_size-1);
+            }
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << "Exception in smatrix<T>::thread_loads(smatrix &, std::vector<size_t> &, bool)" << '\n';
+            std::cerr << e.what() << '\n';
+        }
+        catch(...)
+        {
+            std::cerr << "Exception in smatrix<T>::thread_loads(smatrix &, std::vector<size_t> &, bool)" << '\n';
+        }
+    }
+
+    template void smatrix<float>::thread_loads(ordstorage &in, std::vector<size_t> &out, bool);
+    template void smatrix<double>::thread_loads(ordstorage &in, std::vector<size_t> &out, bool);
+    template void smatrix<int>::thread_loads(ordstorage &in, std::vector<size_t> &out, bool);
 
     //===============================================================================================================
 
@@ -645,7 +747,8 @@ namespace evolm
         {
             out_elements.resize(in.numRow, 0);
 
-            typename std::map<size_t,T>::iterator it = in.A.begin();
+            //typename std::map<size_t,T>::iterator it = in.A.begin();
+            typename std::unordered_map<size_t, T>::iterator it = in.A.begin();
             
             size_t row = in.row_inrec( it->first ); // very first row
             size_t i_row = 0;
@@ -712,9 +815,13 @@ namespace evolm
             C.resize(numRow, rhs.numCol);
             
             rhs.transpose(); // transpose because: res = lhs * transpose(rhs)
+            //-------------------
+            ordstorage ord_rhs(rhs); // copy rhs to ordered map container
+            //-------------------
             
             std::vector<size_t> loads;
-            thread_loads(rhs,loads); // get the number of rhs's rows per aavailable threads
+            //thread_loads(rhs,loads,false); // get the number of rhs's rows per aavailable threads
+            thread_loads(ord_rhs,loads,false); // get the number of rhs's rows per aavailable threads
 
             std::cout<<"v1, num loads: "<<loads.size()<<"\n";
 
@@ -724,18 +831,22 @@ namespace evolm
             std::vector<std::thread> vec_threads;
             std::vector< smatrix<T> > vec_matr;
 
-            ustorage cpy_this(*this); // copy lhs to unordered_map container
+            //ustorage cpy_this(*this); // copy lhs to unordered_map container
             
             for(size_t i = 0; i < loads.size(); i++) // for each thread create temp smatrix container holding the results of specific columns
                 vec_matr.emplace_back( numRow, rhs.numRow ); // construct smatrix<T> object directly on vec_matr; use rhs.numRow instead of rhs.numCol because rhs is transposed now
 
             for(size_t i = 0; i < loads.size(); i++) // launch threads
-                vec_threads.emplace_back( &smatrix::dot_operation_unordered, this, std::ref(cpy_this), std::ref(rhs), std::ref(vec_matr[i]), std::ref(loads), std::ref(elements_inrow), i );
+            {
+                //vec_threads.emplace_back( &smatrix::dot_operation_unordered, this, std::ref(cpy_this), std::ref(rhs), std::ref(vec_matr[i]), std::ref(loads), std::ref(elements_inrow), i );
+                vec_threads.emplace_back( &smatrix::dot_operation, this, std::ref(*this), std::ref(ord_rhs), std::ref(vec_matr[i]), std::ref(loads), std::ref(elements_inrow), i );
+            }
 
             for (auto &v : vec_threads) // join all threads
                 v.join();
 
-            cpy_this.clear();
+            //cpy_this.clear();
+            ord_rhs.clear();
 
             for(size_t i = 0; i < loads.size(); i++) // gathher the results of all threads into one resulting matrix
             {
@@ -751,37 +862,44 @@ std::cout<<"rhs.transpose() ..."<<"\n";
             rhs.transpose(); // transpose because we do transpose(res) = transpose(rhs) * lhs
 std::cout<<"    Done."<<"\n";
 
+            //------------------------
+            ordstorage ord_this(*this); // copy lhs to uordered map container
+            //------------------------
             std::vector<size_t> loads;
-            thread_loads(*this,loads);
+            //thread_loads(*this,loads,false);
+            thread_loads(ord_this,loads,false);
 
-            std::cout<<"v2, num loads: "<<loads.size()<<"; the first 10 loads:"<<"\n";
+            /*std::cout<<"v2, num loads: "<<loads.size()<<"; the first 10 loads:"<<"\n";
             for (size_t i = 0; i < 10; i++)
                 std::cout<<loads[i]<<" ";
-            std::cout<<"\n";
+            std::cout<<"\n";*/
 
             std::vector<size_t> elements_inrow;
             values_inrow(rhs, elements_inrow);
 
-            size_t num_elements = 0;
+            /*size_t num_elements = 0, zero_elements = 0;
             for (size_t i = 0; i < elements_inrow.size(); i++)
+            {
                 num_elements += elements_inrow[i];
-            std::cout<<"elements_inrow.size() = "<<elements_inrow.size()<<", total elements: "<<num_elements<<"\n";
+                if ( elements_inrow[i] == 0 )
+                    zero_elements++;
+            }
+            std::cout<<"elements_inrow.size() = "<<elements_inrow.size()<<", total elements: "<<num_elements<<", zero elements: "<<zero_elements<<"\n";*/
 
             std::vector<std::thread> vec_threads;
             std::vector< smatrix<T> > vec_matr;
 
-            ustorage cpy_rhs(rhs);
+            //ustorage cpy_rhs(rhs);
 
             for(size_t i = 0; i < loads.size(); i++) // for each thread create temp smatrix container holding the results for specific columns
             {
-                std::cout<<"construccting matrix "<<i<<" with row & col: "<<rhs.numRow<<" "<<numRow<<"\n";
                 vec_matr.emplace_back( rhs.numRow, numRow ); // we use rhs.numRow instead of rhs.numCol because rhs is transposed now
             }
 
             for(size_t i = 0; i < loads.size(); i++)
             {
-                std::cout<<"construccting thread "<<i<<" with num elements_inrow: "<<elements_inrow[i]<<"\n";
-                vec_threads.emplace_back( &smatrix::dot_operation_unordered, this, std::ref(cpy_rhs), std::ref(*this), std::ref(vec_matr[i]), std::ref(loads), std::ref(elements_inrow), i );
+                //vec_threads.emplace_back( &smatrix::dot_operation_unordered, this, std::ref(cpy_rhs), std::ref(*this), std::ref(vec_matr[i]), std::ref(loads), std::ref(elements_inrow), i );
+                vec_threads.emplace_back( &smatrix::dot_operation, this, std::ref(rhs), std::ref(ord_this), std::ref(vec_matr[i]), std::ref(loads), std::ref(elements_inrow), i );
             }
 
             for (auto &v : vec_threads)
@@ -790,7 +908,8 @@ std::cout<<"    Done."<<"\n";
                 v.join();
             }
 
-            cpy_rhs.clear();
+            //cpy_rhs.clear();
+            ord_this.clear();
 
             for(size_t i = 0; i < loads.size(); i++)
             {
@@ -816,7 +935,7 @@ std::cout<<"    Done."<<"\n";
     //===============================================================================================================
 
     template <typename T>
-    void smatrix<T>::dot_operation_ordered(smatrix &lhs, smatrix &rhs, smatrix &out, std::vector<size_t> &range_vect, size_t thr_id)
+    void smatrix<T>::dot_operation(smatrix &lhs, ordstorage &rhs, smatrix &out, std::vector<size_t> &range_vect, std::vector<size_t> &lhs_elements, size_t thr_id)
     {
         try
         {
@@ -833,7 +952,7 @@ std::cout<<"    Done."<<"\n";
 
             size_t i_last = range_vect[thr_id]; // very last element in a threads range the iterator it should point to
 
-            typename std::map<size_t,T>::iterator it = rhs.A.begin();            
+            typename std::map<size_t,T>::iterator it = rhs.A.begin();
             std::advance(it, i_first);
 
             i_row = rhs.row_inrec( it->first ); // determine from which row of the rhs matrix we start
@@ -856,14 +975,17 @@ std::cout<<"    Done."<<"\n";
                     {
                         for (size_t i = 0; i < lhs.nrows(); i++)
                         {
+                            //if ( lhs_elements[i] == 0 )
+                            //    continue;
+                            
                             T res = (T)0;
-                            T lhs_value = (T)0;
                             T zerro_val = (T)0;
+                            T lhs_val = (T)0;
                             for (size_t j = 0; j < val_lst.size(); j++)
                             {
-                                lhs_value = lhs.get_nonzero( i,col_lst[j] );
-                                if ( lhs_value != zerro_val )
-                                    res += lhs_value * val_lst[j];
+                                lhs_val = lhs.get_nonzero( i,col_lst[j] );
+                                if ( lhs_val != zerro_val )
+                                    res += lhs_val * val_lst[j];
                             }
 
                             if ( res != zerro_val )
@@ -880,14 +1002,17 @@ std::cout<<"    Done."<<"\n";
 
                     for (size_t i = 0; i < lhs.nrows(); i++) // calculate a very last column of the result matrix C
                     {
+                        //if ( lhs_elements[i] == 0 )
+                        //    continue;
+                            
                         T res = (T)0;
-                        T lhs_value = (T)0;
                         T zerro_val = (T)0;
+                        T lhs_val = (T)0;
                         for (size_t j = 0; j < val_lst.size(); j++)
                         {
-                            lhs_value = lhs.get_nonzero( i,col_lst[j] );
-                            if ( lhs_value != zerro_val )
-                                res += lhs_value * val_lst[j];
+                            lhs_val = lhs.get_nonzero( i,col_lst[j] );
+                            if ( lhs_val != zerro_val )
+                                res += lhs_val * val_lst[j];
                         }
 
                         if ( res != zerro_val )
@@ -916,14 +1041,17 @@ std::cout<<"    Done."<<"\n";
                     
                     for (size_t i = 0; i < lhs.nrows(); i++)
                     {
+                        //if ( lhs_elements[i] == 0 )
+                        //    continue;
+                        
                         T res = (T)0;
-                        T lhs_value = (T)0;
                         T zerro_val = (T)0;
+                        T lhs_val = (T)0;
                         for (size_t j = 0; j < val_lst.size(); j++)
                         {
-                            lhs_value = lhs.get_nonzero( i,col_lst[j] );
-                            if ( lhs_value != zerro_val )
-                                res += lhs_value * val_lst[j];
+                            lhs_val = lhs.get_nonzero( i,col_lst[j] );
+                            if ( lhs_val != zerro_val )
+                                res += lhs_val * val_lst[j];
                         }
 
                         if ( res != zerro_val )
@@ -937,25 +1065,25 @@ std::cout<<"    Done."<<"\n";
                     val_lst.push_back(value); // we are in the new row now, so do not miss very first data
                     it++;
                 }
-if (current_element%500 == 0 && thr_id == 0)
+if (current_element%100 == 0 && thr_id == 0)
     std::cout<<"\rcompletes, %: "<<current_element*100/n_values<<std::flush;
 
             }
         }
         catch(const std::exception& e)
         {
-            std::cerr << "Exception in smatrix<T>::dot_operation_ordered(smatrix &, smatrix &, smatrix &, std::vector<size_t> &, size_t)" << '\n';
+            std::cerr << "Exception in smatrix<T>::dot_operation_unordered(ustorage &, smatrix &, smatrix &, std::vector<size_t> &, std::vector<size_t> &, size_t)" << '\n';
             std::cerr << e.what() << '\n';
         }
         catch(...)
         {
-            std::cerr << "Exception in smatrix<T>::dot_operation_ordered(smatrix &, smatrix &, smatrix &, std::vector<size_t> &, size_t)" << '\n';
+            std::cerr << "Exception in smatrix<T>::dot_operation_unordered(ustorage &, smatrix &, smatrix &, std::vector<size_t> &, std::vector<size_t> &, size_t)" << '\n';
         }        
     }
 
-    template void smatrix<double>::dot_operation_ordered(smatrix &lhs, smatrix &rhs, smatrix &out, std::vector<size_t> &range_vect, size_t thr_id);
-    template void smatrix<float>::dot_operation_ordered(smatrix &lhs, smatrix &rhs, smatrix &out, std::vector<size_t> &range_vect, size_t thr_id);
-    template void smatrix<int>::dot_operation_ordered(smatrix &lhs, smatrix &rhs, smatrix &out, std::vector<size_t> &range_vect, size_t thr_id);
+    template void smatrix<double>::dot_operation(smatrix &lhs, ordstorage &rhs, smatrix &out, std::vector<size_t> &range_vect, std::vector<size_t> &lhs_elements, size_t thr_id);
+    template void smatrix<float>::dot_operation(smatrix &lhs, ordstorage &rhs, smatrix &out, std::vector<size_t> &range_vect, std::vector<size_t> &lhs_elements, size_t thr_id);
+    template void smatrix<int>::dot_operation(smatrix &lhs, ordstorage &rhs, smatrix &out, std::vector<size_t> &range_vect, std::vector<size_t> &lhs_elements, size_t thr_id);
 
     //===============================================================================================================
 
@@ -977,7 +1105,8 @@ if (current_element%500 == 0 && thr_id == 0)
 
             size_t i_last = range_vect[thr_id]; // very last element in a threads range the iterator it should point to
 
-            typename std::map<size_t,T>::iterator it = rhs.A.begin();
+            //typename std::map<size_t,T>::iterator it = rhs.A.begin();
+            typename std::unordered_map<size_t, T>::iterator it = rhs.A.begin(); // this is just to pass compiler; should be deeleted for this function!
             std::advance(it, i_first);
 
             i_row = rhs.row_inrec( it->first ); // determine from which row of the rhs matrix we start
@@ -1254,8 +1383,8 @@ if (current_element%100 == 0 && thr_id == 0)
             if (ondisk)
                 throw std::string("Matrix is empty. Use fread() to relocate data to memory. smatrix<T>::operator()");
 #endif
-            typename std::map<size_t, T>::iterator it;
-            //typename std::unordered_map<size_t, T>::iterator it;
+            //typename std::map<size_t, T>::iterator it;
+            typename std::unordered_map<size_t, T>::iterator it;
             size_t key = 0;
 
             if (!compact)
@@ -1313,7 +1442,8 @@ if (current_element%100 == 0 && thr_id == 0)
             if (ondisk)
                 throw std::string("Matrix is empty. Use fread() to relocate data to memory. smatrix<T>::operator()");
 #endif
-            typename std::map<size_t, T>::iterator it;
+            //typename std::map<size_t, T>::iterator it;
+            typename std::unordered_map<size_t, T>::iterator it;
 
             size_t key = 0;
 
@@ -1371,8 +1501,8 @@ if (current_element%100 == 0 && thr_id == 0)
             if (ondisk)
                 throw std::string("Matrix is empty. Use fread() to relocate data to memory. smatrix<T>::operator()");
 #endif
-            typename std::map<size_t, T>::iterator it;
-            //typename std::unordered_map<size_t, T>::iterator it;
+            //typename std::map<size_t, T>::iterator it;
+            typename std::unordered_map<size_t, T>::iterator it;
 
             it = A.find( key );
 
@@ -1418,7 +1548,8 @@ if (current_element%100 == 0 && thr_id == 0)
             if (ondisk)
                 throw std::string("Matrix is empty. Use fread() to relocate data to memory. smatrix<T>::operator()");
 #endif
-            typename std::map<size_t, T>::iterator it;
+            //typename std::map<size_t, T>::iterator it;
+            typename std::unordered_map<size_t, T>::iterator it;
 
             it = A.find( key );
 
@@ -1638,10 +1769,13 @@ if (current_element%100 == 0 && thr_id == 0)
                 std::cout<<"In transpose, get loads ..."<<"\n";
 
                 std::vector<size_t> loads;
-                thread_loads(*this, loads);
+                thread_loads(*this, loads, true);
 
-                std::cout<<"Transpose, num loads: "<<loads.size()<<"; the first 10 loads:"<<"\n";
-                for (size_t i = 0; i < 10; i++)
+                std::cout<<"Transpose, num loads: "<<loads.size()<<", all elements: "<<this->size()<<"; the first 10 loads:"<<"\n";
+                size_t max_show = loads.size();
+                if (loads.size() > 10)
+                    max_show = 10;
+                for (size_t i = 0; i < max_show; i++)
                     std::cout<<loads[i]<<" ";
                 std::cout<<"\n";
 
@@ -1726,7 +1860,9 @@ if (current_element%100 == 0 && thr_id == 0)
 
             size_t i_last = loads_vect[thr_id]; // very last element in a threads range the iterator it should point to
 
-            typename std::map<size_t,T>::iterator it = in.A.begin();            
+            //typename std::map<size_t,T>::iterator it = in.A.begin();
+            typename std::unordered_map<size_t, T>::iterator it = in.A.begin();
+
             std::advance(it, i_first);
 
             for(size_t i = 0; i < ( i_last - i_first + 1 ); i++)
@@ -1873,6 +2009,7 @@ if (current_element%100 == 0 && thr_id == 0)
     size_t smatrix<T>::find_invect(std::vector<size_t> &where, size_t what)
     {
         std::vector<size_t>::iterator it;
+        
         it = std::find(where.begin(), where.end(), what);
         
         if (it != where.end()) 
@@ -1992,7 +2129,7 @@ if (current_element%100 == 0 && thr_id == 0)
         if (compact)
             throw std::string("The col_inrec(size_t key, size_t row) should be called only on rectangular matrix!");
 #endif
-        return key - row * numCol;
+        return (size_t) ( key - row * numCol );
     }
 
     template size_t smatrix<float>::col_inrec(size_t key, size_t row);
@@ -2011,7 +2148,7 @@ if (current_element%100 == 0 && thr_id == 0)
         if (compact)
             throw std::string("The row_inrec(size_t key, size_t col) should be called only on rectangular matrix!");
 #endif
-        return (key - col) / numCol;
+        return (size_t) (key - col) / numCol;
     }
 
     template size_t smatrix<float>::row_inrec(size_t key, size_t col);
@@ -2057,7 +2194,9 @@ if (current_element%100 == 0 && thr_id == 0)
             size_t linteger;
             const std::type_info &ti1 = typeid(integer);
             const std::type_info &ti2 = typeid(linteger);
-            const std::type_info &ti3 = typeid(A[0]);
+            //const std::type_info &ti3 = typeid(A[0]);
+            const std::type_info &ti3 = typeid(this->A.begin()->second);
+
             bool isInt = false;
 
             if (ti3 == ti1 || ti3 == ti2)
@@ -2067,6 +2206,7 @@ if (current_element%100 == 0 && thr_id == 0)
             dbgFile = fopen(debug_file.c_str(), "a");
 
             size_t maxRows = 20;
+
             fprintf(dbgFile, "%s", whiichMatrix.c_str());
 
             if (rectangular)
@@ -2161,7 +2301,8 @@ if (current_element%100 == 0 && thr_id == 0)
             size_t linteger;
             const std::type_info &ti1 = typeid(integer);
             const std::type_info &ti2 = typeid(linteger);
-            const std::type_info &ti3 = typeid(A[0]);
+            //const std::type_info &ti3 = typeid(A[0]);
+            const std::type_info &ti3 = typeid(this->A.begin()->second);
             bool isInt = false;
 
             if (ti3 == ti1 || ti3 == ti2)
