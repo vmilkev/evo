@@ -1139,6 +1139,7 @@ TEST_CASE( "Testing Gmat class" )
             gmat.scale_matrix(A22, 0.25);
             gmat.get_matrix(G,g_id);
 
+#ifdef UTEST
             double a, b, a_diag, a_ofd, g_diag, g_ofd;
 
             gmat.get_alpha_beta(a,b,a_diag,a_ofd,g_diag,g_ofd);
@@ -1149,6 +1150,7 @@ TEST_CASE( "Testing Gmat class" )
             CHECK( Catch::Approx(a_ofd) == a_ofd_true );
             CHECK( Catch::Approx(g_diag) == g_diag_true );
             CHECK( Catch::Approx(g_ofd) == g_ofd_true );
+#endif
 
             CHECK( G_scaled_true.size() == G.size() );
 

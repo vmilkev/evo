@@ -120,6 +120,7 @@ exit(1);
 
     gmat.scale_matrix(A22, 0.25);
 
+#ifdef UTEST
     double a, b, a_diag, a_ofd, g_diag, g_ofd;
 
     gmat.get_alpha_beta(a,b,a_diag,a_ofd,g_diag,g_ofd);
@@ -130,6 +131,7 @@ exit(1);
     std::cout<<"a_ofd: "<<a_ofd<<"\n";
     std::cout<<"g_diag: "<<g_diag<<"\n";
     std::cout<<"g_ofd: "<<g_ofd<<"\n";
+#endif
 
     std::cout<<"Inverting G matrix"<<"\n";
 

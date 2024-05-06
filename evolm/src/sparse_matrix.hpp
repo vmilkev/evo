@@ -25,7 +25,7 @@ namespace evolm
     {
     private:
 
-        struct ustorage
+        struct ustorage // !!! DELETE THIS
         {
             std::unordered_map <size_t, T> A;
 
@@ -177,6 +177,7 @@ namespace evolm
         bool compact;           /* TRUE if for the symmetric matrix only a lower triangular part is stored. */
         bool ondisk;
         size_t work_load_perthread;
+        T zerro_tolerance;
         std::string debug_file;
         std::string binFilename_keys; /* Name of binary file to store A on disck. */
         std::string binFilename_vals; /* Name of binary file to store A on disck. */
@@ -194,13 +195,18 @@ namespace evolm
         
         size_t find_invect(std::vector<size_t> &where, size_t what); /* finds the specific value in a vector */
         size_t find_inrange(std::vector<size_t> &where, size_t what); /* find the position in vector of the values less then what */
-        void dot_operation_unordered(ustorage &lhs, smatrix &rhs, smatrix &out, std::vector<size_t> &range_vect, std::vector<size_t> &lhs_elements, size_t thr_id);
-        void dot_operation(smatrix &lhs, ordstorage &rhs, smatrix &out, std::vector<size_t> &range_vect, std::vector<size_t> &lhs_elements, size_t thr_id);
-        void thread_loads(smatrix &in, std::vector<size_t> &out, bool simple_distribution);
-        void thread_loads(ordstorage &in, std::vector<size_t> &out, bool simple_distribution);
-        void values_inrow(smatrix &in, std::vector<size_t> &out_elements);
+        
+        // for multithreading:
+        void dot_operation(smatrix &lhs, ordstorage &rhs, smatrix &out, std::vector<size_t> &range_vect, size_t thr_id);
+        void plus_operation(smatrix &in, smatrix &res, std::vector<size_t> &zero_keys, smatrix &out, std::vector<size_t> &loads_vect, size_t thr_id);
+        void minus_operation(smatrix &in, smatrix &res, std::vector<size_t> &zero_keys, smatrix &out, std::vector<size_t> &loads_vect, size_t thr_id);
         void transpose_operation(smatrix &in, smatrix &out, std::vector<size_t> &loads_vect, size_t thr_id);
-
+        void rectosym_operation(smatrix &in, smatrix &out, std::vector<size_t> &loads_vect, size_t thr_id);
+        void symtorec_operation(smatrix &in, smatrix &out, std::vector<size_t> &loads_vect, size_t thr_id);
+        void thread_loads_unord(smatrix &in, std::vector<size_t> &out);
+        void thread_loads_ord(ordstorage &in, std::vector<size_t> &out);
+        void values_inrow(ordstorage &in, std::vector<size_t> &out_elements);
+        
     public:
         smatrix(size_t row, size_t col); /* Constructor for rectangular matrix. */
         smatrix(size_t lda);             /* Constructor for square symmetric half-store (compact) matrix. */

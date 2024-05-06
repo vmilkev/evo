@@ -3,7 +3,7 @@
 namespace evoped
 {
     //===============================================================================================================
-    
+
     template <typename T>
     Amat<T>::Amat()
     {
@@ -74,14 +74,14 @@ namespace evoped
 
             std::map<std::int64_t, std::int64_t> rid_map;
 
-            if ( ids.empty() )
+            if (ids.empty())
                 throw std::string("Empty traced pedigree IDs!");
 
-            size_t limit = 0.5*(ids.size()-1)*ids.size()+ids.size();
-            if ( !use_ainv )
+            size_t limit = 0.5 * (ids.size() - 1) * ids.size() + ids.size();
+            if (!use_ainv)
                 limit = ids.size() * ids.size();
 
-            if ( limit < amap.size() )
+            if (limit < amap.size())
                 throw std::string("The number of elements in calculated A(-1) matrix is higher than the number of traced IDs!!");
 
             u.get_RecodedIdMap(rid_map, ids); // list of real ids => std::map for the new consecutive list starting from 1
@@ -89,18 +89,18 @@ namespace evoped
             if (rid_map.empty())
                 throw std::string("Recoded IDs map is empty!");
 
-            if ( !A.empty())
+            if (!A.empty())
                 A.clear();
 
-            if ( !A_s.empty())
+            if (!A_s.empty())
                 A_s.clear();
 
-            if ( use_large )
+            if (use_large)
                 A_s.resize(ids.size());
             else
                 A.resize(ids.size());
 
-            if ( use_large )
+            if (use_large)
             {
                 for (auto const &elem : amap)
                 {
@@ -108,11 +108,11 @@ namespace evoped
                     std::int64_t g_col = elem.first.val_2; // id
                     T g_val = elem.second;
 
-                    if ( std::abs(g_val) <= 0.000001 ) // because of the sparse container, we are not storing 0.0 values
+                    if (std::abs(g_val) <= 0.000001) // because of the sparse container, we are not storing 0.0 values
                         continue;
-                    
-                    size_t r = rid_map[ g_row ]; // position in the list if ids, consecutive index of real id in the list of all ids
-                    size_t c = rid_map[ g_col ]; // position in the list if ids, consecutive index of real id in the list of all ids
+
+                    size_t r = rid_map[g_row];            // position in the list if ids, consecutive index of real id in the list of all ids
+                    size_t c = rid_map[g_col];            // position in the list if ids, consecutive index of real id in the list of all ids
                     size_t ind = r * (r - 1) / 2 + c - 1; // r & c start from 1, but not from 0
                     if (c > r)
                         ind = c * (c - 1) / 2 + r - 1;
@@ -127,8 +127,8 @@ namespace evoped
                     std::int64_t g_col = elem.first.val_2; // id
                     T g_val = elem.second;
 
-                    size_t r = rid_map[ g_row ]; // position in the list if ids, consecutive index of real id in the list of all ids
-                    size_t c = rid_map[ g_col ]; // position in the list if ids, consecutive index of real id in the list of all ids
+                    size_t r = rid_map[g_row];            // position in the list if ids, consecutive index of real id in the list of all ids
+                    size_t c = rid_map[g_col];            // position in the list if ids, consecutive index of real id in the list of all ids
                     size_t ind = r * (r - 1) / 2 + c - 1; // r & c start from 1, but not from 0
                     if (c > r)
                         ind = c * (c - 1) / 2 + r - 1;
@@ -185,12 +185,12 @@ namespace evoped
 
             trace_pedigree(pedigree_from_file, pedigree, pedID); // tracing full pedigree
 
-            if ( !inbrF.empty() )
+            if (!inbrF.empty())
                 inbrF.erase(inbrF.begin(), inbrF.end());
 
             std::map<PedPair, T> ainv;
 
-            if ( use_ainv )
+            if (use_ainv)
                 get_ainv(pedigree, ainv, true);
             else
                 get_a(pedigree, ainv);
@@ -214,13 +214,13 @@ namespace evoped
             if (use_large)
             {
                 A_s.fwrite();
-                iA_s = A_s;            
+                iA_s = A_s;
                 A_s.resize();
             }
             else
             {
                 A.fwrite();
-                iA = A;            
+                iA = A;
                 A.clear();
             }
 
@@ -261,7 +261,7 @@ namespace evoped
             std::vector<std::int64_t> genotypedID;
             std::map<PedPair, PedPair> pedigree_from_file;
             std::map<PedPair, PedPair> r_pedigree;
-            
+
             fread_pedigree(ped_file, pedigree_from_file, pedID);
 
             if (pedigree_from_file.empty())
@@ -271,18 +271,18 @@ namespace evoped
 
             if (genotypedID.empty())
                 throw std::string("Cannot trace the reduced pedigree: ID's vector is empty!");
-            
+
             if (!traced_pedID.empty())
                 traced_pedID.erase(traced_pedID.begin(), traced_pedID.end());
 
             trace_pedigree(pedigree_from_file, r_pedigree, genotypedID); // tracing reduced pedigree for genotyped individuals
 
-            if ( !inbrF.empty() )
+            if (!inbrF.empty())
                 inbrF.erase(inbrF.begin(), inbrF.end());
 
             std::map<PedPair, T> r_ainv;
 
-            if ( use_ainv )
+            if (use_ainv)
                 get_ainv(r_pedigree, r_ainv, true);
             else
                 get_a(r_pedigree, r_ainv);
@@ -304,19 +304,18 @@ namespace evoped
             if (use_large)
             {
                 A_s.fwrite();
-                irA_s = A_s;            
+                irA_s = A_s;
                 A_s.resize();
             }
             else
             {
                 A.fwrite();
-                irA = A;            
+                irA = A;
                 A.clear();
             }
 
             traced_pedID.clear();
             traced_pedID.shrink_to_fit();
-
         }
         catch (const std::exception &e)
         {
@@ -350,13 +349,21 @@ namespace evoped
         {
             // -----------------------------------------------------
             // ---------- full A(-1) -------------------------------
-std::cout<<"full A(-1) ..."<<"\n";
+            std::cout << "full A(-1) ..."
+                      << "\n";
             std::vector<std::int64_t> pedID;
             std::map<PedPair, PedPair> pedigree_from_file;
             std::map<PedPair, PedPair> pedigree;
-std::cout<<"reading pedigree ..."<<"\n";
+            std::cout << "reading pedigree ..."
+                      << "\n";
+            auto start = std::chrono::high_resolution_clock::now();
+
             fread_pedigree(ped_file, pedigree_from_file, pedID);
-std::cout<<"Done."<<"\n";
+
+            auto stop = std::chrono::high_resolution_clock::now();
+            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+            std::cout << "fread_pedigree() duration (milliseconds): " << duration.count() << std::endl;
+
             if (pedID.empty())
                 throw std::string("Empty pedigree IDs!");
 
@@ -365,27 +372,48 @@ std::cout<<"Done."<<"\n";
 
             if (!traced_pedID.empty())
                 traced_pedID.erase(traced_pedID.begin(), traced_pedID.end());
-std::cout<<"tracing pedigree ..."<<"\n";
+            std::cout << "tracing pedigree ..."
+                      << "\n";
+
+            stop = std::chrono::high_resolution_clock::now();
+
             trace_pedigree(pedigree_from_file, pedigree, pedID); // tracing full pedigree
-std::cout<<"Done."<<"\n";
-            if ( !inbrF.empty() )
+
+            stop = std::chrono::high_resolution_clock::now();
+            duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+            std::cout << "trace_pedigree() duration (milliseconds): " << duration.count() << std::endl;
+
+            if (!inbrF.empty())
                 inbrF.erase(inbrF.begin(), inbrF.end());
 
             std::map<PedPair, T> ainv;
-std::cout<<"making A(-1) ..."<<"\n";
+            std::cout << "making A(-1) ..."
+                      << "\n";
+
+            stop = std::chrono::high_resolution_clock::now();
+
             get_ainv(pedigree, ainv, true); // making A(-1)
-std::cout<<"Done."<<"\n"; 
+            
+            stop = std::chrono::high_resolution_clock::now();
+            duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+            std::cout << "get_ainv() duration (milliseconds): " << duration.count() << std::endl;
+
             pedigree.clear();
             pedID.clear();
             pedID.shrink_to_fit();
-std::cout<<"map_to_matr ..."<<"\n";
+
+            std::cout << "map_to_matr ..."
+                      << "\n";
+
             map_to_matr(ainv, traced_pedID, true, use_large); // converting ainv map to A or A(-1) matrix
-std::cout<<"Done."<<"\n"; 
+            
+            std::cout << "Done."
+                      << "\n";
             ainv.clear();
 
             id_iA = traced_pedID;
-            
-            if ( use_large )
+
+            if (use_large)
             {
                 A_s.fwrite(); // 1. Wrire to binary
                 iA_s = A_s;   // 2. Copy matrix by exchanging the internal binary file name
@@ -397,24 +425,26 @@ std::cout<<"Done."<<"\n";
                 iA = A;     // 2. Copy matrix by exchanging the internal binary file name
                 A.clear();  // 3. Clears the memory and gets new name for internal binary file
             }
-std::cout<<"Done."<<"\n";
+            std::cout << "Done."
+                      << "\n";
             // -----------------------------------------------------
             // ---------- reduced A(-1) ----------------------------
-std::cout<<"reduced A(-1)"<<"\n";
+            std::cout << "reduced A(-1)"
+                      << "\n";
             std::vector<std::int64_t> genotypedID;
             std::map<PedPair, PedPair> r_pedigree;
-          
+
             fread_genotyped_id(g_file, genotypedID);
 
             if (genotypedID.empty())
                 throw std::string("Cannot trace the reduced pedigree: ID's vector is empty!");
-            
+
             if (!traced_pedID.empty())
                 traced_pedID.erase(traced_pedID.begin(), traced_pedID.end());
 
             trace_pedigree(pedigree_from_file, r_pedigree, genotypedID); // tracing reduced pedigree for genotyped individuals
 
-            if ( !inbrF.empty() )
+            if (!inbrF.empty())
                 inbrF.erase(inbrF.begin(), inbrF.end());
 
             std::map<PedPair, T> r_ainv;
@@ -429,67 +459,85 @@ std::cout<<"reduced A(-1)"<<"\n";
 
             id_irA = traced_pedID;
 
-            if ( use_large )
+            if (use_large)
             {
                 A_s.fwrite(); // 1. Wrire to binary
-                irA_s = A_s;     // 2. Copy matrix by just exchanging the internal binary file name
+                irA_s = A_s;  // 2. Copy matrix by just exchanging the internal binary file name
                 A_s.resize();
             }
             else
             {
                 A.fwrite(); // 1. Wrire to binary
-                irA = A;     // 2. Copy matrix by just exchanging the internal binary file name
+                irA = A;    // 2. Copy matrix by just exchanging the internal binary file name
                 A.clear();  // 3. Clears the memory and gets new name for internal binary file
             }
-std::cout<<"Done."<<"\n";
+            std::cout << "Done."
+                      << "\n";
             // -----------------------------------------------------
             // These two matrices are considered always dense !
             // -------------------- A22 ----------------------------
-std::cout<<"A22"<<"\n";
+            std::cout << "A22"
+                      << "\n";
+            
+            stop = std::chrono::high_resolution_clock::now();
+
             get_A22(r_pedigree, genotypedID);
+            
+            stop = std::chrono::high_resolution_clock::now();
+            duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+            std::cout << "get_A22() duration (milliseconds): " << duration.count() << std::endl;
 
             id_A22 = genotypedID;
 
             r_pedigree.clear();
             birth_id_map.clear();
 
-size_t non_serro = 0;
-for (size_t i = 0; i < A.size(); i++)
-{
-    if (A[i] != 0.0)
-        non_serro++;
-}
-std::cout<<"Sparsity of A22: "<< (1.0 - (double)non_serro/A.size())*100.0<<"\n";
+            size_t non_serro = 0;
+            for (size_t i = 0; i < A.size(); i++)
+            {
+                if (A[i] != 0.0)
+                    non_serro++;
+            }
+            std::cout << "Sparsity of A22: " << (1.0 - (double)non_serro / A.size()) * 100.0 << "\n";
 
-                        // Here we are using always dense matrix
+            // Here we are using always dense matrix
             A.fwrite(); // 1. Wrire to binary
             A22 = A;    // 2. Copy matrix by just exchanging the internal binary file name
             A.clear();  // 3. Clears the memory and gets new name for internal binary file
-std::cout<<"Done."<<"\n";
+            std::cout << "Done."
+                      << "\n";
             // -----------------------------------------------------
             // -------------------- A22(-1) ------------------------
-std::cout<<"A22(-1)"<<"\n";
-            if ( use_large )
+            std::cout << "A22(-1)"
+                      << "\n";
+            if (use_large)
             {
                 irA_s.fread();
-                get_iA22(irA_s, id_irA, genotypedID);
-                irA_s.fwrite();
-                
-                A_s.fwrite(); // 1. Wrire to binary
-                iA22_s = A_s;   // 2. Copy matrix by just exchanging the internal binary file name
-                A_s.resize();  // 3. Clears the memory and gets new name for internal binary file
-                
-                //A.fwrite(); // 1. Wrire to binary
-                //iA22 = A;   // 2. Copy matrix by just exchanging the internal binary file name
-                //A.clear();  // 3. Clears the memory and gets new name for internal binary file
 
+                stop = std::chrono::high_resolution_clock::now();
+
+                get_iA22(irA_s, id_irA, genotypedID);
+
+                stop = std::chrono::high_resolution_clock::now();
+                duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+                std::cout << "get_A22() duration (milliseconds): " << duration.count() << std::endl;
+
+                irA_s.fwrite();
+
+                A_s.fwrite(); // 1. Wrire to binary
+                iA22_s = A_s; // 2. Copy matrix by just exchanging the internal binary file name
+                A_s.resize(); // 3. Clears the memory and gets new name for internal binary file
+
+                // A.fwrite(); // 1. Wrire to binary
+                // iA22 = A;   // 2. Copy matrix by just exchanging the internal binary file name
+                // A.clear();  // 3. Clears the memory and gets new name for internal binary file
             }
             else
             {
                 irA.fread();
-                get_iA22(irA, id_irA, genotypedID);                
+                get_iA22(irA, id_irA, genotypedID);
                 irA.fwrite();
-                
+
                 A.fwrite(); // 1. Wrire to binary
                 iA22 = A;   // 2. Copy matrix by just exchanging the internal binary file name
                 A.clear();  // 3. Clears the memory and gets new name for internal binary file
@@ -497,7 +545,8 @@ std::cout<<"A22(-1)"<<"\n";
 
             genotypedID.clear();
             genotypedID.shrink_to_fit();
-std::cout<<"Done."<<"\n";
+            std::cout << "Done."
+                      << "\n";
         }
         catch (const std::exception &e)
         {
@@ -524,7 +573,7 @@ std::cout<<"Done."<<"\n";
     //===============================================================================================================
 
     template <typename T>
-    void Amat<T>::get_iA22(evolm::matrix<T>& full_matr, std::vector<std::int64_t>& matr_ids, std::vector<std::int64_t>& selected_ids)
+    void Amat<T>::get_iA22(evolm::matrix<T> &full_matr, std::vector<std::int64_t> &matr_ids, std::vector<std::int64_t> &selected_ids)
     {
         try
         {
@@ -535,42 +584,42 @@ std::cout<<"Done."<<"\n";
 
             size_t expected_size = 0.5 * (matr_ids.size() - 1) * matr_ids.size() + matr_ids.size();
 
-            if ( shapeofh[0] != shapeofh[1] )
+            if (shapeofh[0] != shapeofh[1])
                 throw std::string("The passed matrix has wrong dimension: number of raws is not the same as number of columns!");
 
-            if ( shapeofh[0] != matr_ids.size() )
+            if (shapeofh[0] != matr_ids.size())
                 throw std::string("The passed matrix has wrong dimension!");
 
-            if ( full_matr.size() > expected_size )
+            if (full_matr.size() > expected_size)
                 throw std::string("The number of elements in the passed matrix is greater then expected!");
 
-            if ( selected_ids.size() > matr_ids.size() )
+            if (selected_ids.size() > matr_ids.size())
                 throw std::string("The number of elements in the passed selected IDs array is greater then the number of IDs in the passed matrix!");
 
-            if ( !u.is_value_in_vect(matr_ids, selected_ids) )
+            if (!u.is_value_in_vect(matr_ids, selected_ids))
                 throw std::string("There are IDs in the selected IDs array which are not part of the passed matrix!");
 
             // --------------------------------
-            if ( !A.empty() )
+            if (!A.empty())
             {
                 A.fclear();
-                A.clear();                
+                A.clear();
             }
 
             // Create the list of IDs which are in matr_ids but not in selected_ids vectors
 
             std::vector<std::int64_t> not_selected_ids;
 
-            for ( size_t i = 0; i < matr_ids.size(); i++ )
+            for (size_t i = 0; i < matr_ids.size(); i++)
             {
-                int res = u.find_invect( selected_ids, matr_ids[i] );
-                if ( res == -1 )
-                    not_selected_ids.push_back( matr_ids[i] );
+                int res = u.find_invect(selected_ids, matr_ids[i]);
+                if (res == -1)
+                    not_selected_ids.push_back(matr_ids[i]);
             }
 
-            if ( ( selected_ids.size() + not_selected_ids.size() ) != matr_ids.size() )
+            if ((selected_ids.size() + not_selected_ids.size()) != matr_ids.size())
                 throw std::string("The sum of IDs from from two vectors is not equal to number of IDs in the matrix!");
-            
+
             // ------------------------------------------------
 
             // Next steps: A22(-1) = A22 - A21 * A11(-1) * A12;
@@ -582,15 +631,15 @@ std::cout<<"Done."<<"\n";
 
             // -------------------- A11 -----------------------
 
-            A11.resize( not_selected_ids.size() );
+            A11.resize(not_selected_ids.size());
 
             std::vector<size_t> non_selected_pos;
             for (size_t i = 0; i < not_selected_ids.size(); i++)
-                non_selected_pos.push_back( u.find_invect( matr_ids, not_selected_ids[i] ) );
+                non_selected_pos.push_back(u.find_invect(matr_ids, not_selected_ids[i]));
 
             std::vector<size_t> selected_pos;
             for (size_t i = 0; i < selected_ids.size(); i++)
-                selected_pos.push_back( u.find_invect( matr_ids, selected_ids[i] ) );
+                selected_pos.push_back(u.find_invect(matr_ids, selected_ids[i]));
 
 #pragma omp parallel for
             for (size_t i = 0; i < not_selected_ids.size(); i++)
@@ -601,10 +650,10 @@ std::cout<<"Done."<<"\n";
                 {
                     size_t pos_j = non_selected_pos[j];
 
-                    if ( pos_i >= pos_j )
-                        A11(i,j) = full_matr( pos_i, pos_j );
+                    if (pos_i >= pos_j)
+                        A11(i, j) = full_matr(pos_i, pos_j);
                     else
-                        A11(i,j) = full_matr( pos_j, pos_i );
+                        A11(i, j) = full_matr(pos_j, pos_i);
                 }
             }
 
@@ -628,10 +677,10 @@ std::cout<<"Done."<<"\n";
                 {
                     size_t pos_j = non_selected_pos[j];
 
-                    if ( pos_i >= pos_j )
-                        A21(i,j) = full_matr( pos_i, pos_j );
+                    if (pos_i >= pos_j)
+                        A21(i, j) = full_matr(pos_i, pos_j);
                     else
-                        A21(i,j) = full_matr( pos_j, pos_i );
+                        A21(i, j) = full_matr(pos_j, pos_i);
                 }
             }
             // ------------------------------------------------
@@ -651,7 +700,7 @@ std::cout<<"Done."<<"\n";
             evolm::matrix<T> res;
 
             res = A21 * A11;
-            
+
             A11.fclear();
             A11.clear();
 
@@ -664,12 +713,12 @@ std::cout<<"Done."<<"\n";
 
             A12.fclear();
             A12.clear();
-            
+
             // ------------------------------------------------
             //
             // -------------------- A22 -----------------------
 
-            a22.resize( selected_ids.size() );
+            a22.resize(selected_ids.size());
 
 #pragma omp parallel for
             for (size_t i = 0; i < selected_ids.size(); i++)
@@ -680,10 +729,10 @@ std::cout<<"Done."<<"\n";
                 {
                     size_t pos_j = selected_pos[j];
 
-                    if ( pos_i >= pos_j )
-                        a22(i,j) = full_matr( pos_i, pos_j );
+                    if (pos_i >= pos_j)
+                        a22(i, j) = full_matr(pos_i, pos_j);
                     else
-                        a22(i,j) = full_matr( pos_j, pos_i );
+                        a22(i, j) = full_matr(pos_j, pos_i);
                 }
             }
 
@@ -699,14 +748,14 @@ std::cout<<"Done."<<"\n";
             evolm::matrix<size_t> shapeofa22;
             shapeofa22 = a22.shape();
 
-            //A.resize(shapeofa22[0]); 1
+            // A.resize(shapeofa22[0]); 1
 
             res.rectosym();
 
 #pragma omp parallel for
             for (size_t i = 0; i < a22.size(); i++)
             {
-                //A[i] = a22[i] - res[i]; 2
+                // A[i] = a22[i] - res[i]; 2
                 res[i] = a22[i] - res[i]; // 2
             }
 
@@ -716,7 +765,7 @@ std::cout<<"Done."<<"\n";
             A = res; // 1
 
             res.fclear();
-            res.clear();            
+            res.clear();
             // ------------------------------------------------
             shapeofh.clear();
         }
@@ -739,59 +788,60 @@ std::cout<<"Done."<<"\n";
         }
     }
 
-    template void Amat<float>::get_iA22(evolm::matrix<float>& full_matr, std::vector<std::int64_t>& matr_ids, std::vector<std::int64_t>& selected_ids);
-    template void Amat<double>::get_iA22(evolm::matrix<double>& full_matr, std::vector<std::int64_t>& matr_ids, std::vector<std::int64_t>& selected_ids);
+    template void Amat<float>::get_iA22(evolm::matrix<float> &full_matr, std::vector<std::int64_t> &matr_ids, std::vector<std::int64_t> &selected_ids);
+    template void Amat<double>::get_iA22(evolm::matrix<double> &full_matr, std::vector<std::int64_t> &matr_ids, std::vector<std::int64_t> &selected_ids);
 
     //===============================================================================================================
 
     template <typename T>
-    void Amat<T>::get_iA22(evolm::smatrix<T>& full_matr, std::vector<std::int64_t>& matr_ids, std::vector<std::int64_t>& selected_ids)
+    void Amat<T>::get_iA22(evolm::smatrix<T> &full_matr, std::vector<std::int64_t> &matr_ids, std::vector<std::int64_t> &selected_ids)
     {
         try
         {
-std::cout<<"Entering for making iA22"<<"\n";
+            std::cout << "Entering for making iA22"
+                      << "\n";
             Utilities2 u;
 
             size_t n_rows = full_matr.nrows();
             size_t n_cols = full_matr.ncols();
 
-            if ( n_rows != n_cols )
+            if (n_rows != n_cols)
                 throw std::string("The passed matrix has wrong dimension: number of raws is not the same as number of columns!");
 
-            if ( n_rows != matr_ids.size() )
+            if (n_rows != matr_ids.size())
                 throw std::string("The passed matrix has wrong dimension!");
 
-            if ( full_matr.size() > full_matr.max_key() + 1 )
+            if (full_matr.size() > full_matr.max_key() + 1)
                 throw std::string("The number of elements in the passed matrix is greater then expected!");
 
-            if ( selected_ids.size() > matr_ids.size() )
+            if (selected_ids.size() > matr_ids.size())
                 throw std::string("The number of elements in the passed selected IDs array is greater then the number of IDs in the passed matrix!");
 
-            if ( !u.is_value_in_vect(matr_ids, selected_ids) )
+            if (!u.is_value_in_vect(matr_ids, selected_ids))
                 throw std::string("There are IDs in the selected IDs array which are not part of the passed matrix!");
 
             // --------------------------------
-            if ( !A_s.empty() )
+            if (!A_s.empty())
             {
                 A_s.resize();
-                //A.fclear();
-                //A.clear();                
+                // A.fclear();
+                // A.clear();
             }
 
             // Create the list of IDs which are in matr_ids but not in selected_ids vectors
 
             std::vector<std::int64_t> not_selected_ids;
 
-            for ( size_t i = 0; i < matr_ids.size(); i++ )
+            for (size_t i = 0; i < matr_ids.size(); i++)
             {
-                int res = u.find_invect( selected_ids, matr_ids[i] );
-                if ( res == -1 )
-                    not_selected_ids.push_back( matr_ids[i] );
+                int res = u.find_invect(selected_ids, matr_ids[i]);
+                if (res == -1)
+                    not_selected_ids.push_back(matr_ids[i]);
             }
 
-            if ( ( selected_ids.size() + not_selected_ids.size() ) != matr_ids.size() )
+            if ((selected_ids.size() + not_selected_ids.size()) != matr_ids.size())
                 throw std::string("The sum of IDs from from two vectors is not equal to number of IDs in the matrix!");
-            
+
             // ------------------------------------------------
 
             // Next steps: A22(-1) = A22 - A21 * A11(-1) * A12;
@@ -803,16 +853,17 @@ std::cout<<"Entering for making iA22"<<"\n";
             evolm::matrix<T> A11d; // this is the temporal storage for making inverse
 
             // -------------------- A11 -----------------------
-std::cout<<"   Making A11 ..."<<"\n";
-            A11d.resize( not_selected_ids.size() );
+            std::cout << "   Making A11 ..."
+                      << "\n";
+            A11d.resize(not_selected_ids.size());
 
             std::vector<size_t> non_selected_pos;
             for (size_t i = 0; i < not_selected_ids.size(); i++)
-                non_selected_pos.push_back( u.find_invect( matr_ids, not_selected_ids[i] ) );
+                non_selected_pos.push_back(u.find_invect(matr_ids, not_selected_ids[i]));
 
             std::vector<size_t> selected_pos;
             for (size_t i = 0; i < selected_ids.size(); i++)
-                selected_pos.push_back( u.find_invect( matr_ids, selected_ids[i] ) );
+                selected_pos.push_back(u.find_invect(matr_ids, selected_ids[i]));
 
 #pragma omp parallel for
             for (size_t i = 0; i < not_selected_ids.size(); i++)
@@ -825,87 +876,111 @@ std::cout<<"   Making A11 ..."<<"\n";
                 {
                     size_t pos_j = non_selected_pos[j];
 
-                    if ( pos_i >= pos_j )
+                    if (pos_i >= pos_j)
                     {
-                        value = full_matr.get_nonzero( pos_i, pos_j );
+                        value = full_matr.get_nonzero(pos_i, pos_j);
 
-                        if ( value != zerro_value )
-                            A11d(i,j) = value;
+                        if (value != zerro_value)
+                            A11d(i, j) = value;
                         else
-                            A11d(i,j) = zerro_value;
+                            A11d(i, j) = zerro_value;
                     }
                     else
                     {
-                        value = full_matr.get_nonzero( pos_j, pos_i );
+                        value = full_matr.get_nonzero(pos_j, pos_i);
 
-                        if ( value != zerro_value )
-                            A11d(i,j) = value;
+                        if (value != zerro_value)
+                            A11d(i, j) = value;
                         else
-                            A11d(i,j) = zerro_value;
+                            A11d(i, j) = zerro_value;
                     }
                 }
             }
-std::cout<<"   Get sparsity of A11 ..."<<"\n";
+            std::cout << "   Get sparsity of A11 ..."
+                      << "\n";
             size_t non_zeros = 0;
             for (size_t i = 0; i < A11d.size(); i++)
             {
                 if (A11d[i] != 0.0)
                     non_zeros++;
             }
-std::cout<<"        A11d: not_selected_ids.size() is "<<not_selected_ids.size()<<"\n";
-std::cout<<"        non zeros = "<< non_zeros << ", expected all in rect: "<< not_selected_ids.size()*not_selected_ids.size() <<"\n";
-std::cout<<"        sparsity of symmetric = "<< (1.0-(T)non_zeros/(T)A11d.size())*100.0 <<"\n";
-std::cout<<"        sparsity of rect = "<< (1.0-(T)non_zeros/(T)( not_selected_ids.size()*not_selected_ids.size() ))*100.0 <<"\n";
+            std::cout << "        A11d: not_selected_ids.size() is " << not_selected_ids.size() << "\n";
+            std::cout << "        non zeros = " << non_zeros << ", expected all in rect: " << not_selected_ids.size() * not_selected_ids.size() << "\n";
+            std::cout << "        sparsity of symmetric = " << (1.0 - (T)non_zeros / (T)A11d.size()) * 100.0 << "\n";
+            std::cout << "        sparsity of rect = " << (1.0 - (T)non_zeros / (T)(not_selected_ids.size() * not_selected_ids.size())) * 100.0 << "\n";
+
+            auto start = std::chrono::high_resolution_clock::now();
 
             A11d.symtorec();
 
-std::cout<<"   Get sparsity of rectangular A11 ..."<<"\n";
+            auto stop = std::chrono::high_resolution_clock::now();
+            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+            std::cout << "A11d.symtorec() duration (milliseconds): " << duration.count()  << std::endl;
+
+            std::cout << "   Get sparsity of rectangular A11 ..."
+                      << "\n";
             non_zeros = 0;
             for (size_t i = 0; i < A11d.size(); i++)
             {
                 if (A11d[i] != 0.0)
                     non_zeros++;
             }
-std::cout<<"        non zeros = "<< non_zeros << ", expected all in rect: "<< A11d.size() <<"\n";
-std::cout<<"        sparsity = "<< (1.0-(T)non_zeros/(T)A11d.size())*100.0 <<"\n";
+            std::cout << "        non zeros = " << non_zeros << ", expected all in rect: " << A11d.size() << "\n";
+            std::cout << "        sparsity = " << (1.0 - (T)non_zeros / (T)A11d.size()) * 100.0 << "\n";
 
-std::cout<<"      inverting A11 ..."<<"\n";
+            std::cout << "      inverting A11 ..."
+                      << "\n";
             A11d.invert();
 
-std::cout<<"   Get sparsity of inverted A11 ..."<<"\n";
+            std::cout << "   Get sparsity of inverted A11 ..."
+                      << "\n";
             non_zeros = 0;
             for (size_t i = 0; i < A11d.size(); i++)
             {
                 if (A11d[i] != 0.0)
                     non_zeros++;
             }
-std::cout<<"        non zeros = "<< non_zeros << ", expected all in rect: "<< A11d.size() <<"\n";
-std::cout<<"        sparsity = "<< (1.0-(T)non_zeros/(T)A11d.size())*100.0 <<"\n";
+            std::cout << "        non zeros = " << non_zeros << ", expected all in rect: " << A11d.size() << "\n";
+            std::cout << "        sparsity = " << (1.0 - (T)non_zeros / (T)A11d.size()) * 100.0 << "\n";
 
-std::cout<<"A11d => A11 ..."<<"\n";
-            A11.resize( not_selected_ids.size(), not_selected_ids.size() );
+            std::cout << "A11d => A11 ..."
+                      << "\n";
+
+            start = std::chrono::high_resolution_clock::now();
+
+            A11.resize(not_selected_ids.size(), not_selected_ids.size());
             for (size_t i = 0; i < not_selected_ids.size(); i++)
             {
                 for (size_t j = 0; j < not_selected_ids.size(); j++)
                 {
-                    if ( A11d(i,j) != 0.0 )
-                        A11(i,j) = A11d(i,j);
+                    if (A11d(i, j) != 0.0)
+                        A11(i, j) = A11d(i, j);
                 }
             }
-//A11d.print("A11d");
-//A11.print("A11");
+
+            stop = std::chrono::high_resolution_clock::now();
+            duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+            std::cout << "A11d => A11 duration (milliseconds): " << duration.count()  << std::endl;
+
+            // A11d.print("A11d");
+            // A11.print("A11");
             A11d.fclear();
             A11d.clear();
 
             A11.fwrite();
-std::cout<<"   Done."<<"\n";
+            std::cout << "   Done."
+                      << "\n";
             // ------------------------------------------------
             //
             // -------------------- A21 -----------------------
-std::cout<<"   Making A21 ..."<<"\n";
+            std::cout << "   Making A21 ..."
+                      << "\n";
+
+            start = std::chrono::high_resolution_clock::now();
+
             A21.resize(selected_ids.size(), not_selected_ids.size());
 
-//#pragma omp parallel for
+            // #pragma omp parallel for
             for (size_t i = 0; i < selected_ids.size(); i++)
             {
                 size_t pos_i = selected_pos[i];
@@ -916,81 +991,123 @@ std::cout<<"   Making A21 ..."<<"\n";
                 {
                     size_t pos_j = non_selected_pos[j];
 
-                    if ( pos_i >= pos_j )
+                    if (pos_i >= pos_j)
                     {
-                        value = full_matr.get_nonzero( pos_i, pos_j );
+                        value = full_matr.get_nonzero(pos_i, pos_j);
 
-                        if ( value != zerro_value )
-                            A21(i,j) = value;
-                        //else
-                            //A21(i,j) = 0.0;
+                        if (value != zerro_value)
+                            A21(i, j) = value;
+                        // else
+                        // A21(i,j) = 0.0;
                     }
                     else
                     {
-                        value = full_matr.get_nonzero( pos_j, pos_i );
+                        value = full_matr.get_nonzero(pos_j, pos_i);
 
-                        if ( value != zerro_value )
-                            A21(i,j) = value;
-                        //else
-                            //A21(i,j) = 0.0;
+                        if (value != zerro_value)
+                            A21(i, j) = value;
+                        // else
+                        // A21(i,j) = 0.0;
                     }
                 }
             }
-//A21.print("A21");
-std::cout<<"   Done."<<"\n";
 
-std::cout<<"        sparsity of A21 = "<< (1.0-(T)A21.size()/(T)A21.max_key())*100.0 <<"\n";
+            stop = std::chrono::high_resolution_clock::now();
+            duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+            std::cout << "assigning A21 duration (milliseconds): " << duration.count()  << std::endl;
+
+            // A21.print("A21");
+            std::cout << "   Done."
+                      << "\n";
+
+            std::cout << "        sparsity of A21 = " << (1.0 - (T)A21.size() / (T)A21.max_key()) * 100.0 << "\n";
             // ------------------------------------------------
             //
             // -------------------- A12 -----------------------
-std::cout<<"   Making A12 ..."<<"\n";
-std::cout<<"   A12 = A21"<<"\n";
+            std::cout << "   Making A12 ..."
+                      << "\n";
+            std::cout << "   A12 = A21"
+                      << "\n";
             A12 = A21;
-std::cout<<"   A12.transpose()"<<"\n";
+            std::cout << "   A12.transpose()"
+                      << "\n";
+
+            start = std::chrono::high_resolution_clock::now();
+
             A12.transpose();
-//A12.print("A12");
+            // A12.print("A12");
+
+            stop = std::chrono::high_resolution_clock::now();
+            duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+            std::cout << "A12.transpose() duration (milliseconds): " << duration.count()  << std::endl;
+
+            std::cout << "   Done."
+                      << "\n";
+
+            std::cout << "   Writing."
+                      << "\n";
 
             A12.fwrite();
-std::cout<<"   Done."<<"\n";
+            std::cout << "   Done."
+                      << "\n";
             // ------------------------------------------------
             //
             // --------------- A21 * A11(-1) * A12 ------------
-std::cout<<"   Some reading and multiplication ..."<<"\n";
+            start = std::chrono::high_resolution_clock::now();
+
+            std::cout << "   Some reading and multiplication: reading ..."
+                      << "\n";
             A11.fread();
             evolm::smatrix<T> res;
-std::cout<<"      A21 * A11 ... "<<"elements in A21: "<<A21.size()<<", A11: "<<A11.size()<<"\n";
+            std::cout << "      A21 * A11 ... "
+                      << "elements in A21: " << A21.size() << ", A11: " << A11.size() << "\n";
             res = A21 * A11;
-//res.print("A21 * A11");
-
+            // res.print("A21 * A11");
+            std::cout << "fclearing ..."
+                      << "\n";
             A11.fclear();
             A11.clear();
-            //A11.resize();
+            // A11.resize();
 
             A21.fclear();
             A21.clear();
-std::cout<<"resizing of A21."<<"\n";
-            //A21.resize();
+            std::cout << "resizing of A21."
+                      << "\n";
+            // A21.resize();
 
             A12.fread();
-std::cout<<"      res * A12 ..."<<"\n";
-            //res = res * A12; <= this does not work!!! Clean res afterwards!
-            //evolm::smatrix<T> res2;
+            std::cout << "      res * A12 ..."
+                      << "\n";
+            // res = res * A12; <= this does not work!!! Clean res afterwards!
+            // evolm::smatrix<T> res2;
             res = res * A12;
-//res.print("res * A12");
-std::cout<<"fclear of A12."<<"\n";
+            // res.print("res * A12");
+            std::cout << "fclear of A12."
+                      << "\n";
             A12.fclear();
             A12.clear();
-            //A12.resize();
+            // A12.resize();
 
+            std::cout << "rectosym()."
+                      << "\n";
             res.rectosym();
-std::cout<<"   Done."<<"\n";            
+
+            stop = std::chrono::high_resolution_clock::now();
+            duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+            std::cout << "A21 * A11(-1) * A12 duration (milliseconds): " << duration.count()  << std::endl;
+
+            std::cout << "   Done."
+                      << "\n";
             // ------------------------------------------------
             //
             // -------------------- A22 -----------------------
-std::cout<<"   Making A22 ..."<<"\n";
-            a22.resize( selected_ids.size() );
+            std::cout << "   Making A22 ..."
+                      << "\n";
+            start = std::chrono::high_resolution_clock::now();
 
-//#pragma omp parallel for
+            a22.resize(selected_ids.size());
+
+            // #pragma omp parallel for
             for (size_t i = 0; i < selected_ids.size(); i++)
             {
                 size_t pos_i = selected_pos[i];
@@ -1001,63 +1118,82 @@ std::cout<<"   Making A22 ..."<<"\n";
                 {
                     size_t pos_j = selected_pos[j];
 
-                    if ( pos_i >= pos_j )
+                    if (pos_i >= pos_j)
                     {
-                        value = full_matr.get_nonzero( pos_i, pos_j );
+                        value = full_matr.get_nonzero(pos_i, pos_j);
 
-                        if ( value != zerro_value )
-                            a22(i,j) = value;
-                        //else
-                            //a22(i,j) = 0.0;
+                        if (value != zerro_value)
+                            a22(i, j) = value;
+                        // else
+                        // a22(i,j) = 0.0;
                     }
                     else
                     {
-                        value = full_matr.get_nonzero( pos_j, pos_i );
+                        value = full_matr.get_nonzero(pos_j, pos_i);
 
-                        if ( value != zerro_value )
-                            a22(i,j) = value;
-                        //else
-                            //a22(i,j) = 0.0;
+                        if (value != zerro_value)
+                            a22(i, j) = value;
+                        // else
+                        // a22(i,j) = 0.0;
                     }
                 }
             }
-//a22.print("a22");
+
+            stop = std::chrono::high_resolution_clock::now();
+            duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+            std::cout << "assigning A22 duration (milliseconds): " << duration.count()  << std::endl;
+
+            // a22.print("a22");
             non_selected_pos.clear();
             non_selected_pos.shrink_to_fit();
             selected_pos.clear();
             selected_pos.shrink_to_fit();
-std::cout<<"   Done."<<"\n";
+            std::cout << "   Done."
+                      << "\n";
             // ------------------------------------------------
             //
             // ------------------ A22 - res -------------------
-std::cout<<"   Finalising ..."<<"\n";
-            //evolm::matrix<size_t> shapeofa22;
-            //shapeofa22 = a22.shape();
+            std::cout << "   Finalising ..."
+                      << "\n";
+            // evolm::matrix<size_t> shapeofa22;
+            // shapeofa22 = a22.shape();
 
-std::cout<<"        sparsity of a22 = "<< (1.0-(T)a22.size()/(T)a22.max_key())*100.0 <<"\n";
+            std::cout << "        sparsity of a22 = " << (1.0 - (T)a22.size() / (T)a22.max_key()) * 100.0 << "\n";
 
-//#pragma omp parallel for
-            //for (size_t i = 0; i < a22.size(); i++)
-                //res[i] = a22[i] - res[i];
-            //res.resize();
+            // #pragma omp parallel for
+            // for (size_t i = 0; i < a22.size(); i++)
+            // res[i] = a22[i] - res[i];
+            // res.resize();
+            std::cout << "   a22 - res ..."
+                      << "\n";
+
+            start = std::chrono::high_resolution_clock::now();
+
             res = a22 - res;
 
-//res.print("a22[i] - res[i] d");   
-            
-            //a22.fclear();
-            //a22.clear();
+            stop = std::chrono::high_resolution_clock::now();
+            duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+            std::cout << "a22 - res duration (milliseconds): " << duration.count()  << std::endl;
+
+            std::cout << "   Done."
+                      << "\n";
+            // res.print("a22[i] - res[i] d");
+
+            // a22.fclear();
+            // a22.clear();
             a22.resize();
 
-            //A = res;
+            // A = res;
             A_s = res;
 
-            //res.fclear();
-            //res.clear();
+            // res.fclear();
+            // res.clear();
             res.resize();
 
-std::cout<<"   Done."<<"\n";
+            std::cout << "   Done."
+                      << "\n";
 
-std::cout<<"        sparsity of A22(-1) = "<< (1.0-(T)A_s.size()/(T)A_s.max_key())*100.0 <<", rows & cols: "<<A_s.nrows()<<" "<<A_s.ncols()<<"\n";
+            std::cout << "        sparsity of A22(-1) = " << (1.0 - (T)A_s.size() / (T)A_s.max_key()) * 100.0 << ", rows & cols: " << A_s.nrows() << " " << A_s.ncols() << "\n";
 
             // ------------------------------------------------
         }
@@ -1080,8 +1216,8 @@ std::cout<<"        sparsity of A22(-1) = "<< (1.0-(T)A_s.size()/(T)A_s.max_key(
         }
     }
 
-    template void Amat<float>::get_iA22(evolm::smatrix<float>& full_matr, std::vector<std::int64_t>& matr_ids, std::vector<std::int64_t>& selected_ids);
-    template void Amat<double>::get_iA22(evolm::smatrix<double>& full_matr, std::vector<std::int64_t>& matr_ids, std::vector<std::int64_t>& selected_ids);
+    template void Amat<float>::get_iA22(evolm::smatrix<float> &full_matr, std::vector<std::int64_t> &matr_ids, std::vector<std::int64_t> &selected_ids);
+    template void Amat<double>::get_iA22(evolm::smatrix<double> &full_matr, std::vector<std::int64_t> &matr_ids, std::vector<std::int64_t> &selected_ids);
 
     //===============================================================================================================
 
@@ -1103,9 +1239,9 @@ std::cout<<"        sparsity of A22(-1) = "<< (1.0-(T)A_s.size()/(T)A_s.max_key(
             std::ifstream ped;
             ped.open(ped_file, std::fstream::in);
 
-            if ( !ped.good() )
+            if (!ped.good())
                 throw std::string("Cannot open pedigree file!");
-            
+
             while (getline(ped, line))
             {
                 p = line.c_str();
@@ -1182,9 +1318,9 @@ std::cout<<"        sparsity of A22(-1) = "<< (1.0-(T)A_s.size()/(T)A_s.max_key(
             std::ifstream ped;
             ped.open(g_file, std::fstream::in);
 
-            if ( !ped.good() )
+            if (!ped.good())
                 throw std::string("Cannot open genotyped ids file!");
-            
+
             while (std::getline(ped, line))
             {
                 p = line.c_str();
@@ -1205,11 +1341,11 @@ std::cout<<"        sparsity of A22(-1) = "<< (1.0-(T)A_s.size()/(T)A_s.max_key(
                     if (static_cast<std::int64_t>(tmp_list[0]) != 0 && static_cast<std::int64_t>(tmp_list[0]) != t_gtyp)
                         out_ids.push_back(static_cast<std::int64_t>(tmp_list[0]));
 
-                    //if (static_cast<std::int64_t>(tmp_list[1]) != 0 && static_cast<std::int64_t>(tmp_list[0]) != t_gtyp)
-                    //    coreID.push_back(static_cast<std::int64_t>(tmp_list[0]));
+                    // if (static_cast<std::int64_t>(tmp_list[1]) != 0 && static_cast<std::int64_t>(tmp_list[0]) != t_gtyp)
+                    //     coreID.push_back(static_cast<std::int64_t>(tmp_list[0]));
 
                     t_gtyp = static_cast<std::int64_t>(tmp_list[0]);
-                    //t_gcor = static_cast<std::int64_t>(tmp_list[1]);
+                    // t_gcor = static_cast<std::int64_t>(tmp_list[1]);
 
                     tmp_list.erase(tmp_list.begin(), tmp_list.end());
                 }
@@ -1220,8 +1356,8 @@ std::cout<<"        sparsity of A22(-1) = "<< (1.0-(T)A_s.size()/(T)A_s.max_key(
             if (!u.is_unique(out_ids))
                 out_ids.erase(unique(out_ids.begin(), out_ids.end()), out_ids.end());
 
-            //if (!u.is_unique(coreID))
-            //    coreID.erase(unique(coreID.begin(), coreID.end()), coreID.end());
+            // if (!u.is_unique(coreID))
+            //     coreID.erase(unique(coreID.begin(), coreID.end()), coreID.end());
         }
         catch (const std::exception &e)
         {
@@ -1254,13 +1390,6 @@ std::cout<<"        sparsity of A22(-1) = "<< (1.0-(T)A_s.size()/(T)A_s.max_key(
         {
             Utilities2 u;
 
-            PedPair id_pair;
-            PedPair key;
-            std::vector<std::int64_t> gen_pedID(traced_id);
-            std::int64_t elem_v;
-            size_t iter_v = 0;
-            bool exists;
-
             std::vector<std::int64_t> days;
             std::vector<std::int64_t> ids;
             std::vector<std::int64_t> sire;
@@ -1273,6 +1402,117 @@ std::cout<<"        sparsity of A22(-1) = "<< (1.0-(T)A_s.size()/(T)A_s.max_key(
                 sire.push_back(elem_m.second.val_1);
                 dame.push_back(elem_m.second.val_2);
             }
+
+            std::vector<size_t> loads;
+            thread_loads(traced_id, loads);
+
+            std::vector<std::vector<std::int64_t>> res_id;
+            std::vector<std::map<PedPair, PedPair>> res_ped;
+            std::vector<std::thread> vect_thr;
+
+            for(size_t i = 0; i < loads.size(); i++)
+            {
+                std::vector<std::int64_t> id;
+                std::map<PedPair, PedPair> ped;
+                res_id.push_back(id);
+                res_ped.push_back(ped);
+            }
+
+            for(size_t i = 0; i < loads.size(); i++)
+            {
+                vect_thr.emplace_back( &Amat::trace_operation,
+                                        this,
+                                        std::ref(days),
+                                        std::ref(ids),
+                                        std::ref(sire),
+                                        std::ref(dame),
+                                        std::ref(traced_id),
+                                        std::ref(res_id[i]),
+                                        std::ref(res_ped[i]),
+                                        std::ref(loads),
+                                        i);
+            }
+
+            for(size_t i = 0; i < loads.size(); i++)
+                vect_thr[i].join();
+
+            for(size_t i = 0; i < loads.size(); i++)
+            {
+                traced_pedID.insert( traced_pedID.end(), res_id[i].begin(), res_id[i].end() );
+                res_id[i].clear();
+            }
+
+            for(size_t i = 0; i < loads.size(); i++)
+            {
+                out_ped.insert( res_ped[i].begin(), res_ped[i].end() );
+                res_ped[i].clear();
+            }
+
+            if (!u.is_unique(traced_pedID)) // due to multiple threads traced_pedID is not unique
+                traced_pedID.erase(unique(traced_pedID.begin(), traced_pedID.end()), traced_pedID.end()); // here the vector should be sorted and unique
+
+            days.clear();
+            ids.clear();
+            sire.clear();
+            dame.clear();
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Amat<T>::trace_pedigree(std::map<PedPair, PedPair> &, std::map<PedPair, PedPair> &, std::vector<std::int64_t> &)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Amat<T>::trace_pedigree(std::map<PedPair, PedPair> &, std::map<PedPair, PedPair> &, std::vector<std::int64_t> &)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Amat<T>::trace_pedigree(std::map<PedPair, PedPair> &, std::map<PedPair, PedPair> &, std::vector<std::int64_t> &)" << '\n';
+            throw;
+        }
+    }
+
+    template void Amat<float>::trace_pedigree(std::map<PedPair, PedPair> &in_ped, std::map<PedPair, PedPair> &out_ped, std::vector<std::int64_t> &traced_id);
+    template void Amat<double>::trace_pedigree(std::map<PedPair, PedPair> &in_ped, std::map<PedPair, PedPair> &out_ped, std::vector<std::int64_t> &traced_id);
+
+    //===============================================================================================================
+
+    template <typename T>
+    void Amat<T>::trace_operation(std::vector<std::int64_t> &days,
+                                  std::vector<std::int64_t> &ids,
+                                  std::vector<std::int64_t> &sire,
+                                  std::vector<std::int64_t> &dame,
+                                  std::vector<std::int64_t> &in_traced_id,
+                                  std::vector<std::int64_t> &out_traced_id,
+                                  std::map<PedPair, PedPair> &out_ped,
+                                  std::vector<size_t> &loads_vect,
+                                  size_t thr_id)
+    {
+
+        try
+        {
+            size_t i_first = 0; // very first element in a threads range
+
+            if (thr_id != 0)
+                i_first = loads_vect[thr_id - 1] + 1;
+
+            size_t i_last = loads_vect[thr_id]; // very last element in a threads range
+
+            std::vector<std::int64_t> gen_pedID; // working vector of IDs to be traced
+
+            for (size_t i = i_first; i <= i_last; i++)
+                gen_pedID.push_back(in_traced_id[i]); // get only those IDs assigned to the current thread
+
+            std::int64_t elem_v;
+            size_t iter_v = 0;
+            bool exists;
+
+            Utilities2 u;
+            PedPair id_pair;
+            PedPair key;
 
             do
             {
@@ -1325,39 +1565,91 @@ std::cout<<"        sparsity of A22(-1) = "<< (1.0-(T)A_s.size()/(T)A_s.max_key(
                 iter_v++;
 
             } while (iter_v < gen_pedID.size());
-            
-            if ( u.is_unique(gen_pedID) ) // Check if no repeated IDs appiar in the list of traced IDs
-                traced_pedID = gen_pedID;
+
+            if (u.is_unique(gen_pedID)) // Check if no repeated IDs appiar in the list of traced IDs
+                out_traced_id = gen_pedID;
             else
                 throw std::string("In the traced pedigree some IDs appiar more then one time!");
-
-            gen_pedID.clear();
-            days.clear();
-            ids.clear();
-            sire.clear();
-            dame.clear();
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Amat<T>::trace_pedigree(std::map<PedPair, PedPair> &, std::map<PedPair, PedPair> &, std::vector<std::int64_t> &)" << '\n';
+            std::cerr << "Exception in smatrix<T>::trace_operation( ... )" << '\n';
             std::cerr << e.what() << '\n';
-            throw;
-        }
-        catch (const std::string &e)
-        {
-            std::cerr << "Exception in Amat<T>::trace_pedigree(std::map<PedPair, PedPair> &, std::map<PedPair, PedPair> &, std::vector<std::int64_t> &)" << '\n';
-            std::cerr << "Reason: " << e << '\n';
-            throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Amat<T>::trace_pedigree(std::map<PedPair, PedPair> &, std::map<PedPair, PedPair> &, std::vector<std::int64_t> &)" << '\n';
-            throw;
+            std::cerr << "Exception in smatrix<T>::trace_operation( ... )" << '\n';
         }
     }
 
-    template void Amat<float>::trace_pedigree(std::map<PedPair, PedPair> &in_ped, std::map<PedPair, PedPair> &out_ped, std::vector<std::int64_t> &traced_id);
-    template void Amat<double>::trace_pedigree(std::map<PedPair, PedPair> &in_ped, std::map<PedPair, PedPair> &out_ped, std::vector<std::int64_t> &traced_id);
+    template void Amat<double>::trace_operation(std::vector<std::int64_t> &days,
+                                                std::vector<std::int64_t> &ids,
+                                                std::vector<std::int64_t> &sire,
+                                                std::vector<std::int64_t> &dame,
+                                                std::vector<std::int64_t> &in_traced_id,
+                                                std::vector<std::int64_t> &out_traced_id,
+                                                std::map<PedPair, PedPair> &out_ped,
+                                                std::vector<size_t> &loads_vect,
+                                                size_t thr_id);
+    template void Amat<float>::trace_operation(std::vector<std::int64_t> &days,
+                                               std::vector<std::int64_t> &ids,
+                                               std::vector<std::int64_t> &sire,
+                                               std::vector<std::int64_t> &dame,
+                                               std::vector<std::int64_t> &in_traced_id,
+                                               std::vector<std::int64_t> &out_traced_id,
+                                               std::map<PedPair, PedPair> &out_ped,
+                                               std::vector<size_t> &loads_vect,
+                                               size_t thr_id);
+
+    //===============================================================================================================
+
+    template <typename T>
+    void Amat<T>::thread_loads(std::vector<std::int64_t> &in, std::vector<size_t> &out)
+    {
+        try
+        {
+            const auto processor_count = std::thread::hardware_concurrency(); // may return 0 when not able to detect
+
+            size_t n_threads = processor_count;
+            size_t vect_size = in.size();
+            size_t work_load = 0;
+            work_load = (size_t)(vect_size / n_threads); // expected work load per thread
+            size_t max_load = 1;                         // max load (elements in range) per thread (should be probably changed!)
+
+            if (work_load <= max_load) // correct the number of assigned threads (is more the case for a small data or large max_load)
+            {
+                n_threads = (size_t)n_threads / 2.0;
+                work_load = (size_t)(vect_size / n_threads);
+
+                if (work_load <= max_load)
+                {
+                    n_threads = 1;
+                    work_load = vect_size;
+                }
+            }
+
+            size_t last_index = 0; // approx. load
+
+            for (size_t i = 0; i < n_threads - 1; i++)
+            {
+                last_index += work_load;
+                out.push_back(last_index);
+            }
+            out.push_back(vect_size - 1);
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Amat<T>::thread_loads(std::vector<std::int64_t> &, std::vector<size_t> &)" << '\n';
+            std::cerr << e.what() << '\n';
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Amat<T>::thread_loads(std::vector<std::int64_t> &, std::vector<size_t> &)" << '\n';
+        }
+    }
+
+    template void Amat<float>::thread_loads(std::vector<std::int64_t> &in, std::vector<size_t> &out);
+    template void Amat<double>::thread_loads(std::vector<std::int64_t> &in, std::vector<size_t> &out);
 
     //===============================================================================================================
 
@@ -1765,7 +2057,7 @@ std::cout<<"        sparsity of A22(-1) = "<< (1.0-(T)A_s.size()/(T)A_s.max_key(
             for (size_t i = 0; i < id.size(); i++)
             {
                 std::int64_t id1 = id[i];
-                
+
                 for (size_t j = i; j < id.size(); j++)
                 {
                     std::int64_t id2 = id[j];
@@ -1782,9 +2074,9 @@ std::cout<<"        sparsity of A22(-1) = "<< (1.0-(T)A_s.size()/(T)A_s.max_key(
                     std::int64_t s2 = begin->second.val_1;
                     std::int64_t d2 = begin->second.val_2;
 
-                    if ( s2 && d2 )
+                    if (s2 && d2)
                     {
-                        if ( id1 == id2 )
+                        if (id1 == id2)
                         {
                             bkey.val_1 = s2;
                             bkey.val_2 = d2;
@@ -1812,13 +2104,13 @@ std::cout<<"        sparsity of A22(-1) = "<< (1.0-(T)A_s.size()/(T)A_s.max_key(
                                 ckey.val_1 = d2;
                                 ckey.val_2 = id1;
                             }
-                            out_a[akey] = 0.5 * ( out_a[bkey] + out_a[ckey] );
+                            out_a[akey] = 0.5 * (out_a[bkey] + out_a[ckey]);
                             out_a[akey2] = out_a[akey];
                         }
                     }
-                    if ( !s2 && !d2 )
+                    if (!s2 && !d2)
                     {
-                        if ( id1 == id2 )
+                        if (id1 == id2)
                         {
                             out_a[akey] = 1.0;
                         }
@@ -1828,9 +2120,9 @@ std::cout<<"        sparsity of A22(-1) = "<< (1.0-(T)A_s.size()/(T)A_s.max_key(
                             out_a[akey2] = out_a[akey];
                         }
                     }
-                    if ( s2 && !d2 )
+                    if (s2 && !d2)
                     {
-                        if ( id1 == id2 )
+                        if (id1 == id2)
                         {
                             out_a[akey] = 1.0;
                         }
@@ -1847,9 +2139,9 @@ std::cout<<"        sparsity of A22(-1) = "<< (1.0-(T)A_s.size()/(T)A_s.max_key(
                             out_a[akey2] = out_a[akey];
                         }
                     }
-                    if ( !s2 && d2 )
+                    if (!s2 && d2)
                     {
-                        if ( id1 == id2 )
+                        if (id1 == id2)
                         {
                             out_a[akey] = 1.0;
                         }
@@ -1866,7 +2158,6 @@ std::cout<<"        sparsity of A22(-1) = "<< (1.0-(T)A_s.size()/(T)A_s.max_key(
                             out_a[akey2] = out_a[akey];
                         }
                     }
-
                 }
             }
         }
@@ -1924,7 +2215,7 @@ std::cout<<"        sparsity of A22(-1) = "<< (1.0-(T)A_s.size()/(T)A_s.max_key(
     template void Amat<double>::get_inbreeding(std::vector<double> &out);
 
     //===============================================================================================================
-    
+
     template <typename T>
     void Amat<T>::clear()
     {
@@ -1932,19 +2223,19 @@ std::cout<<"        sparsity of A22(-1) = "<< (1.0-(T)A_s.size()/(T)A_s.max_key(
         {
             birth_id_map.clear();
             A.fclear();
-            A.clear();                
+            A.clear();
             traced_pedID.clear();
             traced_pedID.shrink_to_fit();
             inbrF.clear();
             inbrF.shrink_to_fit();
             iA.fclear();
             iA.clear();
-            irA.fclear();                
+            irA.fclear();
             irA.clear();
             iA22.fclear();
             iA22.clear();
             A22.fclear();
-            A22.clear();                
+            A22.clear();
             id_iA.clear();
             id_iA.shrink_to_fit();
             id_irA.clear();
@@ -1982,7 +2273,7 @@ std::cout<<"        sparsity of A22(-1) = "<< (1.0-(T)A_s.size()/(T)A_s.max_key(
         // Note, we operate with L-stored format, hence return lower triangular part
         try
         {
-            if ( name == "A" )
+            if (name == "A")
             {
                 // we use iA as a container for A as well
                 iA.fread();
@@ -1996,7 +2287,7 @@ std::cout<<"        sparsity of A22(-1) = "<< (1.0-(T)A_s.size()/(T)A_s.max_key(
                     iA.clear();
                 }
             }
-            if ( name == "rA" )
+            if (name == "rA")
             {
                 // we use irA as a container for rA as well
                 irA.fread();
@@ -2010,7 +2301,7 @@ std::cout<<"        sparsity of A22(-1) = "<< (1.0-(T)A_s.size()/(T)A_s.max_key(
                     irA.clear();
                 }
             }
-            if ( name == "iA" )
+            if (name == "iA")
             {
                 iA.fread();
                 arr = iA;
@@ -2023,7 +2314,7 @@ std::cout<<"        sparsity of A22(-1) = "<< (1.0-(T)A_s.size()/(T)A_s.max_key(
                     iA.clear();
                 }
             }
-            if ( name == "irA" )
+            if (name == "irA")
             {
                 irA.fread();
                 arr = irA;
@@ -2036,7 +2327,7 @@ std::cout<<"        sparsity of A22(-1) = "<< (1.0-(T)A_s.size()/(T)A_s.max_key(
                     irA.clear();
                 }
             }
-            if ( name == "iA22" )
+            if (name == "iA22")
             {
                 iA22.fread();
                 arr = iA22;
@@ -2049,7 +2340,7 @@ std::cout<<"        sparsity of A22(-1) = "<< (1.0-(T)A_s.size()/(T)A_s.max_key(
                     iA22.clear();
                 }
             }
-            if ( name == "A22" )
+            if (name == "A22")
             {
                 A22.fread();
                 arr = A22;
@@ -2093,7 +2384,7 @@ std::cout<<"        sparsity of A22(-1) = "<< (1.0-(T)A_s.size()/(T)A_s.max_key(
         // Note, we operate with L-stored format, hence return lower triangular part
         try
         {
-            if ( name == "A" )
+            if (name == "A")
             {
                 // we use iA as a container for A as well
                 iA_s.fread();
@@ -2107,7 +2398,7 @@ std::cout<<"        sparsity of A22(-1) = "<< (1.0-(T)A_s.size()/(T)A_s.max_key(
                     iA_s.clear();
                 }
             }
-            if ( name == "rA" )
+            if (name == "rA")
             {
                 // we use irA as a container for rA as well
                 irA_s.fread();
@@ -2121,7 +2412,7 @@ std::cout<<"        sparsity of A22(-1) = "<< (1.0-(T)A_s.size()/(T)A_s.max_key(
                     irA_s.clear();
                 }
             }
-            if ( name == "iA" )
+            if (name == "iA")
             {
                 iA_s.fread();
                 arr = iA_s;
@@ -2134,7 +2425,7 @@ std::cout<<"        sparsity of A22(-1) = "<< (1.0-(T)A_s.size()/(T)A_s.max_key(
                     iA_s.clear();
                 }
             }
-            if ( name == "irA" )
+            if (name == "irA")
             {
                 irA_s.fread();
                 arr = irA_s;
@@ -2147,7 +2438,7 @@ std::cout<<"        sparsity of A22(-1) = "<< (1.0-(T)A_s.size()/(T)A_s.max_key(
                     irA_s.clear();
                 }
             }
-            if ( name == "iA22" )
+            if (name == "iA22")
             {
                 iA22_s.fread();
                 arr = iA22_s;
@@ -2160,7 +2451,7 @@ std::cout<<"        sparsity of A22(-1) = "<< (1.0-(T)A_s.size()/(T)A_s.max_key(
                     iA22_s.clear();
                 }
             }
-            if ( name == "A22" ) // this is always dense
+            if (name == "A22") // this is always dense
             {
                 throw std::string("The A22 matrix is always dense. Use the same but overloaded method which allows dense matrices!");
             }
@@ -2196,7 +2487,7 @@ std::cout<<"        sparsity of A22(-1) = "<< (1.0-(T)A_s.size()/(T)A_s.max_key(
         // Note, we operate with L-stored format, hence return lower triangular part
         try
         {
-            if ( name == "A" )
+            if (name == "A")
             {
                 // we use iA as a container for A as well
                 iA.fread();
@@ -2210,7 +2501,7 @@ std::cout<<"        sparsity of A22(-1) = "<< (1.0-(T)A_s.size()/(T)A_s.max_key(
                     iA.clear();
                 }
             }
-            if ( name == "rA" )
+            if (name == "rA")
             {
                 // we use irA as a container for rA as well
                 irA.fread();
@@ -2224,7 +2515,7 @@ std::cout<<"        sparsity of A22(-1) = "<< (1.0-(T)A_s.size()/(T)A_s.max_key(
                     irA.clear();
                 }
             }
-            if ( name == "iA" )
+            if (name == "iA")
             {
                 iA.fread();
                 iA.to_vector(arr);
@@ -2237,7 +2528,7 @@ std::cout<<"        sparsity of A22(-1) = "<< (1.0-(T)A_s.size()/(T)A_s.max_key(
                     iA.clear();
                 }
             }
-            if ( name == "irA" )
+            if (name == "irA")
             {
                 irA.fread();
                 irA.to_vector(arr);
@@ -2250,7 +2541,7 @@ std::cout<<"        sparsity of A22(-1) = "<< (1.0-(T)A_s.size()/(T)A_s.max_key(
                     irA.clear();
                 }
             }
-            if ( name == "iA22" )
+            if (name == "iA22")
             {
                 iA22.fread();
                 iA22.to_vector(arr);
@@ -2263,7 +2554,7 @@ std::cout<<"        sparsity of A22(-1) = "<< (1.0-(T)A_s.size()/(T)A_s.max_key(
                     iA22.clear();
                 }
             }
-            if ( name == "A22" )
+            if (name == "A22")
             {
                 A22.fread();
                 A22.to_vector(arr);
@@ -2302,48 +2593,55 @@ std::cout<<"        sparsity of A22(-1) = "<< (1.0-(T)A_s.size()/(T)A_s.max_key(
     //===============================================================================================================
 
     template <typename T>
-    void Amat<T>::get_A22(std::map <PedPair, PedPair> &ped, std::vector<std::int64_t> &genotypedID)
+    void Amat<T>::get_A22(std::map<PedPair, PedPair> &ped, std::vector<std::int64_t> &genotypedID)
     {
         try
         {
             Utilities2 u;
 
             size_t n = ped.size(); // total amount of animals in pedigree
-            std::vector<std::vector<std::int64_t> > Ped(n+1, std::vector<std::int64_t>(2, 0.0));
+            std::vector<std::vector<std::int64_t>> Ped(n + 1, std::vector<std::int64_t>(2, 0.0));
             std::vector<std::int64_t> GenID; // list of genotyped IDs
 
-            std::map <std::int64_t, std::int64_t> code_map;
-            std::map <std::int64_t, std::int64_t> gen_map;
+            std::map<std::int64_t, std::int64_t> code_map;
+            std::map<std::int64_t, std::int64_t> gen_map;
 
+auto start = std::chrono::high_resolution_clock::now();
             std::int64_t code_id = 1;
-            for (auto const& elem : ped) {
+            for (auto const &elem : ped)
+            {
 
                 code_map[elem.first.val_2] = code_id;
 
-                Ped[code_id][0] = pos_inped (code_map, elem.second.val_1);
-                Ped[code_id][1] = pos_inped (code_map, elem.second.val_2);
+                Ped[code_id][0] = pos_inped(code_map, elem.second.val_1);
+                Ped[code_id][1] = pos_inped(code_map, elem.second.val_2);
 
                 int pos = u.find_invect(genotypedID, elem.first.val_2);
-                if (pos != -1) {
+                if (pos != -1)
+                {
                     GenID.push_back(code_id);
                     gen_map[code_id] = pos;
                 }
 
                 code_id++;
             }
+auto stop = std::chrono::high_resolution_clock::now();
+auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+std::cout << "in get_A22()->1 duration (milliseconds): " << duration.count() << std::endl;
 
             size_t m = GenID.size(); // number of genotyped IDs
 
-            if ( !A.empty() )
+            if (!A.empty())
                 A.clear();
 
             A.resize(m);
+start = std::chrono::high_resolution_clock::now();
 
-    #pragma omp parallel for
+#pragma omp parallel for
             for (size_t i = 0; i < m; i++)
             {
-                std::vector<T> w(n+1, 0.0);
-                std::vector<std::int64_t> v(n+1, 0);
+                std::vector<T> w(n + 1, 0.0);
+                std::vector<std::int64_t> v(n + 1, 0);
 
                 size_t ii = gen_map[GenID[i]]; // gives position of recoded (1...n) genotyped IDs
 
@@ -2354,9 +2652,14 @@ std::cout<<"        sparsity of A22(-1) = "<< (1.0-(T)A_s.size()/(T)A_s.max_key(
                 for (size_t j = 0; j < m; j++)
                 {
                     if (ii >= (size_t)gen_map[GenID[j]])
-                        A[ ii*(ii+1)/2+gen_map[ GenID[j] ] ] = w[ GenID[j] ];
+                        A[ii * (ii + 1) / 2 + gen_map[GenID[j]]] = w[GenID[j]];
                 }
             }
+
+stop = std::chrono::high_resolution_clock::now();
+duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+std::cout << "in get_A22()->2 duration (milliseconds): " << duration.count() << std::endl;
+
         }
         catch (const std::exception &e)
         {
@@ -2377,37 +2680,42 @@ std::cout<<"        sparsity of A22(-1) = "<< (1.0-(T)A_s.size()/(T)A_s.max_key(
         }
     }
 
-    template void Amat<float>::get_A22(std::map <PedPair, PedPair> &ped, std::vector<std::int64_t> &genotypedID);
-    template void Amat<double>::get_A22(std::map <PedPair, PedPair> &ped, std::vector<std::int64_t> &genotypedID);
+    template void Amat<float>::get_A22(std::map<PedPair, PedPair> &ped, std::vector<std::int64_t> &genotypedID);
+    template void Amat<double>::get_A22(std::map<PedPair, PedPair> &ped, std::vector<std::int64_t> &genotypedID);
 
     //===============================================================================================================
 
     template <typename T>
-    void Amat<T>::getA22vector(std::vector <T> &w, std::vector <std::int64_t> &v, std::vector<std::vector<std::int64_t> > &Ped)
+    void Amat<T>::getA22vector(std::vector<T> &w, std::vector<std::int64_t> &v, std::vector<std::vector<std::int64_t>> &Ped)
     {
         try
         {
-            size_t n = w.size()-1;
-            std::vector<T> q(n+1, 0.0);
+            size_t n = w.size() - 1;
+            std::vector<T> q(n + 1, 0.0);
 
-            for (size_t i = n; i >= 1; i--) {
+            for (size_t i = n; i >= 1; i--)
+            {
                 q[i] += v[i];
                 auto s = Ped[i][0];
                 auto d = Ped[i][1];
-                if (s) q[s] += q[i]*0.5;
-                if (d) q[d] += q[i]*0.5;
+                if (s)
+                    q[s] += q[i] * 0.5;
+                if (d)
+                    q[d] += q[i] * 0.5;
             }
 
             for (size_t i = 1; i <= n; i++)
             {
                 auto s = Ped[i][0];
                 auto d = Ped[i][1];
-                auto di = (std::count (Ped[i].begin(), Ped[i].end(), 0)+2.0)/4.0 - 0.25 * (inbrF[s] + inbrF[d]);
+                auto di = (std::count(Ped[i].begin(), Ped[i].end(), 0) + 2.0) / 4.0 - 0.25 * (inbrF[s] + inbrF[d]);
                 T temp = (T)0;
-                if (s) temp += w[s];
-                if (d) temp += w[d];
-                w[i] = 0.5*temp;
-                w[i] += di*q[i];
+                if (s)
+                    temp += w[s];
+                if (d)
+                    temp += w[d];
+                w[i] = 0.5 * temp;
+                w[i] += di * q[i];
             }
         }
         catch (const std::exception &e)
@@ -2429,8 +2737,8 @@ std::cout<<"        sparsity of A22(-1) = "<< (1.0-(T)A_s.size()/(T)A_s.max_key(
         }
     }
 
-    template void Amat<float>::getA22vector(std::vector <float> &w, std::vector <std::int64_t> &v, std::vector<std::vector<std::int64_t> > &Ped);
-    template void Amat<double>::getA22vector(std::vector <double> &w, std::vector <std::int64_t> &v, std::vector<std::vector<std::int64_t> > &Ped);
+    template void Amat<float>::getA22vector(std::vector<float> &w, std::vector<std::int64_t> &v, std::vector<std::vector<std::int64_t>> &Ped);
+    template void Amat<double>::getA22vector(std::vector<double> &w, std::vector<std::int64_t> &v, std::vector<std::vector<std::int64_t>> &Ped);
 
     //===============================================================================================================
 

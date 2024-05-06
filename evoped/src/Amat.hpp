@@ -1,8 +1,8 @@
 #ifndef Amat_hpp__
 #define Amat_hpp__
 
-#include <fstream>
-#include <algorithm>
+// #include <fstream>
+// #include <algorithm>
 #include "sparse_matrix.hpp"
 #include "cs_matrix.hpp"
 #include "Utilities2.hpp"
@@ -13,7 +13,6 @@ namespace evoped
     class Amat
     {
     public:
-
         Amat();
         ~Amat();
 
@@ -27,23 +26,22 @@ namespace evoped
         void make_all(const std::string &ped_file,
                       const std::string &g_file,
                       bool use_large);
-        void get_inbreeding(std::vector<T> &out);        
+        void get_inbreeding(std::vector<T> &out);
         void get_matrix(const std::string &name,
-                        evolm::matrix<T>& arr,
+                        evolm::matrix<T> &arr,
                         std::vector<std::int64_t> &out,
                         bool keep_ondisk);
         void get_matrix(const std::string &name,
-                        evolm::smatrix<T>& arr,
+                        evolm::smatrix<T> &arr,
                         std::vector<std::int64_t> &out,
                         bool keep_ondisk);
         void get_matrix(const std::string &name,
-                        std::vector<T>& arr,
+                        std::vector<T> &arr,
                         std::vector<std::int64_t> &out,
                         bool keep_ondisk);
         void clear();
- 
-    private:
 
+    private:
         struct PedPair
         {
             std::int64_t val_1; // KEY: day, PAIR: sire
@@ -74,7 +72,7 @@ namespace evoped
         evolm::smatrix<T> iA_s;
         evolm::smatrix<T> irA_s;
         evolm::smatrix<T> iA22_s;
-        //evolm::matrix<T> A22_s;
+        // evolm::matrix<T> A22_s;
 
         std::vector<std::int64_t> id_iA;
         std::vector<std::int64_t> id_irA;
@@ -84,7 +82,7 @@ namespace evoped
                             std::map<PedPair, PedPair> &out_ped,
                             std::vector<std::int64_t> &out_ids);
         void fread_genotyped_id(const std::string &g_file,
-                                std::vector<std::int64_t> &out_ids);        
+                                std::vector<std::int64_t> &out_ids);
         void get_ainv(std::map<PedPair, PedPair> &ped,
                       std::map<PedPair, T> &ai,
                       bool inbreed);
@@ -98,23 +96,36 @@ namespace evoped
         void get_dinv(std::map<PedPair, PedPair> &ped,
                       std::vector<T> &dinv,
                       bool inbreed);
-        std::int64_t pos_inped(std::map<std::int64_t,std::int64_t> &codemap,
+        std::int64_t pos_inped(std::map<std::int64_t, std::int64_t> &codemap,
                                std::int64_t id);
         void map_to_matr(std::map<PedPair, T> &amap,
                          std::vector<std::int64_t> &ids,
                          bool use_ainv,
                          bool use_large);
-        void get_A22(std::map <PedPair, PedPair> &ped,
-                           std::vector<std::int64_t> &genotypedID);
-        void getA22vector(std::vector <T> &w,
-                          std::vector <std::int64_t> &v,
-                          std::vector<std::vector<std::int64_t> > &Ped);
-        void get_iA22(evolm::matrix<T>& full_matr,
-                      std::vector<std::int64_t>& matr_ids,
-                      std::vector<std::int64_t>& selected_ids);
-        void get_iA22(evolm::smatrix<T>& full_matr,
-                      std::vector<std::int64_t>& matr_ids,
-                      std::vector<std::int64_t>& selected_ids);
+        void get_A22(std::map<PedPair, PedPair> &ped,
+                     std::vector<std::int64_t> &genotypedID);
+        void getA22vector(std::vector<T> &w,
+                          std::vector<std::int64_t> &v,
+                          std::vector<std::vector<std::int64_t>> &Ped);
+        void get_iA22(evolm::matrix<T> &full_matr,
+                      std::vector<std::int64_t> &matr_ids,
+                      std::vector<std::int64_t> &selected_ids);
+        void get_iA22(evolm::smatrix<T> &full_matr,
+                      std::vector<std::int64_t> &matr_ids,
+                      std::vector<std::int64_t> &selected_ids);
+
+        // multithreading
+        void thread_loads(std::vector<std::int64_t> &in,
+                          std::vector<size_t> &out);
+        void trace_operation(std::vector<std::int64_t> &days,
+                             std::vector<std::int64_t> &ids,
+                             std::vector<std::int64_t> &sire,
+                             std::vector<std::int64_t> &dame,
+                             std::vector<std::int64_t> &in_traced_id,
+                             std::vector<std::int64_t> &out_traced_id,
+                             std::map<PedPair, PedPair> &out_ped,
+                             std::vector<size_t> &loads_vect,
+                             size_t thr_id);
     };
 
 } // end of namespace evoped

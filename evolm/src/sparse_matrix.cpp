@@ -30,7 +30,8 @@ namespace evolm
         max_elements = row * col;
         ondisc_elements = 0;
 
-        work_load_perthread = 2;
+        work_load_perthread = 1;
+        zerro_tolerance = (T)1.0e-12;
 
         debug_file = "SMATRIX.log";
     }
@@ -60,7 +61,8 @@ namespace evolm
         compact = true;
         ondisk = false;
 
-        work_load_perthread = 2;
+        work_load_perthread = 1;
+        zerro_tolerance = (T)1.0e-12;;
 
         numRow = numCol = lda;
         max_elements = (lda * lda + lda) / 2;
@@ -229,7 +231,8 @@ namespace evolm
         max_elements = 0;
         ondisc_elements = 0;
 
-        work_load_perthread = 2;
+        work_load_perthread = 1;
+        zerro_tolerance = (T)1.0e-12;;
 
         debug_file = "SMATRIX.log";
     }
@@ -568,19 +571,17 @@ namespace evolm
     //===============================================================================================================
 
     template <typename T>
-    void smatrix<T>::thread_loads(smatrix &in, std::vector<size_t> &out, bool simple_distribution)
+    void smatrix<T>::thread_loads_unord(smatrix &in, std::vector<size_t> &out)
     {        
         try
         {
             const auto processor_count = std::thread::hardware_concurrency(); //may return 0 when not able to detect
 
-            std::cout<<"cores found: "<<processor_count<<"\n";
-
             size_t n_threads = processor_count;
             size_t map_size = in.size();
             size_t work_load = 0;
             work_load = (size_t)( map_size / n_threads ); // expected work load per thread
-            size_t max_load = 1; // max load (elements in range) per thread (should be probably changed!)
+            size_t max_load = work_load_perthread; // max load (elements in range) per thread (should be probably changed!)
 
             if (work_load <= max_load) // correct the number of assigned threads (is more the case for a small data or large max_load)
             {
@@ -594,80 +595,44 @@ namespace evolm
                 }
             }
 
-            std::cout<<"use n_threads: "<<n_threads<<", work_load: "<<work_load<<"\n";
-
             size_t last_index = 0; // approx. load
 
-            if ( simple_distribution )
+            for (size_t i = 0; i < n_threads - 1; i++)
             {
-                for (size_t i = 0; i < n_threads - 1; i++)
-                {
-                    last_index += work_load;
-                    out.push_back(last_index);                    
-                }
-                out.push_back( map_size-1 );
+                last_index += work_load;
+                out.push_back(last_index);                    
             }
-            else
-            {
-                //typename std::map<size_t,T>::iterator it = in.A.begin(); // here we work on ordered conteiner !!!
-                typename std::unordered_map<size_t, T>::iterator it = in.A.begin();
-
-                last_index = work_load; // approx. load
-
-                while ( last_index < map_size )
-                {
-                    std::advance(it, last_index); // move iterator to position of expected last element in the row
-                    size_t i_row = in.row_inrec( it->first );
-                    size_t next_row = i_row;
-
-                    while (next_row == i_row) // find of a very last element of row close to the expected work_load position
-                    {
-                        it++; // do point iterator to the next element
-                        if ( last_index++ >= (map_size - 1) )
-                            break;
-                        i_row = in.row_inrec( it->first ); // determine its row
-                    }
-                    last_index--;
-                    out.push_back(last_index);
-                    last_index += work_load;
-                    it = in.A.begin();
-                }
-
-                if ( out.empty() || (last_index - work_load) < (map_size -1))
-                    out.push_back(map_size-1);
-            }
+            out.push_back( map_size-1 );
         }
         catch(const std::exception& e)
         {
-            std::cerr << "Exception in smatrix<T>::thread_loads(smatrix &, std::vector<size_t> &, bool)" << '\n';
+            std::cerr << "Exception in smatrix<T>::thread_loads_unord(smatrix &, std::vector<size_t> &)" << '\n';
             std::cerr << e.what() << '\n';
         }
         catch(...)
         {
-            std::cerr << "Exception in smatrix<T>::thread_loads(smatrix &, std::vector<size_t> &, bool)" << '\n';
+            std::cerr << "Exception in smatrix<T>::thread_loads_unord(smatrix &, std::vector<size_t> &)" << '\n';
         }
     }
 
-    template void smatrix<float>::thread_loads(smatrix &in, std::vector<size_t> &out, bool);
-    template void smatrix<double>::thread_loads(smatrix &in, std::vector<size_t> &out, bool);
-    template void smatrix<int>::thread_loads(smatrix &in, std::vector<size_t> &out, bool);
+    template void smatrix<float>::thread_loads_unord(smatrix &in, std::vector<size_t> &out);
+    template void smatrix<double>::thread_loads_unord(smatrix &in, std::vector<size_t> &out);
+    template void smatrix<int>::thread_loads_unord(smatrix &in, std::vector<size_t> &out);
 
     //===============================================================================================================
 
     template <typename T>
-    void smatrix<T>::thread_loads(ordstorage &in, std::vector<size_t> &out, bool simple_distribution)
+    void smatrix<T>::thread_loads_ord(ordstorage &in, std::vector<size_t> &out)
     {        
         try
         {
             const auto processor_count = std::thread::hardware_concurrency(); //may return 0 when not able to detect
 
-            std::cout<<"cores found: "<<processor_count<<"\n";
-
             size_t n_threads = processor_count;
             size_t map_size = in.size();
             size_t work_load = 0;
             work_load = (size_t)( map_size / n_threads ); // expected work load per thread
-            size_t max_load = 1; // max load (elements in range) per thread (should be probably changed!)
+            size_t max_load = work_load_perthread; // max load (elements in range) per thread (should be probably changed!)
 
             if (work_load <= max_load) // correct the number of assigned threads (is more the case for a small data or large max_load)
             {
@@ -681,74 +646,61 @@ namespace evolm
                 }
             }
 
-            std::cout<<"use n_threads: "<<n_threads<<", work_load: "<<work_load<<"\n";
+            size_t last_index = work_load; // approx. load
 
-            size_t last_index = 0; // approx. load
+            typename std::map<size_t,T>::iterator it = in.A.begin(); // because the data is ordered map
 
-            if ( simple_distribution )
+            while ( last_index < map_size )
             {
-                for (size_t i = 0; i < n_threads - 1; i++)
+                std::advance(it, last_index); // move iterator to position of expected last element in the row
+                size_t i_row = in.row_inrec( it->first );
+                size_t next_row = i_row;
+
+                while (next_row == i_row) // find of a very last element of row close to the expected work_load position
                 {
-                    last_index += work_load;
-                    out.push_back(last_index);                    
+                    it++; // do point iterator to the next element
+                    if ( last_index++ >= (map_size - 1) )
+                        break;
+                    i_row = in.row_inrec( it->first ); // determine its row
                 }
-                out.push_back( map_size-1 );
+                last_index--;
+                out.push_back(last_index);
+                last_index += work_load;
+                it = in.A.begin();
             }
-            else
-            {
-                typename std::map<size_t,T>::iterator it = in.A.begin();
 
-                last_index = work_load; // approx. load
-
-                while ( last_index < map_size )
-                {
-                    std::advance(it, last_index); // move iterator to position of expected last element in the row
-                    size_t i_row = in.row_inrec( it->first );
-                    size_t next_row = i_row;
-
-                    while (next_row == i_row) // find of a very last element of row close to the expected work_load position
-                    {
-                        it++; // do point iterator to the next element
-                        if ( last_index++ >= (map_size - 1) )
-                            break;
-                        i_row = in.row_inrec( it->first ); // determine its row
-                    }
-                    last_index--;
-                    out.push_back(last_index);
-                    last_index += work_load;
-                    it = in.A.begin();
-                }
-
-                if ( out.empty() || (last_index - work_load) < (map_size -1))
-                    out.push_back(map_size-1);
-            }
+            if ( out.empty() || (last_index - work_load) < (map_size -1))
+                out.push_back(map_size-1);
         }
         catch(const std::exception& e)
         {
-            std::cerr << "Exception in smatrix<T>::thread_loads(smatrix &, std::vector<size_t> &, bool)" << '\n';
+            std::cerr << "Exception in smatrix<T>::thread_loads_ord(smatrix &, std::vector<size_t> &)" << '\n';
             std::cerr << e.what() << '\n';
         }
         catch(...)
         {
-            std::cerr << "Exception in smatrix<T>::thread_loads(smatrix &, std::vector<size_t> &, bool)" << '\n';
+            std::cerr << "Exception in smatrix<T>::thread_loads_ord(smatrix &, std::vector<size_t> &)" << '\n';
         }
     }
 
-    template void smatrix<float>::thread_loads(ordstorage &in, std::vector<size_t> &out, bool);
-    template void smatrix<double>::thread_loads(ordstorage &in, std::vector<size_t> &out, bool);
-    template void smatrix<int>::thread_loads(ordstorage &in, std::vector<size_t> &out, bool);
+    template void smatrix<float>::thread_loads_ord(ordstorage &in, std::vector<size_t> &out);
+    template void smatrix<double>::thread_loads_ord(ordstorage &in, std::vector<size_t> &out);
+    template void smatrix<int>::thread_loads_ord(ordstorage &in, std::vector<size_t> &out);
 
     //===============================================================================================================
 
     template <typename T>
-    void smatrix<T>::values_inrow(smatrix &in, std::vector<size_t> &out_elements)
+    void smatrix<T>::values_inrow(ordstorage &in, std::vector<size_t> &out_elements)
     {        
         try
         {
+            /*
+                Returns a number of non-zero values in each row of matrix in.
+                This implementation works on ordered map only!
+            */
             out_elements.resize(in.numRow, 0);
 
-            //typename std::map<size_t,T>::iterator it = in.A.begin();
-            typename std::unordered_map<size_t, T>::iterator it = in.A.begin();
+            typename std::map<size_t,T>::iterator it = in.A.begin();
             
             size_t row = in.row_inrec( it->first ); // very first row
             size_t i_row = 0;
@@ -772,25 +724,27 @@ namespace evolm
         }
         catch(const std::exception& e)
         {
-            std::cerr << "Exception in smatrix<T>::values_inrow(smatrix &, std::vector<size_t> &)" << '\n';
+            std::cerr << "Exception in smatrix<T>::values_inrow(ordstorage &, std::vector<size_t> &)" << '\n';
             std::cerr << e.what() << '\n';
         }
         catch(...)
         {
-            std::cerr << "Exception in smatrix<T>::values_inrow(smatrix &, std::vector<size_t> &)" << '\n';
+            std::cerr << "Exception in smatrix<T>::values_inrow(ordstorage &, std::vector<size_t> &)" << '\n';
         }
     }
 
-    template void smatrix<float>::values_inrow(smatrix &in, std::vector<size_t> &out_elements);
-    template void smatrix<double>::values_inrow(smatrix &in, std::vector<size_t> &out_elements);
-    template void smatrix<int>::values_inrow(smatrix &in, std::vector<size_t> &out_elements);
+    template void smatrix<float>::values_inrow(ordstorage &in, std::vector<size_t> &out_elements);
+    template void smatrix<double>::values_inrow(ordstorage &in, std::vector<size_t> &out_elements);
+    template void smatrix<int>::values_inrow(ordstorage &in, std::vector<size_t> &out_elements);
 
     //===============================================================================================================
 
     template <typename T>
     smatrix<T> smatrix<T>::operator*(smatrix<T> &rhs)
-    { // !!! this cannot be used for multiply matrix on itself, because rhs is modified inside !!!
+    {
         /*
+            NOTE: this cannot be used for multiply matrix on itself, because rhs is modified inside !!!
+
             Matrix dot product:
             C = A * B;
             where A & B are rectangular matrices, C is always rectangular.
@@ -813,39 +767,30 @@ namespace evolm
         if ( rhs.size() < size() ) // here the rhs's matrix density is lower than at lhs, hence: res = lhs * transpose(rhs)
         {
             C.resize(numRow, rhs.numCol);
+
+            smatrix<T> _rhs(rhs); // copy rhs to temp container, this'll allow rhs.transpose() only once!
             
-            rhs.transpose(); // transpose because: res = lhs * transpose(rhs)
-            //-------------------
-            ordstorage ord_rhs(rhs); // copy rhs to ordered map container
-            //-------------------
+            _rhs.transpose(); // transpose because: res = lhs * transpose(rhs)
+
+            ordstorage ord_rhs(_rhs); // copy rhs to ordered map container
+
+            _rhs.resize(); // we do not need it any more
             
             std::vector<size_t> loads;
-            //thread_loads(rhs,loads,false); // get the number of rhs's rows per aavailable threads
-            thread_loads(ord_rhs,loads,false); // get the number of rhs's rows per aavailable threads
-
-            std::cout<<"v1, num loads: "<<loads.size()<<"\n";
-
-            std::vector<size_t> elements_inrow;
-            values_inrow(*this, elements_inrow); // get the number of non-zerro elements in each row of lhs
+            thread_loads_ord(ord_rhs,loads); // get the number of rhs's rows per aavailable threads
 
             std::vector<std::thread> vec_threads;
             std::vector< smatrix<T> > vec_matr;
-
-            //ustorage cpy_this(*this); // copy lhs to unordered_map container
             
             for(size_t i = 0; i < loads.size(); i++) // for each thread create temp smatrix container holding the results of specific columns
-                vec_matr.emplace_back( numRow, rhs.numRow ); // construct smatrix<T> object directly on vec_matr; use rhs.numRow instead of rhs.numCol because rhs is transposed now
+                vec_matr.emplace_back( numRow, ord_rhs.numRow ); // construct smatrix<T> object directly on vec_matr; use rhs.numRow instead of rhs.numCol because rhs is transposed now
 
             for(size_t i = 0; i < loads.size(); i++) // launch threads
-            {
-                //vec_threads.emplace_back( &smatrix::dot_operation_unordered, this, std::ref(cpy_this), std::ref(rhs), std::ref(vec_matr[i]), std::ref(loads), std::ref(elements_inrow), i );
-                vec_threads.emplace_back( &smatrix::dot_operation, this, std::ref(*this), std::ref(ord_rhs), std::ref(vec_matr[i]), std::ref(loads), std::ref(elements_inrow), i );
-            }
+                vec_threads.emplace_back( &smatrix::dot_operation, this, std::ref(*this), std::ref(ord_rhs), std::ref(vec_matr[i]), std::ref(loads), i );
 
             for (auto &v : vec_threads) // join all threads
                 v.join();
 
-            //cpy_this.clear();
             ord_rhs.clear();
 
             for(size_t i = 0; i < loads.size(); i++) // gathher the results of all threads into one resulting matrix
@@ -854,76 +799,42 @@ namespace evolm
                 vec_matr[i].resize();
             }
         }
-        else  // the lhs's matrix density is lower than at rhs, hence: transpose(res) = transpose(rhs) * lhs
+        else  // the lhs's matrix density is lower than at rhs, hence: transpose(res) = transpose(rhs) * lhs; need to transpose the results at the end
         {
             C.resize(rhs.numCol, numRow);
 
-std::cout<<"rhs.transpose() ..."<<"\n";            
-            rhs.transpose(); // transpose because we do transpose(res) = transpose(rhs) * lhs
-std::cout<<"    Done."<<"\n";
+            smatrix<T> _rhs(rhs); // copy rhs to temp container, this'll allow rhs.transpose() only once!
 
-            //------------------------
+            _rhs.transpose(); // transpose because we do transpose(res) = transpose(rhs) * lhs
+
             ordstorage ord_this(*this); // copy lhs to uordered map container
-            //------------------------
+
             std::vector<size_t> loads;
-            //thread_loads(*this,loads,false);
-            thread_loads(ord_this,loads,false);
-
-            /*std::cout<<"v2, num loads: "<<loads.size()<<"; the first 10 loads:"<<"\n";
-            for (size_t i = 0; i < 10; i++)
-                std::cout<<loads[i]<<" ";
-            std::cout<<"\n";*/
-
-            std::vector<size_t> elements_inrow;
-            values_inrow(rhs, elements_inrow);
-
-            /*size_t num_elements = 0, zero_elements = 0;
-            for (size_t i = 0; i < elements_inrow.size(); i++)
-            {
-                num_elements += elements_inrow[i];
-                if ( elements_inrow[i] == 0 )
-                    zero_elements++;
-            }
-            std::cout<<"elements_inrow.size() = "<<elements_inrow.size()<<", total elements: "<<num_elements<<", zero elements: "<<zero_elements<<"\n";*/
+            thread_loads_ord(ord_this,loads);
 
             std::vector<std::thread> vec_threads;
             std::vector< smatrix<T> > vec_matr;
 
-            //ustorage cpy_rhs(rhs);
-
             for(size_t i = 0; i < loads.size(); i++) // for each thread create temp smatrix container holding the results for specific columns
-            {
-                vec_matr.emplace_back( rhs.numRow, numRow ); // we use rhs.numRow instead of rhs.numCol because rhs is transposed now
-            }
+                vec_matr.emplace_back( _rhs.numRow, numRow ); // we use rhs.numRow instead of rhs.numCol because rhs is transposed now
 
             for(size_t i = 0; i < loads.size(); i++)
-            {
-                //vec_threads.emplace_back( &smatrix::dot_operation_unordered, this, std::ref(cpy_rhs), std::ref(*this), std::ref(vec_matr[i]), std::ref(loads), std::ref(elements_inrow), i );
-                vec_threads.emplace_back( &smatrix::dot_operation, this, std::ref(rhs), std::ref(ord_this), std::ref(vec_matr[i]), std::ref(loads), std::ref(elements_inrow), i );
-            }
+                vec_threads.emplace_back( &smatrix::dot_operation, this, std::ref(_rhs), std::ref(ord_this), std::ref(vec_matr[i]), std::ref(loads), i );
 
             for (auto &v : vec_threads)
-            {
-                std::cout<<"joining ..."<<"\n";
                 v.join();
-            }
 
-            //cpy_rhs.clear();
             ord_this.clear();
+            _rhs.resize();
 
             for(size_t i = 0; i < loads.size(); i++)
             {
-                std::cout<<"gathering results, from thread no. "<<i<<"\n";
                 C.A.insert(vec_matr[i].A.begin(), vec_matr[i].A.end());
                 vec_matr[i].resize();
             }
-std::cout<<"C.transpose() ..."<<"\n";
+
             C.transpose(); // transpose to get correct result because we do transpose(res) = transpose(rhs) * lhs
-std::cout<<"    Done."<<"\n";
         }
-std::cout<<"rhs.transpose() ..."<<"\n";
-        rhs.transpose(); // return the rhs to the original state, hence transpose it again
-std::cout<<"    Done."<<"\n";
         
         return C;
     }
@@ -935,7 +846,7 @@ std::cout<<"    Done."<<"\n";
     //===============================================================================================================
 
     template <typename T>
-    void smatrix<T>::dot_operation(smatrix &lhs, ordstorage &rhs, smatrix &out, std::vector<size_t> &range_vect, std::vector<size_t> &lhs_elements, size_t thr_id)
+    void smatrix<T>::dot_operation(smatrix &lhs, ordstorage &rhs, smatrix &out, std::vector<size_t> &range_vect, size_t thr_id)
     {
         try
         {
@@ -975,9 +886,6 @@ std::cout<<"    Done."<<"\n";
                     {
                         for (size_t i = 0; i < lhs.nrows(); i++)
                         {
-                            //if ( lhs_elements[i] == 0 )
-                            //    continue;
-                            
                             T res = (T)0;
                             T zerro_val = (T)0;
                             T lhs_val = (T)0;
@@ -1002,9 +910,6 @@ std::cout<<"    Done."<<"\n";
 
                     for (size_t i = 0; i < lhs.nrows(); i++) // calculate a very last column of the result matrix C
                     {
-                        //if ( lhs_elements[i] == 0 )
-                        //    continue;
-                            
                         T res = (T)0;
                         T zerro_val = (T)0;
                         T lhs_val = (T)0;
@@ -1041,9 +946,6 @@ std::cout<<"    Done."<<"\n";
                     
                     for (size_t i = 0; i < lhs.nrows(); i++)
                     {
-                        //if ( lhs_elements[i] == 0 )
-                        //    continue;
-                        
                         T res = (T)0;
                         T zerro_val = (T)0;
                         T lhs_val = (T)0;
@@ -1065,179 +967,25 @@ std::cout<<"    Done."<<"\n";
                     val_lst.push_back(value); // we are in the new row now, so do not miss very first data
                     it++;
                 }
-if (current_element%100 == 0 && thr_id == 0)
-    std::cout<<"\rcompletes, %: "<<current_element*100/n_values<<std::flush;
+//if (current_element%100 == 0 && thr_id == 0)
+//    std::cout<<"\rcompletes, %: "<<current_element*100/n_values<<std::flush;
 
             }
         }
         catch(const std::exception& e)
         {
-            std::cerr << "Exception in smatrix<T>::dot_operation_unordered(ustorage &, smatrix &, smatrix &, std::vector<size_t> &, std::vector<size_t> &, size_t)" << '\n';
+            std::cerr << "Exception in smatrix<T>::dot_operation_unordered(smatrix &, ordstorage &, smatrix &, std::vector<size_t> &, size_t)" << '\n';
             std::cerr << e.what() << '\n';
         }
         catch(...)
         {
-            std::cerr << "Exception in smatrix<T>::dot_operation_unordered(ustorage &, smatrix &, smatrix &, std::vector<size_t> &, std::vector<size_t> &, size_t)" << '\n';
+            std::cerr << "Exception in smatrix<T>::dot_operation_unordered(smatrix &, ordstorage &, smatrix &, std::vector<size_t> &, size_t)" << '\n';
         }        
     }
 
-    template void smatrix<double>::dot_operation(smatrix &lhs, ordstorage &rhs, smatrix &out, std::vector<size_t> &range_vect, std::vector<size_t> &lhs_elements, size_t thr_id);
-    template void smatrix<float>::dot_operation(smatrix &lhs, ordstorage &rhs, smatrix &out, std::vector<size_t> &range_vect, std::vector<size_t> &lhs_elements, size_t thr_id);
-    template void smatrix<int>::dot_operation(smatrix &lhs, ordstorage &rhs, smatrix &out, std::vector<size_t> &range_vect, std::vector<size_t> &lhs_elements, size_t thr_id);
-
-    //===============================================================================================================
-
-    template <typename T>
-    void smatrix<T>::dot_operation_unordered(ustorage &lhs, smatrix &rhs, smatrix &out, std::vector<size_t> &range_vect, std::vector<size_t> &lhs_elements, size_t thr_id)
-    {
-        try
-        {
-            std::vector<size_t> col_lst;
-            std::vector<T> val_lst;
-            size_t i_row = 0;
-            size_t row = 0;
-            size_t col = 0;
-
-            size_t i_first = 0; // very first element in a threads range the iterator it should point to
-
-            if ( thr_id != 0 )
-                i_first = range_vect[thr_id - 1] + 1;
-
-            size_t i_last = range_vect[thr_id]; // very last element in a threads range the iterator it should point to
-
-            //typename std::map<size_t,T>::iterator it = rhs.A.begin();
-            typename std::unordered_map<size_t, T>::iterator it = rhs.A.begin(); // this is just to pass compiler; should be deeleted for this function!
-            std::advance(it, i_first);
-
-            i_row = rhs.row_inrec( it->first ); // determine from which row of the rhs matrix we start
-
-            size_t n_values = i_last - i_first + 1; // max number of elements in a threads range
-
-            size_t current_element = 0;
-
-            for(size_t i = 0; i < n_values; i++)
-            {
-                row = rhs.row_inrec(it->first);      // to which row the key belongs 
-                col = rhs.col_inrec(it->first, row); // knowing the row find the col
-                T value = it->second;
-
-                current_element++;
-
-                if ( current_element == n_values ) // very last element of the matrix
-                {
-                    if (row != i_row) // indicates we reached last row with a single element in a row; calculate for the previous row data
-                    {
-                        for (size_t i = 0; i < lhs.nrows(); i++)
-                        {
-                            if ( lhs_elements[i] == 0 )
-                                continue;
-                            
-                            T res = (T)0;
-                            T zerro_val = (T)0;
-                            T lhs_val = (T)0;
-                            for (size_t j = 0; j < val_lst.size(); j++)
-                            {
-                                lhs_val = lhs.get_nonzero( i,col_lst[j] );
-                                if ( lhs_val != zerro_val )
-                                    res += lhs_val * val_lst[j];
-                            }
-
-                            if ( res != zerro_val )
-                                out[ out.key_inrec(i,i_row) ] = res;
-                        }
-                        col_lst.clear(); // clear the previous row data
-                        val_lst.clear(); // clear the previous row data
-                    }
-
-                    col_lst.push_back(col);
-                    val_lst.push_back(value);
-
-                    i_row = row;
-
-                    for (size_t i = 0; i < lhs.nrows(); i++) // calculate a very last column of the result matrix C
-                    {
-                        if ( lhs_elements[i] == 0 )
-                            continue;
-                            
-                        T res = (T)0;
-                        T zerro_val = (T)0;
-                        T lhs_val = (T)0;
-                        for (size_t j = 0; j < val_lst.size(); j++)
-                        {
-                            lhs_val = lhs.get_nonzero( i,col_lst[j] );
-                            if ( lhs_val != zerro_val )
-                                res += lhs_val * val_lst[j];
-                        }
-
-                        if ( res != zerro_val )
-                            out[ out.key_inrec(i,i_row) ] = res;
-                    }
-
-                    continue;                    
-                }
-
-                if ( i_row == row )
-                {
-                    col_lst.push_back(col);
-                    val_lst.push_back(value);
-                    it++;
-                }
-                else
-                {
-                    if ( val_lst.empty() )
-                    {
-                        i_row = row;
-                        col_lst.push_back(col); // we are in the new row now, so do not miss very first data
-                        val_lst.push_back(value); // we are in the new row now, so do not miss very first data
-                        it++;
-                        continue;
-                    }
-                    
-                    for (size_t i = 0; i < lhs.nrows(); i++)
-                    {
-                        if ( lhs_elements[i] == 0 )
-                            continue;
-                        
-                        T res = (T)0;
-                        T zerro_val = (T)0;
-                        T lhs_val = (T)0;
-                        for (size_t j = 0; j < val_lst.size(); j++)
-                        {
-                            lhs_val = lhs.get_nonzero( i,col_lst[j] );
-                            if ( lhs_val != zerro_val )
-                                res += lhs_val * val_lst[j];
-                        }
-
-                        if ( res != zerro_val )
-                            out[ out.key_inrec(i,i_row) ] = res;
-                    }
-
-                    i_row = row; // set the new current row
-                    col_lst.clear(); // clear the previous row data
-                    val_lst.clear(); // clear the previous row data
-                    col_lst.push_back(col); // we are in the new row now, so do not miss very first data
-                    val_lst.push_back(value); // we are in the new row now, so do not miss very first data
-                    it++;
-                }
-if (current_element%100 == 0 && thr_id == 0)
-    std::cout<<"\rcompletes, %: "<<current_element*100/n_values<<std::flush;
-
-            }
-        }
-        catch(const std::exception& e)
-        {
-            std::cerr << "Exception in smatrix<T>::dot_operation_unordered(ustorage &, smatrix &, smatrix &, std::vector<size_t> &, std::vector<size_t> &, size_t)" << '\n';
-            std::cerr << e.what() << '\n';
-        }
-        catch(...)
-        {
-            std::cerr << "Exception in smatrix<T>::dot_operation_unordered(ustorage &, smatrix &, smatrix &, std::vector<size_t> &, std::vector<size_t> &, size_t)" << '\n';
-        }        
-    }
-
-    template void smatrix<double>::dot_operation_unordered(ustorage &lhs, smatrix &rhs, smatrix &out, std::vector<size_t> &range_vect, std::vector<size_t> &lhs_elements, size_t thr_id);
-    template void smatrix<float>::dot_operation_unordered(ustorage &lhs, smatrix &rhs, smatrix &out, std::vector<size_t> &range_vect, std::vector<size_t> &lhs_elements, size_t thr_id);
-    template void smatrix<int>::dot_operation_unordered(ustorage &lhs, smatrix &rhs, smatrix &out, std::vector<size_t> &range_vect, std::vector<size_t> &lhs_elements, size_t thr_id);
+    template void smatrix<double>::dot_operation(smatrix &lhs, ordstorage &rhs, smatrix &out, std::vector<size_t> &range_vect, size_t thr_id);
+    template void smatrix<float>::dot_operation(smatrix &lhs, ordstorage &rhs, smatrix &out, std::vector<size_t> &range_vect, size_t thr_id);
+    template void smatrix<int>::dot_operation(smatrix &lhs, ordstorage &rhs, smatrix &out, std::vector<size_t> &range_vect, size_t thr_id);
 
     //===============================================================================================================
 
@@ -1255,53 +1003,174 @@ if (current_element%100 == 0 && thr_id == 0)
         if (ondisk || rhs.ondisk)
             throw std::string("One of the matrices is empty. Use fread() to relocate data to memory. smatrix<T>::operator+");
 
-        /* Check if matrices can be added. */
+        // Check if matrices can be added.
         if ( (numCol != rhs.numCol) || (numRow != rhs.numRow) )
             throw std::string("Matrices are not consistent for addition. smatrix<T>::operator+");
         
         if ( (compact && !rhs.compact) || (!compact && rhs.compact) )
             throw std::string("Cannot provide addition due to matrices in different format! smatrix<T>::operator+");
+        
+        smatrix<T> Result(*this);
 
-        smatrix<T> C; // container for the result of substitution
+        //------------------------------------
+        T i_val = (T)0;
+        T almost_zerro = zerro_tolerance;
+        T rslt = (T)0;
+        std::vector<size_t> zeros_keys;
+
+        for (auto & e: rhs.A)
+        {
+            i_val = Result[e.first];
+            rslt = i_val + e.second;
+            Result[ e.first ] = rslt; // modify (update) the result matrix
+            if ( fabs(rslt) <= almost_zerro ) // keep track of the keys with zero values to be removed from matrix later
+                zeros_keys.push_back(e.first); // we do not want to store zeros !
+        }
+        //-------------------------------------
+        /*
+        std::vector<size_t> loads;
+
+        thread_loads_unord(rhs, loads);
+
+        std::vector<smatrix> vect_matr;
+        std::vector<std::thread> vect_thr;
+
+        std::vector<size_t> zeros_keys;
 
         if (compact)
-            C.resize(numRow);
+        {
+            for(size_t i = 0; i < loads.size(); i++)
+                vect_matr.emplace_back(numRow);
+        }
         else
-            C.resize(numRow, numCol);
-
-        T res = (T)0;
-        T i_val = (T)0;
-        T zerro_val = (T)0;
-
-        for (const auto& [key, value]: rhs.A)
         {
-            i_val = get_nonzero(key);
-
-            if ( i_val != zerro_val )
-            {
-                res = i_val + value;
-
-                if ( res != zerro_val )
-                    C[ key ] = res;
-            }
-            else
-                C[ key ] = value;
+            for(size_t i = 0; i < loads.size(); i++)
+                vect_matr.emplace_back(numRow, numCol);
         }
 
-        for (const auto& [key, value]: A) // account for those lhs values which are not in rhs
+        for(size_t i = 0; i < loads.size(); i++)
+            vect_thr.emplace_back( &smatrix::plus_operation, this, std::ref(rhs), std::ref(Result), std::ref(zeros_keys), std::ref(vect_matr[i]), std::ref(loads), i );
+
+        for(size_t i = 0; i < loads.size(); i++)
+            vect_thr[i].join();
+
+        for(size_t i = 0; i < loads.size(); i++)
         {
-            i_val = rhs.get_nonzero(key);
-
-            if ( i_val == zerro_val )
-                C[ key ] = value;
+            Result.A.insert( vect_matr[i].A.begin(), vect_matr[i].A.end() );
+            vect_matr[i].resize();
         }
-
-        return C;
+        */
+        
+        // remove from the matrix values equal to zero
+        for (size_t i = 0; i < zeros_keys.size(); i++)
+            Result.A.erase( zeros_keys[i] );
+        
+        return Result;
     }
 
     template smatrix<float> smatrix<float>::operator+(smatrix<float> &rhs);
     template smatrix<double> smatrix<double>::operator+(smatrix<double> &rhs);
     template smatrix<int> smatrix<int>::operator+(smatrix<int> &rhs);
+
+    //===============================================================================================================
+
+    template <typename T>
+    void smatrix<T>::plus_operation(smatrix &in, smatrix &res, std::vector<size_t> &zero_keys, smatrix &out, std::vector<size_t> &loads_vect, size_t thr_id)
+    {
+        /*
+            Addition operation to be handled by the specific thread.
+            in - RHS matrix;
+            res - the result of operation final matrix, here is a copy of LHS;
+            zero_keys - empty vector where keys corresponding to zero values in the res matrix will be stored;
+            out - local (in terms of a specific thread) result matrix with keys not existing in the res matrix, will be merged with res at the end;
+            loads_vect - amount of records in the RHS to be processed by the specific thread;
+            thr_id - the specific thread ID.
+        */
+        try
+        {
+            size_t row = 0;
+            size_t col = 0;
+            size_t key = 0;
+            T i_val = (T)0;
+            T zerro_val = (T)0;
+            T almost_zerro = zerro_tolerance;
+            T rslt = (T)0;
+
+            size_t i_first = 0; // very first element in a threads range the iterator it should point to
+
+            if ( thr_id != 0 )
+                i_first = loads_vect[thr_id - 1] + 1;
+
+            size_t i_last = loads_vect[thr_id]; // very last element in a threads range the iterator it should point to
+
+            typename std::unordered_map<size_t, T>::iterator it = in.A.begin();
+            std::advance(it, i_first);
+
+            if (compact)
+            {
+                for(size_t i = 0; i < ( i_last - i_first + 1 ); i++) // work on in.A
+                {
+                    row = in.row_insym(it->first);      // to which row the key belongs 
+                    col = in.col_insym(it->first, row); // knowing the row find the col
+                    key = in.key_insym(row,col);        // getting the key
+
+                    i_val = res.get_nonzero(key); // this is lhs's value !
+
+                    if ( i_val != zerro_val ) // if the key in res exists (hence, a non-zero value is)
+                    {
+                        rslt = i_val + it->second;
+                        
+                        res[ key ] = rslt; // modify (update) the result matrix
+
+                        if ( fabs(rslt) <= almost_zerro ) // keep track of the keys with zero values to be removed from matrix later
+                            zero_keys.push_back(key); // we do not want to store zeros !
+                    }
+                    else
+                        out[ key ] = it->second; // technically new map with keys not exist in res mmatrix, to be merged with  res later
+
+                    it++;
+                }
+            }
+            else
+            {
+                for(size_t i = 0; i < ( i_last - i_first + 1 ); i++) // work on in.A
+                {
+                    row = in.row_inrec(it->first);      // to which row the key belongs 
+                    col = in.col_inrec(it->first, row); // knowing the row find the col
+                    key = in.key_inrec(row,col);        // getting the key
+
+                    i_val = res.get_nonzero(key); // this is lhs's value !
+
+                    if ( i_val != zerro_val ) // if the key in res exists (hence, a non-zero value is)
+                    {
+                        rslt = i_val + it->second;
+                        
+                        res[ key ] = rslt; // modify (update) the result matrix
+
+                        if ( fabs(rslt) <= almost_zerro ) // keep track of the keys with zero values to be removed from matrix later
+                            zero_keys.push_back(key); // we do not want to store zeros !
+                    }
+                    else
+                        out[ key ] = it->second; // technically new map with keys not exist in res mmatrix, to be merged with  res later
+
+                    it++;
+                }
+            }
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << "Exception in smatrix<T>::plus_operation(smatrix &, smatrix &, std::vector<size_t> &, smatrix &, std::vector<size_t> &, size_t)" << '\n';
+            std::cerr << e.what() << '\n';
+        }
+        catch(...)
+        {
+            std::cerr << "Exception in smatrix<T>::plus_operation(smatrix &, smatrix &, std::vector<size_t> &, smatrix &, std::vector<size_t> &, size_t)" << '\n';
+        }        
+    }
+
+    template void smatrix<double>::plus_operation(smatrix &in, smatrix &res, std::vector<size_t> &zero_keys, smatrix &out, std::vector<size_t> &loads_vect, size_t thr_id);
+    template void smatrix<float>::plus_operation(smatrix &in, smatrix &res, std::vector<size_t> &zero_keys, smatrix &out, std::vector<size_t> &loads_vect, size_t thr_id);
+    template void smatrix<int>::plus_operation(smatrix &in, smatrix &res, std::vector<size_t> &zero_keys, smatrix &out, std::vector<size_t> &loads_vect, size_t thr_id);
 
     //===============================================================================================================
 
@@ -1326,46 +1195,168 @@ if (current_element%100 == 0 && thr_id == 0)
         if ( (compact && !rhs.compact) || (!compact && rhs.compact) )
             throw std::string("Cannot provide substitution due to matrices in different format! smatrix<T>::operator-");
 
-        smatrix<T> C; // container for the result of substitution
+        smatrix<T> Result(*this);
+        //------------------------------------
+        T i_val = (T)0;
+        T almost_zerro = zerro_tolerance;
+        T rslt = (T)0;
+        std::vector<size_t> zeros_keys;
+
+        for (auto & e: rhs.A)
+        {
+            i_val = Result[e.first];
+            rslt = i_val - e.second;
+            Result[ e.first ] = rslt; // modify (update) the result matrix
+            if ( fabs(rslt) <= almost_zerro ) // keep track of the keys with zero values to be removed from matrix later
+                zeros_keys.push_back(e.first); // we do not want to store zeros !
+        }
+        //-------------------------------------
+        /*
+        std::vector<size_t> loads;
+
+        thread_loads_unord(rhs, loads);
+
+
+        std::vector<smatrix> vect_matr;
+        std::vector<std::thread> vect_thr;
+
+        std::vector<size_t> zeros_keys;
 
         if (compact)
-            C.resize(numRow);
+        {
+            for(size_t i = 0; i < loads.size(); i++)
+                vect_matr.emplace_back(numRow);
+        }
         else
-            C.resize(numRow, numCol);
-
-        T res = (T)0;
-        T i_val = (T)0;
-        T zerro_val = (T)0;
-
-        for (const auto& [key, value]: rhs.A)
         {
-            i_val = get_nonzero(key);
-
-            if ( i_val != zerro_val )
-            {
-                res = i_val - value;
-
-                if ( res != zerro_val )
-                    C[ key ] = res;
-            }
-            else
-                C[ key ] = -value;
+            for(size_t i = 0; i < loads.size(); i++)
+                vect_matr.emplace_back(numRow, numCol);
         }
 
-        for (const auto& [key, value]: A) // account for those lhs values which are not in rhs
+        for(size_t i = 0; i < loads.size(); i++)
+            vect_thr.emplace_back( &smatrix::minus_operation, this, std::ref(rhs), std::ref(Result), std::ref(zeros_keys), std::ref(vect_matr[i]), std::ref(loads), i );
+
+        for(size_t i = 0; i < loads.size(); i++)
+            vect_thr[i].join();
+
+
+        for(size_t i = 0; i < loads.size(); i++)
         {
-            i_val = rhs.get_nonzero(key);
-
-            if ( i_val == zerro_val )
-                C[ key ] = value;
+            Result.A.insert( vect_matr[i].A.begin(), vect_matr[i].A.end() );
+            vect_matr[i].resize();
         }
+        */            
+        
+        // remove from the matrix values equal to zero
+        for (size_t i = 0; i < zeros_keys.size(); i++)
+            Result.A.erase( zeros_keys[i] );
 
-        return C;
+        return Result;
     }
 
     template smatrix<float> smatrix<float>::operator-(smatrix<float> &rhs);
     template smatrix<double> smatrix<double>::operator-(smatrix<double> &rhs);
     template smatrix<int> smatrix<int>::operator-(smatrix<int> &rhs);
+
+    //===============================================================================================================
+
+    template <typename T>
+    void smatrix<T>::minus_operation(smatrix &in, smatrix &res, std::vector<size_t> &zero_keys, smatrix &out, std::vector<size_t> &loads_vect, size_t thr_id)
+    {
+        /*
+            Substraction operation to be handled by the specific thread.
+            in - RHS matrix;
+            res - the result of operation final matrix, here is a copy of LHS;
+            zero_keys - empty vector where keys corresponding to zero values in the res matrix will be stored;
+            out - local (in terms of a specific thread) result matrix with keys not existing in the res matrix, will be merged with res at the end;
+            loads_vect - amount of records in the RHS to be processed by the specific thread;
+            thr_id - the specific thread ID.
+        */
+        try
+        {
+            size_t row = 0;
+            size_t col = 0;
+            size_t key = 0;
+            T i_val = (T)0;
+            T zerro_val = (T)0;
+            T almost_zerro = zerro_tolerance;
+            T rslt = (T)0;
+
+            size_t i_first = 0; // very first element in a threads range the iterator it should point to
+
+            if ( thr_id != 0 )
+                i_first = loads_vect[thr_id - 1] + 1;
+
+            size_t i_last = loads_vect[thr_id]; // very last element in a threads range the iterator it should point to
+
+            typename std::unordered_map<size_t, T>::iterator it = in.A.begin();
+            std::advance(it, i_first);
+
+            if (compact)
+            {
+                for(size_t i = 0; i < ( i_last - i_first + 1 ); i++) // work on in.A
+                {
+                    row = in.row_insym(it->first);      // to which row the key belongs 
+                    col = in.col_insym(it->first, row); // knowing the row find the col
+                    key = in.key_insym(row,col);        // getting the key
+                    
+                    i_val = res.get_nonzero(key); // this is lhs's value !
+
+                    if ( i_val != zerro_val ) // if the key in res exists (hence, a non-zero value is)
+                    {
+                        rslt = i_val - it->second;
+                        
+                        res[ key ] = rslt; // modify (update) the result matrix
+
+                        if ( fabs(rslt) <= almost_zerro ) // keep track of the keys with zero values to be removed from matrix later
+                            zero_keys.push_back(key); // we do not want to store zeros !
+                    }
+                    else
+                        out[ key ] = -it->second; // technically new map with keys not exist in res mmatrix, to be merged with  res later
+                    
+                    it++;
+                }
+            }
+            else
+            {
+                for(size_t i = 0; i < ( i_last - i_first + 1 ); i++) // work on in.A
+                {
+                    row = in.row_inrec(it->first);      // to which row the key belongs 
+                    col = in.col_inrec(it->first, row); // knowing the row find the col
+                    key = in.key_inrec(row,col);        // getting the key
+                    
+                    i_val = res.get_nonzero(key); // this is lhs's value !
+
+                    if ( i_val != zerro_val ) // if the key in res exists (hence, a non-zero value is)
+                    {
+                        rslt = i_val - it->second;
+                        
+                        res[ key ] = rslt; // modify (update) the result matrix
+
+                        if ( fabs(rslt) <= almost_zerro ) // keep track of the keys with zero values to be removed from matrix later
+                            zero_keys.push_back(key); // we do not want to store zeros !
+                    }
+                    else
+                        out[ key ] = -it->second; // technically new map with keys not exist in res mmatrix, to be merged with  res later
+                    
+                    it++;
+                }
+            }
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << "Exception in smatrix<T>::minus_operation(smatrix &, smatrix &, std::vector<size_t> &, smatrix &, std::vector<size_t> &, size_t)" << '\n';
+            std::cerr << e.what() << '\n';
+        }
+        catch(...)
+        {
+            std::cerr << "Exception in smatrix<T>::minus_operation(smatrix &, smatrix &, std::vector<size_t> &, smatrix &, std::vector<size_t> &, size_t)" << '\n';
+        }        
+    }
+
+    template void smatrix<double>::minus_operation(smatrix &in, smatrix &res, std::vector<size_t> &zero_keys, smatrix &out, std::vector<size_t> &loads_vect, size_t thr_id);
+    template void smatrix<float>::minus_operation(smatrix &in, smatrix &res, std::vector<size_t> &zero_keys, smatrix &out, std::vector<size_t> &loads_vect, size_t thr_id);
+    template void smatrix<int>::minus_operation(smatrix &in, smatrix &res, std::vector<size_t> &zero_keys, smatrix &out, std::vector<size_t> &loads_vect, size_t thr_id);
 
     //===============================================================================================================
 
@@ -1750,34 +1741,8 @@ if (current_element%100 == 0 && thr_id == 0)
 
             if (!compact)
             {
-                /*smatrix<T> C(numCol, numRow); // temporal container for the transposed matrx
-
-                size_t row = 0;
-                size_t col = 0;
-
-                std::map <size_t, T> B;
-
-                for (const auto& [key, value]: A)
-                {
-                    row = row_inrec(key); // to which row the key belongs 
-                    col = col_inrec(key, row); // knowing the row find the col
-                    B[ C.key_inrec(col,row) ] = value;
-                }*/
-
-                //This parallel version is not better than consecutive for up to 100K-by-100K matrix (did not tested bigger ...)
-
-                std::cout<<"In transpose, get loads ..."<<"\n";
-
                 std::vector<size_t> loads;
-                thread_loads(*this, loads, true);
-
-                std::cout<<"Transpose, num loads: "<<loads.size()<<", all elements: "<<this->size()<<"; the first 10 loads:"<<"\n";
-                size_t max_show = loads.size();
-                if (loads.size() > 10)
-                    max_show = 10;
-                for (size_t i = 0; i < max_show; i++)
-                    std::cout<<loads[i]<<" ";
-                std::cout<<"\n";
+                thread_loads_unord(*this, loads);
 
                 std::vector<smatrix> vect_matr;
                 std::vector<std::thread> vect_thr;
@@ -1801,23 +1766,9 @@ if (current_element%100 == 0 && thr_id == 0)
 
                 for(size_t i = 0; i < loads.size(); i++)
                 {
-                    std::cout<<"In transpose, merging ..."<<"\n";
                     A.insert( vect_matr[i].A.begin(), vect_matr[i].A.end() );
                     vect_matr[i].resize();
                 }
-
-                /*size_t new_row = numCol;
-                size_t new_col = numRow;
-
-                numRow = new_row;
-                numCol = new_col;
-
-                A.clear();
-
-                A.insert(B.begin(), B.end());
-
-                B.clear();
-                C.clear();*/
             }
             else
             {
@@ -1860,7 +1811,6 @@ if (current_element%100 == 0 && thr_id == 0)
 
             size_t i_last = loads_vect[thr_id]; // very last element in a threads range the iterator it should point to
 
-            //typename std::map<size_t,T>::iterator it = in.A.begin();
             typename std::unordered_map<size_t, T>::iterator it = in.A.begin();
 
             std::advance(it, i_first);
@@ -1901,24 +1851,28 @@ if (current_element%100 == 0 && thr_id == 0)
             if (compact)
                 return;
 
-            smatrix<T> C(numRow); // temporal container for the transformed matrx
+            std::vector<size_t> loads;
+            thread_loads_unord(*this, loads);
 
-            size_t row = 0;
-            size_t col = 0;
+            std::vector<smatrix> vect_matr;
+            std::vector<std::thread> vect_thr;
 
-            for (const auto& [key, value]: A)
-            {
-                row = row_inrec(key);    // to which row the key belongs
-                col = col_inrec(key, row);       // knowing the row find the col
-                if (col <= row)
-                    C[ C.key_insym(row,col) ] = value;
-            }
+            for(size_t i = 0; i < loads.size(); i++)
+                vect_matr.emplace_back(numRow);
+
+            for(size_t i = 0; i < loads.size(); i++)
+                vect_thr.emplace_back( &smatrix::rectosym_operation, this, std::ref(*this), std::ref(vect_matr[i]), std::ref(loads), i );
+
+            for(size_t i = 0; i < loads.size(); i++)
+                vect_thr[i].join();
 
             resize(numRow); // resizing the host matrix
 
-            *this = C; // assigning the new values to it
-
-            C.resize(); // clear the temporal matrix
+            for(size_t i = 0; i < loads.size(); i++)
+            {
+                A.insert( vect_matr[i].A.begin(), vect_matr[i].A.end() );
+                vect_matr[i].resize();
+            }
         }
         catch(const std::exception& e)
         {
@@ -1938,6 +1892,51 @@ if (current_element%100 == 0 && thr_id == 0)
     //===============================================================================================================
 
     template <typename T>
+    void smatrix<T>::rectosym_operation(smatrix &in, smatrix &out, std::vector<size_t> &loads_vect, size_t thr_id)
+    {
+        try
+        {
+            size_t row = 0;
+            size_t col = 0;
+
+            size_t i_first = 0; // very first element in a threads range the iterator it should point to
+
+            if ( thr_id != 0 )
+                i_first = loads_vect[thr_id - 1] + 1;
+
+            size_t i_last = loads_vect[thr_id]; // very last element in a threads range the iterator it should point to
+
+            typename std::unordered_map<size_t, T>::iterator it = in.A.begin();
+
+            std::advance(it, i_first);
+
+            for(size_t i = 0; i < ( i_last - i_first + 1 ); i++)
+            {
+                row = in.row_inrec(it->first);      // to which row the key belongs 
+                col = in.col_inrec(it->first, row); // knowing the row find the col
+                if (col <= row)
+                out[ out.key_insym(row,col) ] = it->second;
+                it++;
+            }
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << "Exception in smatrix<T>::rectosym_operation(smatrix &, smatrix &, std::vector<size_t> &, size_t)" << '\n';
+            std::cerr << e.what() << '\n';
+        }
+        catch(...)
+        {
+            std::cerr << "Exception in smatrix<T>::rectosym_operation(smatrix &, smatrix &, std::vector<size_t> &, size_t)" << '\n';
+        }        
+    }
+
+    template void smatrix<double>::rectosym_operation(smatrix &in, smatrix &out, std::vector<size_t> &loads_vect, size_t thr_id);
+    template void smatrix<float>::rectosym_operation(smatrix &in, smatrix &out, std::vector<size_t> &loads_vect, size_t thr_id);
+    template void smatrix<int>::rectosym_operation(smatrix &in, smatrix &out, std::vector<size_t> &loads_vect, size_t thr_id);
+
+    //===============================================================================================================
+
+    template <typename T>
     void smatrix<T>::symtorec()
     {
         try
@@ -1948,24 +1947,29 @@ if (current_element%100 == 0 && thr_id == 0)
             if (!compact)
                 return;
 
-            smatrix<T> C(numRow, numRow); // temporal container for the transformed matrx
+            std::vector<size_t> loads;
+            thread_loads_unord(*this, loads);
 
-            size_t row = 0;
-            size_t col = 0;
+            std::vector<smatrix> vect_matr;
+            std::vector<std::thread> vect_thr;
 
-            for (const auto& [key, value]: A)
-            {
-                row = row_insym(key);    // to which row the key belongs
-                col = col_insym(key, row);       // knowing the row find the col
-                C[ C.key_inrec(row,col) ] = value;
-                C[ C.key_inrec(col,row) ] = value;
-            }
+            for(size_t i = 0; i < loads.size(); i++)
+                vect_matr.emplace_back(numRow, numRow);
+
+            for(size_t i = 0; i < loads.size(); i++)
+                vect_thr.emplace_back( &smatrix::symtorec_operation, this, std::ref(*this), std::ref(vect_matr[i]), std::ref(loads), i );
+
+            for(size_t i = 0; i < loads.size(); i++)
+                vect_thr[i].join();
 
             resize(numRow, numRow); // resizing the host matrix
 
-            *this = C; // assigning the new values to it
+            for(size_t i = 0; i < loads.size(); i++)
+            {
+                A.insert( vect_matr[i].A.begin(), vect_matr[i].A.end() );
+                vect_matr[i].resize();
+            }
 
-            C.resize(); // clear the temporal matrix
         }
         catch(const std::exception& e)
         {
@@ -1981,6 +1985,51 @@ if (current_element%100 == 0 && thr_id == 0)
     template void smatrix<float>::symtorec();
     template void smatrix<double>::symtorec();
     template void smatrix<int>::symtorec();
+
+    //===============================================================================================================
+
+    template <typename T>
+    void smatrix<T>::symtorec_operation(smatrix &in, smatrix &out, std::vector<size_t> &loads_vect, size_t thr_id)
+    {
+        try
+        {
+            size_t row = 0;
+            size_t col = 0;
+
+            size_t i_first = 0; // very first element in a threads range the iterator it should point to
+
+            if ( thr_id != 0 )
+                i_first = loads_vect[thr_id - 1] + 1;
+
+            size_t i_last = loads_vect[thr_id]; // very last element in a threads range the iterator it should point to
+
+            typename std::unordered_map<size_t, T>::iterator it = in.A.begin();
+
+            std::advance(it, i_first);
+
+            for(size_t i = 0; i < ( i_last - i_first + 1 ); i++)
+            {
+                row = in.row_insym(it->first);      // to which row the key belongs 
+                col = in.col_insym(it->first, row); // knowing the row find the col
+                out[ out.key_inrec(row,col) ] = it->second;
+                out[ out.key_inrec(col,row) ] = it->second;
+                it++;
+            }
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << "Exception in smatrix<T>::symtorec_operation(smatrix &, smatrix &, std::vector<size_t> &, size_t)" << '\n';
+            std::cerr << e.what() << '\n';
+        }
+        catch(...)
+        {
+            std::cerr << "Exception in smatrix<T>::symtorec_operation(smatrix &, smatrix &, std::vector<size_t> &, size_t)" << '\n';
+        }        
+    }
+
+    template void smatrix<double>::symtorec_operation(smatrix &in, smatrix &out, std::vector<size_t> &loads_vect, size_t thr_id);
+    template void smatrix<float>::symtorec_operation(smatrix &in, smatrix &out, std::vector<size_t> &loads_vect, size_t thr_id);
+    template void smatrix<int>::symtorec_operation(smatrix &in, smatrix &out, std::vector<size_t> &loads_vect, size_t thr_id);
 
     //===============================================================================================================
 
@@ -2034,7 +2083,7 @@ if (current_element%100 == 0 && thr_id == 0)
         if (!compact)
             throw std::string("The key_insym(size_t key, size_t row) should be called only on symmetric matrix!");
 #endif
-        return col + row * (row + 1) / 2.0;
+        return (size_t)( col + row * (row + 1) / 2.0 );
     }
 
     template size_t smatrix<float>::key_insym(size_t key, size_t row);
@@ -2053,7 +2102,7 @@ if (current_element%100 == 0 && thr_id == 0)
         if (compact)
             throw std::string("The key_inrec(size_t key, size_t row) should be called only on rectangular matrix!");
 #endif
-        return col + row * numCol;
+        return (size_t)( col + row * numCol );
     }
 
     template size_t smatrix<float>::key_inrec(size_t key, size_t row);
@@ -2072,7 +2121,7 @@ if (current_element%100 == 0 && thr_id == 0)
         if (!compact)
             throw std::string("The col_insym(size_t key, size_t row) should be called only on symmetric matrix!");
 #endif
-        return key - row * (row + 1) / 2.0;
+        return (size_t)( key - row * (row + 1) / 2.0 );
     }
 
     template size_t smatrix<float>::col_insym(size_t key, size_t row);
