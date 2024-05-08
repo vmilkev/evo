@@ -9,6 +9,18 @@ namespace evoped
     {
         try
         {
+            data_sparsity = 0.0;
+            use_sparse = false;
+            sparsity_threshold = 90.0;
+
+            IsEmpty.iA = true;
+            IsEmpty.irA = true;
+            IsEmpty.iA22 = true;
+            IsEmpty.A22 = true;
+            IsEmpty.iA_s = true;
+            IsEmpty.irA_s = true;
+            IsEmpty.iA22_s = true;
+            IsEmpty.A22_s = true;
         }
         catch (const std::exception &e)
         {
@@ -31,6 +43,48 @@ namespace evoped
 
     template Amat<float>::Amat();
     template Amat<double>::Amat();
+
+    //===============================================================================================================
+
+    template <typename T>
+    Amat<T>::Amat(double threshold)
+    {
+        try
+        {
+            data_sparsity = 0.0;
+            use_sparse = false;
+            sparsity_threshold = threshold;
+
+            IsEmpty.iA = true;
+            IsEmpty.irA = true;
+            IsEmpty.iA22 = true;
+            IsEmpty.A22 = true;
+            IsEmpty.iA_s = true;
+            IsEmpty.irA_s = true;
+            IsEmpty.iA22_s = true;
+            IsEmpty.A22_s = true;
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Amat<T>::Amat()" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Amat<T>::Amat(double)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Amat<T>::Amat(double)" << '\n';
+            throw;
+        }
+    }
+
+    template Amat<float>::Amat(double threshold);
+    template Amat<double>::Amat(double threshold);
 
     //===============================================================================================================
 
@@ -66,7 +120,45 @@ namespace evoped
     //===============================================================================================================
 
     template <typename T>
-    void Amat<T>::map_to_matr(std::map<PedPair, T> &amap, std::vector<std::int64_t> &ids, bool use_ainv, bool use_large)
+    void Amat<T>::set_sparsiity_threshold( double threshold )
+    {
+        try
+        {
+            /*
+                Sparsity limit below which use_sparse == false;
+                data will be processed through the dennse matrices operations.
+                Higher the threshold - more zerros in a matrix should be in order
+                to be considered sparse.
+            */
+
+            sparsity_threshold = threshold;
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Amat<T>::Amat()" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Amat<T>::set_sparsiity_threshold( double )" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Amat<T>::set_sparsiity_threshold( double )" << '\n';
+            throw;
+        }
+    }
+
+    template void Amat<float>::set_sparsiity_threshold( double threshold );
+    template void Amat<double>::set_sparsiity_threshold( double threshold );
+
+    //===============================================================================================================
+
+    template <typename T>
+    void Amat<T>::map_to_matr(std::map<PedPair, T> &in_amap, std::vector<std::int64_t> &in_ids, evolm::smatrix<T> &out_matr)
     {
         try
         {
@@ -74,96 +166,126 @@ namespace evoped
 
             std::map<std::int64_t, std::int64_t> rid_map;
 
-            if (ids.empty())
+            if (in_ids.empty())
                 throw std::string("Empty traced pedigree IDs!");
 
-            size_t limit = 0.5 * (ids.size() - 1) * ids.size() + ids.size();
-            if (!use_ainv)
-                limit = ids.size() * ids.size();
-
-            if (limit < amap.size())
-                throw std::string("The number of elements in calculated A(-1) matrix is higher than the number of traced IDs!!");
-
-            u.get_RecodedIdMap(rid_map, ids); // list of real ids => std::map for the new consecutive list starting from 1
+            u.get_RecodedIdMap(rid_map, in_ids); // list of real ids => std::map for the new consecutive list starting from 1
 
             if (rid_map.empty())
                 throw std::string("Recoded IDs map is empty!");
 
-            if (!A.empty())
-                A.clear();
+            if (!out_matr.empty())
+                out_matr.clear();
 
-            if (!A_s.empty())
-                A_s.clear();
+            out_matr.resize(in_ids.size());
 
-            if (use_large)
-                A_s.resize(ids.size());
-            else
-                A.resize(ids.size());
-
-            if (use_large)
+            for (auto const &elem : in_amap)
             {
-                for (auto const &elem : amap)
-                {
-                    std::int64_t g_row = elem.first.val_1; // id
-                    std::int64_t g_col = elem.first.val_2; // id
-                    T g_val = elem.second;
+                std::int64_t g_row = elem.first.val_1; // id
+                std::int64_t g_col = elem.first.val_2; // id
+                T g_val = elem.second;
 
-                    if (std::abs(g_val) <= 0.000001) // because of the sparse container, we are not storing 0.0 values
-                        continue;
+                if (std::abs(g_val) <= 0.000001) // because of the sparse container, we are not storing 0.0 values
+                    continue;
 
-                    size_t r = rid_map[g_row];            // position in the list if ids, consecutive index of real id in the list of all ids
-                    size_t c = rid_map[g_col];            // position in the list if ids, consecutive index of real id in the list of all ids
-                    size_t ind = r * (r - 1) / 2 + c - 1; // r & c start from 1, but not from 0
-                    if (c > r)
-                        ind = c * (c - 1) / 2 + r - 1;
-                    A_s[ind] = g_val;
-                }
-            }
-            else
-            {
-                for (auto const &elem : amap)
-                {
-                    std::int64_t g_row = elem.first.val_1; // id
-                    std::int64_t g_col = elem.first.val_2; // id
-                    T g_val = elem.second;
-
-                    size_t r = rid_map[g_row];            // position in the list if ids, consecutive index of real id in the list of all ids
-                    size_t c = rid_map[g_col];            // position in the list if ids, consecutive index of real id in the list of all ids
-                    size_t ind = r * (r - 1) / 2 + c - 1; // r & c start from 1, but not from 0
-                    if (c > r)
-                        ind = c * (c - 1) / 2 + r - 1;
-                    A[ind] = g_val;
-                }
+                size_t r = rid_map[g_row];            // position in the list if ids, consecutive index of real id in the list of all ids
+                size_t c = rid_map[g_col];            // position in the list if ids, consecutive index of real id in the list of all ids
+                size_t ind = r * (r - 1) / 2 + c - 1; // r & c start from 1, but not from 0
+                if (c > r)
+                    ind = c * (c - 1) / 2 + r - 1;
+                out_matr[ind] = g_val;
             }
 
             rid_map.clear();
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Amat<T>::map_to_matr(std::map<PedPair, T> &, std::vector<std::int64_t> &, bool, bool)" << '\n';
+            std::cerr << "Exception in Amat<T>::map_to_matr(std::map<PedPair, T> &, std::vector<std::int64_t> &, evolm::smatrix<float> &)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Amat<T>::map_to_matr(std::map<PedPair, T> &, std::vector<std::int64_t> &, bool, bool)" << '\n';
+            std::cerr << "Exception in Amat<T>::map_to_matr(std::map<PedPair, T> &, std::vector<std::int64_t> &, evolm::smatrix<float> &)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Amat<T>::map_to_matr(std::map<PedPair, T> &, std::vector<std::int64_t> &, bool, bool)" << '\n';
+            std::cerr << "Exception in Amat<T>::map_to_matr(std::map<PedPair, T> &, std::vector<std::int64_t> &, evolm::smatrix<float> &)" << '\n';
             throw;
         }
     }
 
-    template void Amat<float>::map_to_matr(std::map<PedPair, float> &amap, std::vector<std::int64_t> &ids, bool use_ainv, bool use_large);
-    template void Amat<double>::map_to_matr(std::map<PedPair, double> &amap, std::vector<std::int64_t> &ids, bool use_ainv, bool use_large);
+    template void Amat<float>::map_to_matr(std::map<PedPair, float> &in_amap, std::vector<std::int64_t> &in_ids, evolm::smatrix<float> &out_matr);
+    template void Amat<double>::map_to_matr(std::map<PedPair, double> &in_amap, std::vector<std::int64_t> &in_ids, evolm::smatrix<double> &out_matr);
 
     //===============================================================================================================
 
     template <typename T>
-    void Amat<T>::make_matrix(const std::string &ped_file, bool use_ainv, bool use_large)
+    void Amat<T>::map_to_matr(std::map<PedPair, T> &in_amap, std::vector<std::int64_t> &in_ids, evolm::matrix<T> &out_matr)
+    {
+        try
+        {
+            Utilities2 u;
+
+            std::map<std::int64_t, std::int64_t> rid_map;
+
+            if (in_ids.empty())
+                throw std::string("Empty traced pedigree IDs!");
+
+            u.get_RecodedIdMap(rid_map, in_ids); // list of real ids => std::map for the new consecutive list starting from 1
+
+            if (rid_map.empty())
+                throw std::string("Recoded IDs map is empty!");
+
+            if (!out_matr.empty())
+                out_matr.clear();
+
+            out_matr.resize(in_ids.size());
+
+            for (auto const &elem : in_amap)
+            {
+                std::int64_t g_row = elem.first.val_1; // id
+                std::int64_t g_col = elem.first.val_2; // id
+                T g_val = elem.second;
+
+                size_t r = rid_map[g_row];            // position in the list if ids, consecutive index of real id in the list of all ids
+                size_t c = rid_map[g_col];            // position in the list if ids, consecutive index of real id in the list of all ids
+                size_t ind = r * (r - 1) / 2 + c - 1; // r & c start from 1, but not from 0
+                if (c > r)
+                    ind = c * (c - 1) / 2 + r - 1;
+                out_matr[ind] = g_val;
+            }
+
+            rid_map.clear();
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Amat<T>::map_to_matr(std::map<PedPair, T> &, std::vector<std::int64_t> &, evolm::matrix<float> &)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Amat<T>::map_to_matr(std::map<PedPair, T> &, std::vector<std::int64_t> &, evolm::matrix<float> &)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Amat<T>::map_to_matr(std::map<PedPair, T> &, std::vector<std::int64_t> &, evolm::smatrix<float> &)" << '\n';
+            throw;
+        }
+    }
+
+    template void Amat<float>::map_to_matr(std::map<PedPair, float> &in_amap, std::vector<std::int64_t> &in_ids, evolm::matrix<float> &out_matr);
+    template void Amat<double>::map_to_matr(std::map<PedPair, double> &in_amap, std::vector<std::int64_t> &in_ids, evolm::matrix<double> &out_matr);
+
+    //===============================================================================================================
+
+    template <typename T>
+    void Amat<T>::make_matrix(const std::string &ped_file, bool use_ainv)
     {
         // Making A or A(-1) based on full pedigree
         try
@@ -205,54 +327,74 @@ namespace evoped
 
             pedID.shrink_to_fit();
 
-            map_to_matr(ainv, traced_pedID, use_ainv, use_large); // converting ainv map to A or A(-1) matrix
+            size_t limit = 0.5 * (traced_pedID.size() - 1) * traced_pedID.size() + traced_pedID.size();
+            if (!use_ainv)
+                limit = traced_pedID.size() * traced_pedID.size();
+
+            if (limit < ainv.size())
+                throw std::string("The number of elements in calculated A(-1) matrix is higher than the number of traced IDs!!");
+
+            data_sparsity = ( 1.0 - (double)ainv.size() / (double)limit ) * 100.0;
+            
+            //size_t dense_mem = limit*sizeof(T);
+            //size_t sparse_mem = A_s.get_memory_usage( ainv.size() );
+            //std::cout<<"expected size of dense matrix: "<<dense_mem<<", expected size of sparse matrix: "<<sparse_mem<<", data sparsity: "<<data_sparsity<<", ratio: "<<(double)dense_mem/sparse_mem<<"\n";
+            
+            if ( data_sparsity >= sparsity_threshold )
+                use_sparse = true; // the default is false
+
+            if (use_sparse)
+            {
+                map_to_matr(ainv, traced_pedID, A_s);
+                A_s.fwrite();
+                iA_s = A_s;
+                A_s.resize();
+
+                IsEmpty.iA_s = false;
+            }
+            else
+            {
+                map_to_matr(ainv, traced_pedID, A);
+                A.fwrite();
+                iA = A;
+                A.clear();
+
+                IsEmpty.iA = false;
+            }
 
             ainv.clear();
 
             id_iA = traced_pedID;
-
-            if (use_large)
-            {
-                A_s.fwrite();
-                iA_s = A_s;
-                A_s.resize();
-            }
-            else
-            {
-                A.fwrite();
-                iA = A;
-                A.clear();
-            }
 
             traced_pedID.clear();
             traced_pedID.shrink_to_fit();
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Amat<T>::make_matrix(std::string &, bool, bool)" << '\n';
+            std::cerr << "Exception in Amat<T>::make_matrix(std::string &, bool)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Amat<T>::make_matrix(std::string &, bool, bool)" << '\n';
+            std::cerr << "Exception in Amat<T>::make_matrix(std::string &, bool)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Amat<T>::make_matrix(std::string &, bool, bool)" << '\n';
+            std::cerr << "Exception in Amat<T>::make_matrix(std::string &, bool)" << '\n';
             throw;
         }
     }
 
-    template void Amat<float>::make_matrix(const std::string &ped_file, bool use_ainv, bool use_large);
-    template void Amat<double>::make_matrix(const std::string &ped_file, bool use_ainv, bool use_large);
+    template void Amat<float>::make_matrix(const std::string &ped_file, bool use_ainv);
+    template void Amat<double>::make_matrix(const std::string &ped_file, bool use_ainv);
 
     //===============================================================================================================
 
     template <typename T>
-    void Amat<T>::make_matrix(const std::string &ped_file, const std::string &g_file, bool use_ainv, bool use_large)
+    void Amat<T>::make_matrix(const std::string &ped_file, const std::string &g_file, bool use_ainv)
     {
         // Making A(-1) based on reduced pedigree traced on IDs in the file 'g_file'
         try
@@ -295,74 +437,86 @@ namespace evoped
             pedID.clear();
             pedID.shrink_to_fit();
 
-            map_to_matr(r_ainv, traced_pedID, use_ainv, use_large); // converting r_ainv map to A(-1) matrix
+            size_t limit = 0.5 * (traced_pedID.size() - 1) * traced_pedID.size() + traced_pedID.size();
+            if (!use_ainv)
+                limit = traced_pedID.size() * traced_pedID.size();
+
+            if (limit < r_ainv.size())
+                throw std::string("The number of elements in calculated A(-1) matrix is higher than the number of traced IDs!!");
+
+            data_sparsity = ( 1.0 - (double)r_ainv.size() / (double)limit ) * 100.0;
+
+            //size_t dense_mem = limit*sizeof(T);
+            //size_t sparse_mem = A_s.get_memory_usage( r_ainv.size() );
+            //std::cout<<"expected size of dense matrix: "<<dense_mem<<", expected size of sparse matrix: "<<sparse_mem<<", data sparsity: "<<data_sparsity<<", ratio: "<<(double)dense_mem/sparse_mem<<"\n";
+
+            if ( data_sparsity >= sparsity_threshold )
+                use_sparse = true;
+
+            if (use_sparse)
+            {
+                map_to_matr(r_ainv, traced_pedID, A_s);
+                A_s.fwrite();
+                irA_s = A_s;
+                A_s.resize();
+
+                IsEmpty.irA_s = false;
+            }
+            else
+            {
+                map_to_matr(r_ainv, traced_pedID, A);
+                A.fwrite();
+                irA = A;
+                A.clear();
+
+                IsEmpty.irA = false;
+            }
 
             r_ainv.clear();
 
             id_irA = traced_pedID;
-
-            if (use_large)
-            {
-                A_s.fwrite();
-                irA_s = A_s;
-                A_s.resize();
-            }
-            else
-            {
-                A.fwrite();
-                irA = A;
-                A.clear();
-            }
 
             traced_pedID.clear();
             traced_pedID.shrink_to_fit();
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Amat<T>::make_matrix(std::string &, std::string &, bool, bool)" << '\n';
+            std::cerr << "Exception in Amat<T>::make_matrix(std::string &, std::string &, bool)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Amat<T>::make_matrix(std::string &, std::string &, bool, bool)" << '\n';
+            std::cerr << "Exception in Amat<T>::make_matrix(std::string &, std::string &, bool)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Amat<T>::make_matrix(std::string &, std::string &, bool, bool)" << '\n';
+            std::cerr << "Exception in Amat<T>::make_matrix(std::string &, std::string &, bool)" << '\n';
             throw;
         }
     }
 
-    template void Amat<float>::make_matrix(const std::string &ped_file, const std::string &g_file, bool use_ainv, bool use_large);
-    template void Amat<double>::make_matrix(const std::string &ped_file, const std::string &g_file, bool use_ainv, bool use_large);
+    template void Amat<float>::make_matrix(const std::string &ped_file, const std::string &g_file, bool use_ainv);
+    template void Amat<double>::make_matrix(const std::string &ped_file, const std::string &g_file, bool use_ainv);
 
     //===============================================================================================================
 
     template <typename T>
-    void Amat<T>::make_all(const std::string &ped_file, const std::string &g_file, bool use_large)
+    void Amat<T>::make_all(const std::string &ped_file, const std::string &g_file)
     {
         // Making all matrices required for ssBlup: A(-1), red_A(-1), A22, A22(-1)
         try
         {
             // -----------------------------------------------------
             // ---------- full A(-1) -------------------------------
-            std::cout << "full A(-1) ..."
-                      << "\n";
+
             std::vector<std::int64_t> pedID;
             std::map<PedPair, PedPair> pedigree_from_file;
             std::map<PedPair, PedPair> pedigree;
-            std::cout << "reading pedigree ..."
-                      << "\n";
-            auto start = std::chrono::high_resolution_clock::now();
 
             fread_pedigree(ped_file, pedigree_from_file, pedID);
-
-            auto stop = std::chrono::high_resolution_clock::now();
-            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-            std::cout << "fread_pedigree() duration (milliseconds): " << duration.count() << std::endl;
 
             if (pedID.empty())
                 throw std::string("Empty pedigree IDs!");
@@ -372,65 +526,60 @@ namespace evoped
 
             if (!traced_pedID.empty())
                 traced_pedID.erase(traced_pedID.begin(), traced_pedID.end());
-            std::cout << "tracing pedigree ..."
-                      << "\n";
-
-            stop = std::chrono::high_resolution_clock::now();
 
             trace_pedigree(pedigree_from_file, pedigree, pedID); // tracing full pedigree
-
-            stop = std::chrono::high_resolution_clock::now();
-            duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-            std::cout << "trace_pedigree() duration (milliseconds): " << duration.count() << std::endl;
 
             if (!inbrF.empty())
                 inbrF.erase(inbrF.begin(), inbrF.end());
 
             std::map<PedPair, T> ainv;
-            std::cout << "making A(-1) ..."
-                      << "\n";
-
-            stop = std::chrono::high_resolution_clock::now();
 
             get_ainv(pedigree, ainv, true); // making A(-1)
-            
-            stop = std::chrono::high_resolution_clock::now();
-            duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-            std::cout << "get_ainv() duration (milliseconds): " << duration.count() << std::endl;
 
+            size_t limit = 0.5 * (traced_pedID.size() - 1) * traced_pedID.size() + traced_pedID.size();
+
+            if (limit < ainv.size())
+                throw std::string("The number of elements in calculated full A(-1) matrix is higher than the number of traced IDs!!");
+
+            data_sparsity = ( 1.0 - (double)ainv.size() / (double)limit ) * 100.0;
+
+            //size_t dense_mem = limit*sizeof(T);
+            //size_t sparse_mem = A_s.get_memory_usage( ainv.size() );
+            //std::cout<<"expected size of dense matrix: "<<dense_mem<<", expected size of sparse matrix: "<<sparse_mem<<", data sparsity: "<<data_sparsity<<", ratio: "<<(double)dense_mem/sparse_mem<<"\n";
+
+            if ( data_sparsity >= sparsity_threshold )
+                use_sparse = true;
+            
             pedigree.clear();
             pedID.clear();
             pedID.shrink_to_fit();
 
-            std::cout << "map_to_matr ..."
-                      << "\n";
+            if (use_sparse)
+            {
+                map_to_matr(ainv, traced_pedID, A_s); // converting ainv map to sparse ( A or A(-1) ) matrix
+                A_s.fwrite(); // 1. Wrire to binary
+                iA_s = A_s;   // 2. Copy matrix by exchanging the internal binary file name
+                A_s.resize();
 
-            map_to_matr(ainv, traced_pedID, true, use_large); // converting ainv map to A or A(-1) matrix
+                IsEmpty.iA_s = false;
+            }
+            else
+            {
+                map_to_matr(ainv, traced_pedID, A); // converting ainv map to ( A or A(-1) ) matrix
+                A.fwrite(); // 1. Wrire to binary
+                iA = A;     // 2. Copy matrix by exchanging the internal binary file name
+                A.clear();  // 3. Clears the memory and gets new name for internal binary file
+
+                IsEmpty.iA = false;
+            }
             
-            std::cout << "Done."
-                      << "\n";
             ainv.clear();
 
             id_iA = traced_pedID;
 
-            if (use_large)
-            {
-                A_s.fwrite(); // 1. Wrire to binary
-                iA_s = A_s;   // 2. Copy matrix by exchanging the internal binary file name
-                A_s.resize();
-            }
-            else
-            {
-                A.fwrite(); // 1. Wrire to binary
-                iA = A;     // 2. Copy matrix by exchanging the internal binary file name
-                A.clear();  // 3. Clears the memory and gets new name for internal binary file
-            }
-            std::cout << "Done."
-                      << "\n";
             // -----------------------------------------------------
             // ---------- reduced A(-1) ----------------------------
-            std::cout << "reduced A(-1)"
-                      << "\n";
+
             std::vector<std::int64_t> genotypedID;
             std::map<PedPair, PedPair> r_pedigree;
 
@@ -453,74 +602,72 @@ namespace evoped
 
             pedigree_from_file.clear();
 
-            map_to_matr(r_ainv, traced_pedID, true, use_large); // converting r_ainv map to A(-1) matrix
+            limit = 0.5 * (traced_pedID.size() - 1) * traced_pedID.size() + traced_pedID.size();
+
+            if (limit < r_ainv.size())
+                throw std::string("The number of elements in calculated reduced A(-1) matrix is higher than the number of traced IDs!!");
+
+            data_sparsity = ( 1.0 - (double)r_ainv.size() / (double)limit ) * 100.0;
+
+            //dense_mem = limit*sizeof(T);
+            //sparse_mem = A_s.get_memory_usage( r_ainv.size() );
+            //std::cout<<"expected size of dense matrix: "<<dense_mem<<", expected size of sparse matrix: "<<sparse_mem<<", data sparsity: "<<data_sparsity<<", ratio: "<<(double)dense_mem/sparse_mem<<"\n";
+
+            if (use_sparse)
+            {
+                map_to_matr(r_ainv, traced_pedID, A_s); // converting r_ainv map to A(-1) matrix
+                A_s.fwrite(); // 1. Wrire to binary
+                irA_s = A_s;  // 2. Copy matrix by just exchanging the internal binary file name
+                A_s.resize();
+
+                IsEmpty.irA_s = false;
+            }
+            else
+            {
+                map_to_matr(r_ainv, traced_pedID, A); // converting r_ainv map to A(-1) matrix
+                A.fwrite(); // 1. Wrire to binary
+                irA = A;    // 2. Copy matrix by just exchanging the internal binary file name
+                A.clear();  // 3. Clears the memory and gets new name for internal binary file
+
+                IsEmpty.irA = false;
+            }
 
             r_ainv.clear();
 
             id_irA = traced_pedID;
 
-            if (use_large)
-            {
-                A_s.fwrite(); // 1. Wrire to binary
-                irA_s = A_s;  // 2. Copy matrix by just exchanging the internal binary file name
-                A_s.resize();
-            }
-            else
-            {
-                A.fwrite(); // 1. Wrire to binary
-                irA = A;    // 2. Copy matrix by just exchanging the internal binary file name
-                A.clear();  // 3. Clears the memory and gets new name for internal binary file
-            }
-            std::cout << "Done."
-                      << "\n";
             // -----------------------------------------------------
-            // These two matrices are considered always dense !
+            // This matrix assumed as always dense !
             // -------------------- A22 ----------------------------
-            std::cout << "A22"
-                      << "\n";
-            
-            stop = std::chrono::high_resolution_clock::now();
 
+            //limit = 0.5 * (genotypedID.size() - 1) * genotypedID.size() + genotypedID.size();
+            //dense_mem = limit*sizeof(T);
+            //sparse_mem = A_s.get_memory_usage( limit );
+            //std::cout<<"expected size of dense matrix: "<<dense_mem<<", expected size of sparse matrix: "<<sparse_mem<<", data sparsity: "<<data_sparsity<<", ratio: "<<(double)dense_mem/sparse_mem<<"\n";
+            
             get_A22(r_pedigree, genotypedID);
             
-            stop = std::chrono::high_resolution_clock::now();
-            duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-            std::cout << "get_A22() duration (milliseconds): " << duration.count() << std::endl;
-
             id_A22 = genotypedID;
 
             r_pedigree.clear();
             birth_id_map.clear();
 
-            size_t non_serro = 0;
-            for (size_t i = 0; i < A.size(); i++)
-            {
-                if (A[i] != 0.0)
-                    non_serro++;
-            }
-            std::cout << "Sparsity of A22: " << (1.0 - (double)non_serro / A.size()) * 100.0 << "\n";
-
-            // Here we are using always dense matrix
+            // Here we expect A22 is always dense, hense, the used matrix
             A.fwrite(); // 1. Wrire to binary
             A22 = A;    // 2. Copy matrix by just exchanging the internal binary file name
             A.clear();  // 3. Clears the memory and gets new name for internal binary file
-            std::cout << "Done."
-                      << "\n";
+
+            IsEmpty.A22 = false;
+
             // -----------------------------------------------------
+            // The pathway depends on the sparsity of calculated irA_s or irA
             // -------------------- A22(-1) ------------------------
-            std::cout << "A22(-1)"
-                      << "\n";
-            if (use_large)
+
+            if ( !IsEmpty.irA_s ) // irA_s is not empty (was processed through a sparse pathway)
             {
                 irA_s.fread();
 
-                stop = std::chrono::high_resolution_clock::now();
-
                 get_iA22(irA_s, id_irA, genotypedID);
-
-                stop = std::chrono::high_resolution_clock::now();
-                duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-                std::cout << "get_A22() duration (milliseconds): " << duration.count() << std::endl;
 
                 irA_s.fwrite();
 
@@ -528,9 +675,7 @@ namespace evoped
                 iA22_s = A_s; // 2. Copy matrix by just exchanging the internal binary file name
                 A_s.resize(); // 3. Clears the memory and gets new name for internal binary file
 
-                // A.fwrite(); // 1. Wrire to binary
-                // iA22 = A;   // 2. Copy matrix by just exchanging the internal binary file name
-                // A.clear();  // 3. Clears the memory and gets new name for internal binary file
+                IsEmpty.iA22_s = false;
             }
             else
             {
@@ -541,12 +686,12 @@ namespace evoped
                 A.fwrite(); // 1. Wrire to binary
                 iA22 = A;   // 2. Copy matrix by just exchanging the internal binary file name
                 A.clear();  // 3. Clears the memory and gets new name for internal binary file
+
+                IsEmpty.iA22 = false;
             }
 
             genotypedID.clear();
             genotypedID.shrink_to_fit();
-            std::cout << "Done."
-                      << "\n";
         }
         catch (const std::exception &e)
         {
@@ -567,8 +712,8 @@ namespace evoped
         }
     }
 
-    template void Amat<float>::make_all(const std::string &ped_file, const std::string &g_file, bool use_large);
-    template void Amat<double>::make_all(const std::string &ped_file, const std::string &g_file, bool use_large);
+    template void Amat<float>::make_all(const std::string &ped_file, const std::string &g_file);
+    template void Amat<double>::make_all(const std::string &ped_file, const std::string &g_file);
 
     //===============================================================================================================
 
@@ -798,8 +943,6 @@ namespace evoped
     {
         try
         {
-            std::cout << "Entering for making iA22"
-                      << "\n";
             Utilities2 u;
 
             size_t n_rows = full_matr.nrows();
@@ -822,11 +965,7 @@ namespace evoped
 
             // --------------------------------
             if (!A_s.empty())
-            {
                 A_s.resize();
-                // A.fclear();
-                // A.clear();
-            }
 
             // Create the list of IDs which are in matr_ids but not in selected_ids vectors
 
@@ -850,12 +989,11 @@ namespace evoped
             evolm::smatrix<T> A11;
             evolm::smatrix<T> A21;
             evolm::smatrix<T> A12;
-            evolm::matrix<T> A11d; // this is the temporal storage for making inverse
+            evolm::matrix<T> dense_A11; // this is the temporal storage for making inverse
 
             // -------------------- A11 -----------------------
-            std::cout << "   Making A11 ..."
-                      << "\n";
-            A11d.resize(not_selected_ids.size());
+
+            dense_A11.resize(not_selected_ids.size());
 
             std::vector<size_t> non_selected_pos;
             for (size_t i = 0; i < not_selected_ids.size(); i++)
@@ -881,106 +1019,50 @@ namespace evoped
                         value = full_matr.get_nonzero(pos_i, pos_j);
 
                         if (value != zerro_value)
-                            A11d(i, j) = value;
+                            dense_A11(i, j) = value;
                         else
-                            A11d(i, j) = zerro_value;
+                            dense_A11(i, j) = zerro_value;
                     }
                     else
                     {
                         value = full_matr.get_nonzero(pos_j, pos_i);
 
                         if (value != zerro_value)
-                            A11d(i, j) = value;
+                            dense_A11(i, j) = value;
                         else
-                            A11d(i, j) = zerro_value;
+                            dense_A11(i, j) = zerro_value;
                     }
                 }
             }
-            std::cout << "   Get sparsity of A11 ..."
-                      << "\n";
-            size_t non_zeros = 0;
-            for (size_t i = 0; i < A11d.size(); i++)
-            {
-                if (A11d[i] != 0.0)
-                    non_zeros++;
-            }
-            std::cout << "        A11d: not_selected_ids.size() is " << not_selected_ids.size() << "\n";
-            std::cout << "        non zeros = " << non_zeros << ", expected all in rect: " << not_selected_ids.size() * not_selected_ids.size() << "\n";
-            std::cout << "        sparsity of symmetric = " << (1.0 - (T)non_zeros / (T)A11d.size()) * 100.0 << "\n";
-            std::cout << "        sparsity of rect = " << (1.0 - (T)non_zeros / (T)(not_selected_ids.size() * not_selected_ids.size())) * 100.0 << "\n";
 
-            auto start = std::chrono::high_resolution_clock::now();
+            dense_A11.symtorec();
 
-            A11d.symtorec();
+            dense_A11.invert();
 
-            auto stop = std::chrono::high_resolution_clock::now();
-            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-            std::cout << "A11d.symtorec() duration (milliseconds): " << duration.count()  << std::endl;
-
-            std::cout << "   Get sparsity of rectangular A11 ..."
-                      << "\n";
-            non_zeros = 0;
-            for (size_t i = 0; i < A11d.size(); i++)
-            {
-                if (A11d[i] != 0.0)
-                    non_zeros++;
-            }
-            std::cout << "        non zeros = " << non_zeros << ", expected all in rect: " << A11d.size() << "\n";
-            std::cout << "        sparsity = " << (1.0 - (T)non_zeros / (T)A11d.size()) * 100.0 << "\n";
-
-            std::cout << "      inverting A11 ..."
-                      << "\n";
-            A11d.invert();
-
-            std::cout << "   Get sparsity of inverted A11 ..."
-                      << "\n";
-            non_zeros = 0;
-            for (size_t i = 0; i < A11d.size(); i++)
-            {
-                if (A11d[i] != 0.0)
-                    non_zeros++;
-            }
-            std::cout << "        non zeros = " << non_zeros << ", expected all in rect: " << A11d.size() << "\n";
-            std::cout << "        sparsity = " << (1.0 - (T)non_zeros / (T)A11d.size()) * 100.0 << "\n";
-
-            std::cout << "A11d => A11 ..."
-                      << "\n";
-
-            start = std::chrono::high_resolution_clock::now();
+            // converting A11 to sparse matrix
 
             A11.resize(not_selected_ids.size(), not_selected_ids.size());
+
             for (size_t i = 0; i < not_selected_ids.size(); i++)
             {
                 for (size_t j = 0; j < not_selected_ids.size(); j++)
                 {
-                    if (A11d(i, j) != 0.0)
-                        A11(i, j) = A11d(i, j);
+                    if (dense_A11(i, j) != 0.0)
+                        A11(i, j) = dense_A11(i, j);
                 }
             }
 
-            stop = std::chrono::high_resolution_clock::now();
-            duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-            std::cout << "A11d => A11 duration (milliseconds): " << duration.count()  << std::endl;
-
-            // A11d.print("A11d");
-            // A11.print("A11");
-            A11d.fclear();
-            A11d.clear();
+            dense_A11.fclear(); // we don't need the dense dense_A11 any more
+            dense_A11.clear();
 
             A11.fwrite();
-            std::cout << "   Done."
-                      << "\n";
+
             // ------------------------------------------------
             //
             // -------------------- A21 -----------------------
-            std::cout << "   Making A21 ..."
-                      << "\n";
-
-            start = std::chrono::high_resolution_clock::now();
 
             A21.resize(selected_ids.size(), not_selected_ids.size());
 
-            // #pragma omp parallel for
             for (size_t i = 0; i < selected_ids.size(); i++)
             {
                 size_t pos_i = selected_pos[i];
@@ -997,8 +1079,6 @@ namespace evoped
 
                         if (value != zerro_value)
                             A21(i, j) = value;
-                        // else
-                        // A21(i,j) = 0.0;
                     }
                     else
                     {
@@ -1006,108 +1086,51 @@ namespace evoped
 
                         if (value != zerro_value)
                             A21(i, j) = value;
-                        // else
-                        // A21(i,j) = 0.0;
                     }
                 }
             }
 
-            stop = std::chrono::high_resolution_clock::now();
-            duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-            std::cout << "assigning A21 duration (milliseconds): " << duration.count()  << std::endl;
-
-            // A21.print("A21");
-            std::cout << "   Done."
-                      << "\n";
-
-            std::cout << "        sparsity of A21 = " << (1.0 - (T)A21.size() / (T)A21.max_key()) * 100.0 << "\n";
             // ------------------------------------------------
             //
             // -------------------- A12 -----------------------
-            std::cout << "   Making A12 ..."
-                      << "\n";
-            std::cout << "   A12 = A21"
-                      << "\n";
-            A12 = A21;
-            std::cout << "   A12.transpose()"
-                      << "\n";
 
-            start = std::chrono::high_resolution_clock::now();
+            A12 = A21;
 
             A12.transpose();
-            // A12.print("A12");
-
-            stop = std::chrono::high_resolution_clock::now();
-            duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-            std::cout << "A12.transpose() duration (milliseconds): " << duration.count()  << std::endl;
-
-            std::cout << "   Done."
-                      << "\n";
-
-            std::cout << "   Writing."
-                      << "\n";
 
             A12.fwrite();
-            std::cout << "   Done."
-                      << "\n";
+
             // ------------------------------------------------
             //
             // --------------- A21 * A11(-1) * A12 ------------
-            start = std::chrono::high_resolution_clock::now();
-
-            std::cout << "   Some reading and multiplication: reading ..."
-                      << "\n";
+                       
             A11.fread();
+            
             evolm::smatrix<T> res;
-            std::cout << "      A21 * A11 ... "
-                      << "elements in A21: " << A21.size() << ", A11: " << A11.size() << "\n";
+
             res = A21 * A11;
-            // res.print("A21 * A11");
-            std::cout << "fclearing ..."
-                      << "\n";
+
             A11.fclear();
             A11.clear();
-            // A11.resize();
 
             A21.fclear();
             A21.clear();
-            std::cout << "resizing of A21."
-                      << "\n";
-            // A21.resize();
 
             A12.fread();
-            std::cout << "      res * A12 ..."
-                      << "\n";
-            // res = res * A12; <= this does not work!!! Clean res afterwards!
-            // evolm::smatrix<T> res2;
+
             res = res * A12;
-            // res.print("res * A12");
-            std::cout << "fclear of A12."
-                      << "\n";
+
             A12.fclear();
             A12.clear();
-            // A12.resize();
 
-            std::cout << "rectosym()."
-                      << "\n";
             res.rectosym();
 
-            stop = std::chrono::high_resolution_clock::now();
-            duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-            std::cout << "A21 * A11(-1) * A12 duration (milliseconds): " << duration.count()  << std::endl;
-
-            std::cout << "   Done."
-                      << "\n";
             // ------------------------------------------------
             //
             // -------------------- A22 -----------------------
-            std::cout << "   Making A22 ..."
-                      << "\n";
-            start = std::chrono::high_resolution_clock::now();
 
             a22.resize(selected_ids.size());
 
-            // #pragma omp parallel for
             for (size_t i = 0; i < selected_ids.size(); i++)
             {
                 size_t pos_i = selected_pos[i];
@@ -1124,8 +1147,6 @@ namespace evoped
 
                         if (value != zerro_value)
                             a22(i, j) = value;
-                        // else
-                        // a22(i,j) = 0.0;
                     }
                     else
                     {
@@ -1133,67 +1154,26 @@ namespace evoped
 
                         if (value != zerro_value)
                             a22(i, j) = value;
-                        // else
-                        // a22(i,j) = 0.0;
                     }
                 }
             }
 
-            stop = std::chrono::high_resolution_clock::now();
-            duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-            std::cout << "assigning A22 duration (milliseconds): " << duration.count()  << std::endl;
-
-            // a22.print("a22");
             non_selected_pos.clear();
             non_selected_pos.shrink_to_fit();
             selected_pos.clear();
             selected_pos.shrink_to_fit();
-            std::cout << "   Done."
-                      << "\n";
+
             // ------------------------------------------------
             //
             // ------------------ A22 - res -------------------
-            std::cout << "   Finalising ..."
-                      << "\n";
-            // evolm::matrix<size_t> shapeofa22;
-            // shapeofa22 = a22.shape();
 
-            std::cout << "        sparsity of a22 = " << (1.0 - (T)a22.size() / (T)a22.max_key()) * 100.0 << "\n";
+            A_s = a22 - res;
 
-            // #pragma omp parallel for
-            // for (size_t i = 0; i < a22.size(); i++)
-            // res[i] = a22[i] - res[i];
-            // res.resize();
-            std::cout << "   a22 - res ..."
-                      << "\n";
+            a22.fclear();
+            a22.clear();
 
-            start = std::chrono::high_resolution_clock::now();
-
-            res = a22 - res;
-
-            stop = std::chrono::high_resolution_clock::now();
-            duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-            std::cout << "a22 - res duration (milliseconds): " << duration.count()  << std::endl;
-
-            std::cout << "   Done."
-                      << "\n";
-            // res.print("a22[i] - res[i] d");
-
-            // a22.fclear();
-            // a22.clear();
-            a22.resize();
-
-            // A = res;
-            A_s = res;
-
-            // res.fclear();
-            // res.clear();
-            res.resize();
-
-            std::cout << "   Done."
-                      << "\n";
-
-            std::cout << "        sparsity of A22(-1) = " << (1.0 - (T)A_s.size() / (T)A_s.max_key()) * 100.0 << ", rows & cols: " << A_s.nrows() << " " << A_s.ncols() << "\n";
+            res.fclear();
+            res.clear();
 
             // ------------------------------------------------
         }
@@ -2217,6 +2197,86 @@ namespace evoped
     //===============================================================================================================
 
     template <typename T>
+    void Amat<T>::dense_to_sparse(evolm::matrix<T> &from, evolm::smatrix<T> &to)
+    {
+        try
+        {
+            evolm::matrix<size_t> shp;
+            shp = from.shape();
+
+            T zerro_value = (T)0;
+
+            for (size_t i = 0; i < shp[0]; i++)
+            {
+                for (size_t j = 0; j <= i; j++)
+                {
+                    if ( from(i,j) != zerro_value )
+                        to(i,j) = from(i,j);
+                }
+            }
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Amat<T>::dense_to_sparse(evolm::matrix<T> &, evolm::smatrix<T> &)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Amat<T>::dense_to_sparse(evolm::matrix<T> &, evolm::smatrix<T> &)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Amat<T>::dense_to_sparse(evolm::matrix<T> &, evolm::smatrix<T> &)" << '\n';
+            throw;
+        }
+    }
+
+    template void Amat<float>::dense_to_sparse(evolm::matrix<float> &from, evolm::smatrix<float> &to);
+    template void Amat<double>::dense_to_sparse(evolm::matrix<double> &from, evolm::smatrix<double> &to);
+
+    //===============================================================================================================
+
+    template <typename T>
+    void Amat<T>::sparse_to_dense(evolm::smatrix<T> &from, evolm::matrix<T> &to)
+    {
+        try
+        {
+            size_t key = 0;
+            
+            for ( size_t i = 0; i < from.size(); i++ )
+            {
+                key = from.get_key(i);
+                to[key] = from[key];
+            }
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Amat<T>::sparse_to_dense(evolm::smatrix<T> &, evolm::matrix<T> &)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Amat<T>::sparse_to_dense(evolm::smatrix<T> &, evolm::matrix<T> &)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Amat<T>::sparse_to_dense(evolm::smatrix<T> &, evolm::matrix<T> &)" << '\n';
+            throw;
+        }
+    }
+
+    template void Amat<float>::sparse_to_dense(evolm::smatrix<float> &from, evolm::matrix<float> &to);
+    template void Amat<double>::sparse_to_dense(evolm::smatrix<double> &from, evolm::matrix<double> &to);
+
+    //===============================================================================================================
+
+    template <typename T>
     void Amat<T>::clear()
     {
         try
@@ -2242,6 +2302,11 @@ namespace evoped
             id_irA.shrink_to_fit();
             id_A22.clear();
             id_A22.shrink_to_fit();
+            A_s.resize();
+            iA_s.resize();
+            irA_s.resize();
+            iA22_s.resize();
+            A22_s.resize();
         }
         catch (const std::exception &e)
         {
@@ -2268,220 +2333,251 @@ namespace evoped
     //===============================================================================================================
 
     template <typename T>
-    void Amat<T>::get_matrix(const std::string &name, evolm::matrix<T> &arr, std::vector<std::int64_t> &out, bool keep_ondisk)
+    void Amat<T>::get_matrix(const std::string &name, evolm::matrix<T> &arr, std::vector<std::int64_t> &out)
     {
         // Note, we operate with L-stored format, hence return lower triangular part
         try
         {
-            if (name == "A")
+            if (name == "A") // we use iA as a container for A as well
             {
-                // we use iA as a container for A as well
-                iA.fread();
+                if ( IsEmpty.iA ) // was used sparse pipeline
+                {
+                    iA.resize( id_iA.size() );
+                    iA_s.fread();                    
+                    sparse_to_dense( iA_s, iA );
+                    iA_s.fwrite();
+                    iA.fwrite();
+                }
+               
                 arr = iA;
                 out = id_iA;
-                if (keep_ondisk)
-                    iA.fwrite();
-                else
-                {
-                    iA.fclear();
-                    iA.clear();
-                }
             }
-            if (name == "rA")
+
+            if (name == "rA") // we use irA as a container for rA as well
             {
-                // we use irA as a container for rA as well
-                irA.fread();
+                if ( IsEmpty.irA ) // was used sparse pipeline
+                {
+                    irA.resize( id_irA.size() );
+                    irA_s.fread();                    
+                    sparse_to_dense( irA_s, irA );
+                    irA_s.fwrite();
+                    irA.fwrite();
+                }
+
                 arr = irA;
                 out = id_irA;
-                if (keep_ondisk)
-                    irA.fwrite();
-                else
-                {
-                    irA.fclear();
-                    irA.clear();
-                }
             }
+
             if (name == "iA")
             {
-                iA.fread();
+                if ( IsEmpty.iA ) // was used sparse pipeline
+                {
+                    iA.resize( id_iA.size() );
+                    iA_s.fread();                    
+                    sparse_to_dense( iA_s, iA );
+                    iA_s.fwrite();
+                    iA.fwrite();
+                }
+
                 arr = iA;
                 out = id_iA;
-                if (keep_ondisk)
-                    iA.fwrite();
-                else
-                {
-                    iA.fclear();
-                    iA.clear();
-                }
             }
+
             if (name == "irA")
             {
-                irA.fread();
+                if ( IsEmpty.irA ) // was used sparse pipeline
+                {
+                    irA.resize( id_irA.size() );
+                    irA_s.fread();                    
+                    sparse_to_dense( irA_s, irA );
+                    irA_s.fwrite();
+                    irA.fwrite();
+                }
+
                 arr = irA;
                 out = id_irA;
-                if (keep_ondisk)
-                    irA.fwrite();
-                else
-                {
-                    irA.fclear();
-                    irA.clear();
-                }
             }
+
             if (name == "iA22")
             {
-                iA22.fread();
+                if ( IsEmpty.iA22 ) // was used sparse pipeline
+                {
+                    iA22.resize( id_A22.size() );
+                    iA22_s.fread();                    
+                    sparse_to_dense( iA22_s, iA22 );
+                    iA22_s.fwrite();
+                    iA22.fwrite();
+                }
+
                 arr = iA22;
                 out = id_A22;
-                if (keep_ondisk)
-                    iA22.fwrite();
-                else
-                {
-                    iA22.fclear();
-                    iA22.clear();
-                }
             }
+
             if (name == "A22")
             {
-                A22.fread();
+                if ( IsEmpty.A22 ) // was used sparse pipeline
+                {
+                    A22.resize( id_A22.size() );
+                    A22_s.fread();                    
+                    sparse_to_dense( A22_s, A22 );
+                    A22_s.fwrite();
+                    A22.fwrite();
+                }
+
                 arr = A22;
                 out = id_A22;
-                if (keep_ondisk)
-                    A22.fwrite();
-                else
-                {
-                    A22.fclear();
-                    A22.clear();
-                }
             }
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Amat<T>::get_matrix(const std::string &, evolm::matrix<T> &, std::vector<std::int64_t> &, bool)" << '\n';
+            std::cerr << "Exception in Amat<T>::get_matrix(const std::string &, evolm::matrix<T> &, std::vector<std::int64_t> &)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Amat<T>::get_matrix(const std::string &, evolm::matrix<T> &, std::vector<std::int64_t> &, bool)" << '\n';
+            std::cerr << "Exception in Amat<T>::get_matrix(const std::string &, evolm::matrix<T> &, std::vector<std::int64_t> &)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Amat<T>::get_matrix(const std::string &, evolm::matrix<T> &, std::vector<std::int64_t> &, bool)" << '\n';
+            std::cerr << "Exception in Amat<T>::get_matrix(const std::string &, evolm::matrix<T> &, std::vector<std::int64_t> &)" << '\n';
             throw;
         }
     }
 
-    template void Amat<float>::get_matrix(const std::string &name, evolm::matrix<float> &arr, std::vector<std::int64_t> &out, bool keep_ondisk);
-    template void Amat<double>::get_matrix(const std::string &name, evolm::matrix<double> &arr, std::vector<std::int64_t> &out, bool keep_ondisk);
+    template void Amat<float>::get_matrix(const std::string &name, evolm::matrix<float> &arr, std::vector<std::int64_t> &out);
+    template void Amat<double>::get_matrix(const std::string &name, evolm::matrix<double> &arr, std::vector<std::int64_t> &out);
 
     //===============================================================================================================
 
     template <typename T>
-    void Amat<T>::get_matrix(const std::string &name, evolm::smatrix<T> &arr, std::vector<std::int64_t> &out, bool keep_ondisk)
+    void Amat<T>::get_matrix(const std::string &name, evolm::smatrix<T> &arr, std::vector<std::int64_t> &out)
     {
-        // Note, we operate with L-stored format, hence return lower triangular part
+        /*
+            Note, we operate with L-stored format, hence return lower triangular part.
+            Here we copy not by value but by binary file: arr matrix inherits all propertie of copying matrix,
+            if it is on disc, only file name is copied.
+        */
         try
         {
-            if (name == "A")
+            if (name == "A") // we use iA as a container for A as well
             {
-                // we use iA as a container for A as well
-                iA_s.fread();
+                if ( IsEmpty.iA_s ) // was used dense pipeline
+                {
+                    iA_s.resize( id_iA.size() );
+                    iA.fread();                    
+                    dense_to_sparse( iA, iA_s );
+                    iA_s.fwrite();
+                    iA.fwrite();
+                }
+
                 arr = iA_s;
                 out = id_iA;
-                if (keep_ondisk)
-                    iA_s.fwrite();
-                else
-                {
-                    iA_s.fclear();
-                    iA_s.clear();
-                }
             }
-            if (name == "rA")
+
+            if (name == "rA") // we use irA as a container for rA as well
             {
-                // we use irA as a container for rA as well
-                irA_s.fread();
+                if ( IsEmpty.irA_s ) // was used dense pipeline
+                {
+                    irA_s.resize( id_irA.size() );
+                    irA.fread();                    
+                    dense_to_sparse( irA, irA_s );
+                    irA_s.fwrite();
+                    irA.fwrite();
+                }
+
                 arr = irA_s;
                 out = id_irA;
-                if (keep_ondisk)
-                    irA_s.fwrite();
-                else
-                {
-                    irA_s.fclear();
-                    irA_s.clear();
-                }
             }
+
             if (name == "iA")
             {
-                iA_s.fread();
+                if ( IsEmpty.iA_s ) // was used dense pipeline
+                {
+                    iA_s.resize( id_iA.size() );
+                    iA.fread();                    
+                    dense_to_sparse( iA, iA_s );
+                    iA_s.fwrite();
+                    iA.fwrite();
+                }
+
                 arr = iA_s;
                 out = id_iA;
-                if (keep_ondisk)
-                    iA_s.fwrite();
-                else
-                {
-                    iA_s.fclear();
-                    iA_s.clear();
-                }
             }
+
             if (name == "irA")
             {
-                irA_s.fread();
+                if ( IsEmpty.irA_s ) // was used dense pipeline
+                {
+                    irA_s.resize( id_irA.size() );
+                    irA.fread();                    
+                    dense_to_sparse( irA, irA_s );
+                    irA_s.fwrite();
+                    irA.fwrite();
+                }
+
                 arr = irA_s;
                 out = id_irA;
-                if (keep_ondisk)
-                    irA_s.fwrite();
-                else
-                {
-                    irA_s.fclear();
-                    irA_s.clear();
-                }
             }
+
             if (name == "iA22")
             {
-                iA22_s.fread();
+                if ( IsEmpty.iA22_s ) // was used dense pipeline
+                {
+                    iA22_s.resize( id_A22.size() );
+                    iA22.fread();                    
+                    dense_to_sparse( iA22, iA22_s );
+                    iA22_s.fwrite();
+                    iA22.fwrite();
+                }
+
                 arr = iA22_s;
                 out = id_A22;
-                if (keep_ondisk)
-                    iA22_s.fwrite();
-                else
-                {
-                    iA22_s.fclear();
-                    iA22_s.clear();
-                }
             }
-            if (name == "A22") // this is always dense
+
+            if (name == "A22") // was used dense pipeline, this is assumed to be always dense
             {
-                throw std::string("The A22 matrix is always dense. Use the same but overloaded method which allows dense matrices!");
+                if ( IsEmpty.A22_s )
+                {
+                    A22_s.resize( id_A22.size() );
+                    A22.fread();
+                    dense_to_sparse( A22, A22_s );
+                    A22_s.fwrite();
+                    A22.fwrite();
+                }
+ 
+                arr = A22_s;
+                out = id_A22;
             }
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Amat<T>::get_matrix(const std::string &, evolm::smatrix<T> &, std::vector<std::int64_t> &, bool)" << '\n';
+            std::cerr << "Exception in Amat<T>::get_matrix(const std::string &, evolm::smatrix<T> &, std::vector<std::int64_t> &)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Amat<T>::get_matrix(const std::string &, evolm::smatrix<T> &, std::vector<std::int64_t> &, bool)" << '\n';
+            std::cerr << "Exception in Amat<T>::get_matrix(const std::string &, evolm::smatrix<T> &, std::vector<std::int64_t> &)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Amat<T>::get_matrix(const std::string &, evolm::smatrix<T> &, std::vector<std::int64_t> &, bool)" << '\n';
+            std::cerr << "Exception in Amat<T>::get_matrix(const std::string &, evolm::smatrix<T> &, std::vector<std::int64_t> &)" << '\n';
             throw;
         }
     }
 
-    template void Amat<float>::get_matrix(const std::string &name, evolm::smatrix<float> &arr, std::vector<std::int64_t> &out, bool keep_ondisk);
-    template void Amat<double>::get_matrix(const std::string &name, evolm::smatrix<double> &arr, std::vector<std::int64_t> &out, bool keep_ondisk);
+    template void Amat<float>::get_matrix(const std::string &name, evolm::smatrix<float> &arr, std::vector<std::int64_t> &out);
+    template void Amat<double>::get_matrix(const std::string &name, evolm::smatrix<double> &arr, std::vector<std::int64_t> &out);
 
     //===============================================================================================================
 
     template <typename T>
-    void Amat<T>::get_matrix(const std::string &name, std::vector<T> &arr, std::vector<std::int64_t> &out, bool keep_ondisk)
+    void Amat<T>::get_matrix(const std::string &name, std::vector<T> &arr, std::vector<std::int64_t> &out)
     {
         // This method is for Python interfacing;
         // Note, we operate with L-stored format, hence return lower triangular part
@@ -2493,13 +2589,6 @@ namespace evoped
                 iA.fread();
                 iA.to_vector(arr);
                 out = id_iA;
-                if (keep_ondisk)
-                    iA.fwrite();
-                else
-                {
-                    iA.fclear();
-                    iA.clear();
-                }
             }
             if (name == "rA")
             {
@@ -2507,88 +2596,53 @@ namespace evoped
                 irA.fread();
                 irA.to_vector(arr);
                 out = id_irA;
-                if (keep_ondisk)
-                    irA.fwrite();
-                else
-                {
-                    irA.fclear();
-                    irA.clear();
-                }
             }
             if (name == "iA")
             {
                 iA.fread();
                 iA.to_vector(arr);
                 out = id_iA;
-                if (keep_ondisk)
-                    iA.fwrite();
-                else
-                {
-                    iA.fclear();
-                    iA.clear();
-                }
             }
             if (name == "irA")
             {
                 irA.fread();
                 irA.to_vector(arr);
                 out = id_irA;
-                if (keep_ondisk)
-                    irA.fwrite();
-                else
-                {
-                    irA.fclear();
-                    irA.clear();
-                }
             }
             if (name == "iA22")
             {
                 iA22.fread();
                 iA22.to_vector(arr);
                 out = id_A22;
-                if (keep_ondisk)
-                    iA22.fwrite();
-                else
-                {
-                    iA22.fclear();
-                    iA22.clear();
-                }
             }
             if (name == "A22")
             {
                 A22.fread();
                 A22.to_vector(arr);
                 out = id_A22;
-                if (keep_ondisk)
-                    A22.fwrite();
-                else
-                {
-                    A22.fclear();
-                    A22.clear();
-                }
             }
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Amat<T>::get_matrix(const std::string &, std::vector<T> &, std::vector<std::int64_t> &, bool)" << '\n';
+            std::cerr << "Exception in Amat<T>::get_matrix(const std::string &, std::vector<T> &, std::vector<std::int64_t> &)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Amat<T>::get_matrix(const std::string &, std::vector<T> &, std::vector<std::int64_t> &, bool)" << '\n';
+            std::cerr << "Exception in Amat<T>::get_matrix(const std::string &, std::vector<T> &, std::vector<std::int64_t> &)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Amat<T>::get_matrix(const std::string &, std::vector<T> &, std::vector<std::int64_t> &, bool)" << '\n';
+            std::cerr << "Exception in Amat<T>::get_matrix(const std::string &, std::vector<T> &, std::vector<std::int64_t> &)" << '\n';
             throw;
         }
     }
 
-    template void Amat<float>::get_matrix(const std::string &name, std::vector<float> &arr, std::vector<std::int64_t> &out, bool keep_ondisk);
-    template void Amat<double>::get_matrix(const std::string &name, std::vector<double> &arr, std::vector<std::int64_t> &out, bool keep_ondisk);
+    template void Amat<float>::get_matrix(const std::string &name, std::vector<float> &arr, std::vector<std::int64_t> &out);
+    template void Amat<double>::get_matrix(const std::string &name, std::vector<double> &arr, std::vector<std::int64_t> &out);
 
     //===============================================================================================================
 
@@ -2606,7 +2660,6 @@ namespace evoped
             std::map<std::int64_t, std::int64_t> code_map;
             std::map<std::int64_t, std::int64_t> gen_map;
 
-auto start = std::chrono::high_resolution_clock::now();
             std::int64_t code_id = 1;
             for (auto const &elem : ped)
             {
@@ -2625,9 +2678,6 @@ auto start = std::chrono::high_resolution_clock::now();
 
                 code_id++;
             }
-auto stop = std::chrono::high_resolution_clock::now();
-auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-std::cout << "in get_A22()->1 duration (milliseconds): " << duration.count() << std::endl;
 
             size_t m = GenID.size(); // number of genotyped IDs
 
@@ -2635,7 +2685,6 @@ std::cout << "in get_A22()->1 duration (milliseconds): " << duration.count() << 
                 A.clear();
 
             A.resize(m);
-start = std::chrono::high_resolution_clock::now();
 
 #pragma omp parallel for
             for (size_t i = 0; i < m; i++)
@@ -2655,10 +2704,6 @@ start = std::chrono::high_resolution_clock::now();
                         A[ii * (ii + 1) / 2 + gen_map[GenID[j]]] = w[GenID[j]];
                 }
             }
-
-stop = std::chrono::high_resolution_clock::now();
-duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-std::cout << "in get_A22()->2 duration (milliseconds): " << duration.count() << std::endl;
 
         }
         catch (const std::exception &e)

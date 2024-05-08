@@ -460,6 +460,31 @@ namespace evolm
     //===============================================================================================================
 
     template <typename T>
+    void smatrix<T>::clean()
+    {        
+        try
+        {
+            A.clear();
+            fclear();
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << "Exception in smatrix<T>::clean()" << '\n';
+            std::cerr << e.what() << '\n';
+        }
+        catch(...)
+        {
+            std::cerr << "Exception in smatrix<T>::clean()" << '\n';
+        }
+    }
+
+    template void smatrix<float>::clean();
+    template void smatrix<double>::clean();
+    template void smatrix<int>::clean();
+
+    //===============================================================================================================
+
+    template <typename T>
     void smatrix<T>::fclear()
     {        
         try
@@ -516,6 +541,70 @@ namespace evolm
     //===============================================================================================================
 
     template <typename T>
+    size_t smatrix<T>::get_memory_usage()
+    {        
+        try
+        {
+            size_t entrySize = sizeof(T) + sizeof(size_t) + sizeof(void*);
+            size_t bucketSize = sizeof(void*);
+            size_t adminSize = 3 * sizeof(void*) + sizeof(size_t);
+
+            size_t totalSize = adminSize + A.size() * entrySize + A.bucket_count() * bucketSize;
+            
+            return totalSize;
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << "Exception in smatrix<T>::get_memory_usage()" << '\n';
+            std::cerr << e.what() << '\n';
+        }
+        catch(...)
+        {
+            std::cerr << "Exception in smatrix<T>::get_memory_usage()" << '\n';
+        }
+
+        return true;
+    }
+
+    template size_t smatrix<float>::get_memory_usage();
+    template size_t smatrix<double>::get_memory_usage();
+    template size_t smatrix<int>::get_memory_usage();
+
+    //===============================================================================================================
+
+    template <typename T>
+    size_t smatrix<T>::get_memory_usage( size_t n_values )
+    {        
+        try
+        {
+            size_t entrySize = sizeof(T) + sizeof(size_t) + sizeof(void*);
+            size_t bucketSize = sizeof(void*);
+            size_t adminSize = 3 * sizeof(void*) + sizeof(size_t);
+
+            size_t totalSize = adminSize + n_values * entrySize + n_values * bucketSize;
+            
+            return totalSize;
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << "Exception in smatrix<T>::get_memory_usage(size_t)" << '\n';
+            std::cerr << e.what() << '\n';
+        }
+        catch(...)
+        {
+            std::cerr << "Exception in smatrix<T>::get_memory_usage(size_t)" << '\n';
+        }
+
+        return true;
+    }
+
+    template size_t smatrix<float>::get_memory_usage(size_t n_values);
+    template size_t smatrix<double>::get_memory_usage(size_t n_values);
+    template size_t smatrix<int>::get_memory_usage(size_t n_values);
+
+    //===============================================================================================================
+
+    template <typename T>
     T &smatrix<T>::operator()(size_t atRow, size_t atCol)
     {
         /*
@@ -559,7 +648,7 @@ namespace evolm
             throw std::string("Matrix is empty. Use fread() to relocate data to memory. smatrix<T>::operator()");
         
         if ( atIndex > max_elements - 1 )
-            throw std::string("The index is greater than the maximum allowed value for this matrix. This is not allowed for symmetric matrix in compact (L-store) format!");
+            throw std::string("&smatrix<T>::operator[]: The index is greater than the maximum allowed value for this matrix. This is not allowed for symmetric matrix in compact (L-store) format!");
 #endif            
             return A[atIndex];
     }
@@ -743,8 +832,6 @@ namespace evolm
     smatrix<T> smatrix<T>::operator*(smatrix<T> &rhs)
     {
         /*
-            NOTE: this cannot be used for multiply matrix on itself, because rhs is modified inside !!!
-
             Matrix dot product:
             C = A * B;
             where A & B are rectangular matrices, C is always rectangular.
@@ -1570,6 +1657,71 @@ namespace evolm
     template float smatrix<float>::get_nonzero(size_t atRow);
     template double smatrix<double>::get_nonzero(size_t atRow);
     template int smatrix<int>::get_nonzero(size_t atRow);
+
+    //===============================================================================================================
+
+    template <typename T>
+    size_t smatrix<T>::get_key( size_t element )
+    {
+        try
+        {
+#ifdef UTEST // use this only when debugging and testing
+            if ( element >= size() )
+                throw std::string("The provided parameter's value is out of range. It should not be higher then size of the container!");
+
+            if ( element < 0 )
+                throw std::string("The provided parameter's value is out of range. It should not be smaler than 0!");
+
+            if (ondisk)
+                throw std::string("Matrix is empty. Use fread() to relocate data to memory. smatrix<T>::operator()");
+#endif
+            size_t row = 0;
+            size_t col = 0;
+            size_t key = 0;
+
+            typename std::unordered_map<size_t, T>::iterator it = A.begin();
+            std::advance(it, element);
+
+            if (compact)
+            {
+                row = row_insym(it->first);      // to which row the key belongs 
+                col = col_insym(it->first, row); // knowing the row find the col
+                //value = it->second;
+                key = row * (row + 1) / 2 + col;
+            }
+            else
+            {
+#ifdef UTEST // use this only when debugging and testing
+                if ( col > row )
+                    throw std::string("The column value is greater than the row value. This is not allowed for symmetric matrix in compact (L-store) format!");
+#endif          
+                row = row_inrec(it->first);      // to which row the key belongs 
+                col = col_inrec(it->first, row); // knowing the row find the col
+                //value = it->second;                
+                key = row * numCol + col;
+            }
+
+            return key;
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << "Exception in smatrix<T>::get_key(size_t)" << '\n';
+            std::cerr << e.what() << '\n';
+        }
+        catch(const std::string &e)
+        {
+            std::cerr << "Exception in smatrix<T>::get_key(size_t)" << '\n';
+            std::cerr << e << '\n';
+        }
+        catch(...)
+        {
+            std::cerr << "Exception in smatrix<T>::get_key(size_t)" << '\n';
+        }
+    }
+
+    template size_t smatrix<float>::get_key( size_t element );
+    template size_t smatrix<double>::get_key( size_t element );
+    template size_t smatrix<int>::get_key( size_t element );
 
     //===============================================================================================================
 

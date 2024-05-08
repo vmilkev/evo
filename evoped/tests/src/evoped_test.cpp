@@ -222,23 +222,26 @@ TEST_CASE("Testing Amat class")
     };
     // -------------------------------------------------
 
-    SECTION("Making full A: dense storage")
+    SECTION("1. Making full A: dense storage")
     {
         try
         {
             evoped::Amat<double> ap;
-            evolm::matrix<double> A;
+            evolm::smatrix<double> A;
             std::vector<std::int64_t> a_id;
 
-            ap.make_matrix("tests/data/ped_bkg.dat", false, false);
-            ap.get_matrix("A", A, a_id, false);
+            ap.set_sparsiity_threshold(100.0); // ensure dense matrix processing
+            ap.make_matrix("tests/data/ped_bkg.dat", false);
+            ap.get_matrix("A", A, a_id);
+
+            A.fread();
 
             std::vector<double> Avect;
             for (size_t i = 0; i < a_id.size(); i++)
             {
                 for (size_t j = 0; j <= i; j++)
                 {
-                    if ( A(i,j) != 0.0 )
+                    if ( A.get_nonzero(i,j) != 0.0 )
                     {
                         Avect.push_back( a_id[i] );
                         Avect.push_back( a_id[j] );
@@ -256,6 +259,11 @@ TEST_CASE("Testing Amat class")
                 CHECK( Acorr[i+2] == Catch::Approx(Avect[i+2]) );
                 i = i + 3;
             }
+
+            A.clean();
+            ap.clear();
+
+            std::cout<<"passed 1"<<"\n";
         }
         catch(const std::exception& e)
         {
@@ -267,23 +275,25 @@ TEST_CASE("Testing Amat class")
         }        
     }
 
-    SECTION("Making full A: dense storage, (float)")
+    SECTION("2. Making full A: dense storage, (float)")
     {
         try
         {
-            evoped::Amat<float> ap;
-            evolm::matrix<float> A;
+            evoped::Amat<float> ap(100.0);
+            evolm::smatrix<float> A;
             std::vector<std::int64_t> a_id;
 
-            ap.make_matrix("tests/data/ped_bkg.dat", false, false);
-            ap.get_matrix("A", A, a_id, false);
+            ap.make_matrix("tests/data/ped_bkg.dat", false);
+            ap.get_matrix("A", A, a_id);
+
+            A.fread();
 
             std::vector<double> Avect;
             for (size_t i = 0; i < a_id.size(); i++)
             {
                 for (size_t j = 0; j <= i; j++)
                 {
-                    if ( A(i,j) != 0.0 )
+                    if ( A.get_nonzero(i,j) != 0.0 )
                     {
                         Avect.push_back( a_id[i] );
                         Avect.push_back( a_id[j] );
@@ -301,6 +311,11 @@ TEST_CASE("Testing Amat class")
                 CHECK( Acorr[i+2] == Catch::Approx(Avect[i+2]) );
                 i = i + 3;
             }
+
+            ap.clear();
+            A.clean();
+
+            std::cout<<"passed 2"<<"\n";
         }
         catch(const std::exception& e)
         {
@@ -312,7 +327,7 @@ TEST_CASE("Testing Amat class")
         }        
     }
 
-    SECTION("Making full A: sparse storage")
+    SECTION("3. Making full A: sparse storage")
     {
         try
         {
@@ -320,8 +335,11 @@ TEST_CASE("Testing Amat class")
             evolm::smatrix<double> A;
             std::vector<std::int64_t> a_id;
 
-            ap.make_matrix("tests/data/ped_bkg.dat", false, true);
-            ap.get_matrix("A", A, a_id, false);
+            ap.set_sparsiity_threshold(-1.0); // ensure sparse calculations
+            ap.make_matrix("tests/data/ped_bkg.dat", false);
+            ap.get_matrix("A", A, a_id);
+
+            A.fread();
 
             std::vector<double> Avect;
             for (size_t i = 0; i < a_id.size(); i++)
@@ -346,6 +364,11 @@ TEST_CASE("Testing Amat class")
                 CHECK( Acorr[i+2] == Catch::Approx(Avect[i+2]) );
                 i = i + 3;
             }
+
+            ap.clear();
+            A.clean();
+
+            std::cout<<"passed 3"<<"\n";
         }
         catch(const std::exception& e)
         {
@@ -357,70 +380,25 @@ TEST_CASE("Testing Amat class")
         }        
     }
 
-    SECTION("Making redused A: dense storage")
+    SECTION("4. Making redused A: dense storage")
     {
         try
         {
-            evoped::Amat<double> ap;
-            evolm::matrix<double> rA;
-            std::vector<std::int64_t> a_id;
-
-            ap.make_matrix("tests/data/ped_bkg.dat", "tests/data/typed2", false, false);
-
-            ap.get_matrix("rA", rA, a_id, false);
-
-            std::vector<double> rAvect;
-            for (size_t i = 0; i < a_id.size(); i++)
-            {
-                for (size_t j = 0; j <= i; j++)
-                {
-                    if ( rA(i,j) != 0.0 )
-                    {
-                        rAvect.push_back( a_id[i] );
-                        rAvect.push_back( a_id[j] );
-                        rAvect.push_back( rA(i,j) );
-                    }
-                }
-            }
-
-            CHECK( rAcorr.size() == rAvect.size() );
-
-            for (size_t i = 0; i < rAvect.size();)
-            {
-                CHECK( rAcorr[i] == rAvect[i] );
-                CHECK( rAcorr[i+1] == rAvect[i+1] );
-                CHECK( rAcorr[i+2] == Catch::Approx(rAvect[i+2]) );
-                i = i + 3;
-            }
-        }
-        catch(const std::exception& e)
-        {
-            std::cerr << e.what() << '\n';
-        }
-        catch(const std::string& e)
-        {
-            std::cerr << e << '\n';
-        }        
-    }
-
-    SECTION("Making redused A: sparse storage")
-    {
-        try
-        {
-            evoped::Amat<double> ap;
+            evoped::Amat<double> ap(100.0);
             evolm::smatrix<double> rA;
             std::vector<std::int64_t> a_id;
 
-            ap.make_matrix("tests/data/ped_bkg.dat", "tests/data/typed2", false, true);
+            ap.make_matrix("tests/data/ped_bkg.dat", "tests/data/typed2", false);
+            ap.get_matrix("rA", rA, a_id);
 
-            ap.get_matrix("rA", rA, a_id, false);
+            rA.fread();
 
             std::vector<double> rAvect;
             for (size_t i = 0; i < a_id.size(); i++)
             {
                 for (size_t j = 0; j <= i; j++)
                 {
-                    if ( rA(i,j) != 0.0 )
+                    if ( rA.get_nonzero(i,j) != 0.0 )
                     {
                         rAvect.push_back( a_id[i] );
                         rAvect.push_back( a_id[j] );
@@ -438,6 +416,11 @@ TEST_CASE("Testing Amat class")
                 CHECK( rAcorr[i+2] == Catch::Approx(rAvect[i+2]) );
                 i = i + 3;
             }
+
+            ap.clear();
+            rA.clean();
+
+            std::cout<<"passed 4"<<"\n";
         }
         catch(const std::exception& e)
         {
@@ -449,24 +432,79 @@ TEST_CASE("Testing Amat class")
         }        
     }
 
-    SECTION("Making full A(-1): dense storage")
+    SECTION("5. Making redused A: sparse storage")
     {
         try
         {
-            evoped::Amat<double> ap;
-            evolm::matrix<double> iA;
+            evoped::Amat<double> ap(-1.0);
+            evolm::smatrix<double> rA;
             std::vector<std::int64_t> a_id;
 
-            ap.make_matrix("tests/data/ped_bkg.dat", true, false);
+            ap.make_matrix("tests/data/ped_bkg.dat", "tests/data/typed2", false);
 
-            ap.get_matrix("iA", iA, a_id, false);
+            ap.get_matrix("rA", rA, a_id);
+
+            rA.fread();
+
+            std::vector<double> rAvect;
+            for (size_t i = 0; i < a_id.size(); i++)
+            {
+                for (size_t j = 0; j <= i; j++)
+                {
+                    if ( rA.get_nonzero(i,j) != 0.0 )
+                    {
+                        rAvect.push_back( a_id[i] );
+                        rAvect.push_back( a_id[j] );
+                        rAvect.push_back( rA(i,j) );
+                    }
+                }
+            }
+
+            CHECK( rAcorr.size() == rAvect.size() );
+
+            for (size_t i = 0; i < rAvect.size();)
+            {
+                CHECK( rAcorr[i] == rAvect[i] );
+                CHECK( rAcorr[i+1] == rAvect[i+1] );
+                CHECK( rAcorr[i+2] == Catch::Approx(rAvect[i+2]) );
+                i = i + 3;
+            }
+
+            ap.clear();
+            rA.clean();
+
+            std::cout<<"passed 5"<<"\n";
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << e.what() << '\n';
+        }
+        catch(const std::string& e)
+        {
+            std::cerr << e << '\n';
+        }        
+    }
+
+    SECTION("6. Making full A(-1): dense storage")
+    {
+        try
+        {
+            evoped::Amat<double> ap(100.0);
+            evolm::smatrix<double> iA;
+            std::vector<std::int64_t> a_id;
+
+            ap.make_matrix("tests/data/ped_bkg.dat", true);
+
+            ap.get_matrix("iA", iA, a_id);
+
+            iA.fread();
 
             std::vector<double> iAvect;
             for (size_t i = 0; i < a_id.size(); i++)
             {
                 for (size_t j = 0; j <= i; j++)
                 {
-                    if ( iA(i,j) != 0.0 )
+                    if ( iA.get_nonzero(i,j) != 0.0 )
                     {
                         iAvect.push_back( a_id[i] );
                         iAvect.push_back( a_id[j] );
@@ -484,6 +522,11 @@ TEST_CASE("Testing Amat class")
                 CHECK( iAcorr[i+2] == Catch::Approx(iAvect[i+2]) );
                 i = i + 3;
             }
+
+            ap.clear();
+            iA.clean();
+
+            std::cout<<"passed 6"<<"\n";
         }
         catch(const std::exception& e)
         {
@@ -495,24 +538,26 @@ TEST_CASE("Testing Amat class")
         }        
     }
 
-    SECTION("Making full A(-1): sparse storage")
+    SECTION("7. Making full A(-1): sparse storage")
     {
         try
         {
-            evoped::Amat<double> ap;
+            evoped::Amat<double> ap(-1.0);
             evolm::smatrix<double> iA;
             std::vector<std::int64_t> a_id;
 
-            ap.make_matrix("tests/data/ped_bkg.dat", true, true);
+            ap.make_matrix("tests/data/ped_bkg.dat", true);
 
-            ap.get_matrix("iA", iA, a_id, false);
+            ap.get_matrix("iA", iA, a_id);
+
+            iA.fread();
 
             std::vector<double> iAvect;
             for (size_t i = 0; i < a_id.size(); i++)
             {
                 for (size_t j = 0; j <= i; j++)
                 {
-                    if ( iA(i,j) != 0.0 )
+                    if ( iA.get_nonzero(i,j) != 0.0 )
                     {
                         iAvect.push_back( a_id[i] );
                         iAvect.push_back( a_id[j] );
@@ -530,6 +575,11 @@ TEST_CASE("Testing Amat class")
                 CHECK( iAcorr[i+2] == Catch::Approx(iAvect[i+2]) );
                 i = i + 3;
             }
+
+            ap.clear();
+            iA.clean();
+
+            std::cout<<"passed 7"<<"\n";
         }
         catch(const std::exception& e)
         {
@@ -541,70 +591,26 @@ TEST_CASE("Testing Amat class")
         }        
     }
 
-    SECTION("Making reduced A(-1): dense storage")
+    SECTION("8. Making reduced A(-1): dense storage")
     {
         try
         {
-            evoped::Amat<double> ap;
-            evolm::matrix<double> iA;
-            std::vector<std::int64_t> a_id;
-
-            ap.make_matrix("tests/data/ped_bkg.dat", "tests/data/typed2", true, false);
-
-            ap.get_matrix("irA", iA, a_id, false);
-
-            std::vector<double> iAvect;
-            for (size_t i = 0; i < a_id.size(); i++)
-            {
-                for (size_t j = 0; j <= i; j++)
-                {
-                    if ( iA(i,j) != 0.0 )
-                    {
-                        iAvect.push_back( a_id[i] );
-                        iAvect.push_back( a_id[j] );
-                        iAvect.push_back( iA(i,j) );
-                    }
-                }
-            }
-
-            CHECK( irAcorr.size() == iAvect.size() );
-
-            for (size_t i = 0; i < iAvect.size();)
-            {
-                CHECK( irAcorr[i] == iAvect[i] );
-                CHECK( irAcorr[i+1] == iAvect[i+1] );
-                CHECK( irAcorr[i+2] == Catch::Approx(iAvect[i+2]) );
-                i = i + 3;
-            }
-        }
-        catch(const std::exception& e)
-        {
-            std::cerr << e.what() << '\n';
-        }
-        catch(const std::string& e)
-        {
-            std::cerr << e << '\n';
-        }        
-    }
-
-    SECTION("Making reduced A(-1): sparse storage")
-    {
-        try
-        {
-            evoped::Amat<double> ap;
+            evoped::Amat<double> ap(100.0);
             evolm::smatrix<double> iA;
             std::vector<std::int64_t> a_id;
 
-            ap.make_matrix("tests/data/ped_bkg.dat", "tests/data/typed2", true, true);
+            ap.make_matrix("tests/data/ped_bkg.dat", "tests/data/typed2", true);
 
-            ap.get_matrix("irA", iA, a_id, false);
+            ap.get_matrix("irA", iA, a_id);
+
+            iA.fread();
 
             std::vector<double> iAvect;
             for (size_t i = 0; i < a_id.size(); i++)
             {
                 for (size_t j = 0; j <= i; j++)
                 {
-                    if ( iA(i,j) != 0.0 )
+                    if ( iA.get_nonzero(i,j) != 0.0 )
                     {
                         iAvect.push_back( a_id[i] );
                         iAvect.push_back( a_id[j] );
@@ -622,6 +628,11 @@ TEST_CASE("Testing Amat class")
                 CHECK( irAcorr[i+2] == Catch::Approx(iAvect[i+2]) );
                 i = i + 3;
             }
+
+            ap.clear();
+            iA.clean();
+
+            std::cout<<"passed 8"<<"\n";
         }
         catch(const std::exception& e)
         {
@@ -633,7 +644,60 @@ TEST_CASE("Testing Amat class")
         }        
     }
 
-    SECTION("Making All: dense storage")
+    SECTION("9. Making reduced A(-1): sparse storage")
+    {
+        try
+        {
+            evoped::Amat<double> ap(-1.0);
+            evolm::smatrix<double> iA;
+            std::vector<std::int64_t> a_id;
+
+            ap.make_matrix("tests/data/ped_bkg.dat", "tests/data/typed2", true);
+
+            ap.get_matrix("irA", iA, a_id);
+
+            iA.fread();
+
+            std::vector<double> iAvect;
+            for (size_t i = 0; i < a_id.size(); i++)
+            {
+                for (size_t j = 0; j <= i; j++)
+                {
+                    if ( iA.get_nonzero(i,j) != 0.0 )
+                    {
+                        iAvect.push_back( a_id[i] );
+                        iAvect.push_back( a_id[j] );
+                        iAvect.push_back( iA(i,j) );
+                    }
+                }
+            }
+
+            CHECK( irAcorr.size() == iAvect.size() );
+
+            for (size_t i = 0; i < iAvect.size();)
+            {
+                CHECK( irAcorr[i] == iAvect[i] );
+                CHECK( irAcorr[i+1] == iAvect[i+1] );
+                CHECK( irAcorr[i+2] == Catch::Approx(iAvect[i+2]) );
+                i = i + 3;
+            }
+
+            ap.clear();
+            iA.clean();
+
+            std::cout<<"passed 9"<<"\n";
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << e.what() << '\n';
+        }
+        catch(const std::string& e)
+        {
+            std::cerr << e << '\n';
+        }        
+    }
+
+    SECTION("10. Making All: dense storage")
     {
         try
         {
@@ -647,12 +711,17 @@ TEST_CASE("Testing Amat class")
             evolm::matrix<double> A22;
             std::vector<std::int64_t> a22_id;
 
-            ap.make_all("tests/data/ped_bkg.dat", "tests/data/typed2", false);
+            ap.set_sparsiity_threshold(100.0); // ensure dense calculations
+            ap.make_all("tests/data/ped_bkg.dat", "tests/data/typed2");
+            ap.get_matrix("iA", iA, a_id);
+            ap.get_matrix("irA", irA, ra_id);
+            ap.get_matrix("iA22", iA22, ai22_id);
+            ap.get_matrix("A22", A22, a22_id);
 
-            ap.get_matrix("iA", iA, a_id, false);
-            ap.get_matrix("irA", irA, ra_id, false);
-            ap.get_matrix("iA22", iA22, ai22_id, false);
-            ap.get_matrix("A22", A22, a22_id, false);
+            iA.fread();
+            irA.fread();
+            iA22.fread();
+            A22.fread();
 
             std::vector<double> iAvect;
             for (size_t i = 0; i < a_id.size(); i++)
@@ -730,6 +799,20 @@ TEST_CASE("Testing Amat class")
             for (size_t i = 0; i < iA22vect.size(); i++)
                 CHECK( iA22corr[i] == Catch::Approx(iA22vect[i]) );
 
+            ap.clear();
+
+            iA.fclear();
+            irA.fclear();
+            iA22.fclear();
+            A22.fclear();
+
+            iA.clear();
+            irA.clear();
+            iA22.clear();
+            A22.clear();
+
+            std::cout<<"passed 10"<<"\n";
+
         }
         catch(const std::exception& e)
         {
@@ -741,7 +824,7 @@ TEST_CASE("Testing Amat class")
         }        
     }
 
-    SECTION("Making All: sparse storage")
+    SECTION("11. Making All: dense storage, conversion to sparse in get_matrix(...)")
     {
         try
         {
@@ -752,15 +835,265 @@ TEST_CASE("Testing Amat class")
             std::vector<std::int64_t> ra_id;
             evolm::smatrix<double> iA22;
             std::vector<std::int64_t> ai22_id;
+            evolm::smatrix<double> A22;
+            std::vector<std::int64_t> a22_id;
+
+            ap.set_sparsiity_threshold(100.0); // ensure dense calculations
+            ap.make_all("tests/data/ped_bkg.dat", "tests/data/typed2");
+
+            ap.get_matrix("iA", iA, a_id);
+            ap.get_matrix("irA", irA, ra_id);
+            ap.get_matrix("iA22", iA22, ai22_id);
+            ap.get_matrix("A22", A22, a22_id);
+
+            iA.fread();
+            irA.fread();
+            iA22.fread();
+            A22.fread();
+
+            std::vector<double> iAvect;
+            for (size_t i = 0; i < a_id.size(); i++)
+            {
+                for (size_t j = 0; j <= i; j++)
+                {
+                    if ( iA.get_nonzero(i,j) != 0.0 )
+                    {
+                        iAvect.push_back( a_id[i] );
+                        iAvect.push_back( a_id[j] );
+                        iAvect.push_back( iA(i,j) );
+                    }
+                }
+            }
+
+            CHECK( iAcorr.size() == iAvect.size() );
+
+            for (size_t i = 0; i < iAvect.size();)
+            {
+                CHECK( iAcorr[i] == iAvect[i] );
+                CHECK( iAcorr[i+1] == iAvect[i+1] );
+                CHECK( iAcorr[i+2] == Catch::Approx(iAvect[i+2]) );
+                i = i + 3;
+            }
+
+            std::vector<double> irAvect;
+            for (size_t i = 0; i < ra_id.size(); i++)
+            {
+                for (size_t j = 0; j <= i; j++)
+                {
+                    if ( irA.get_nonzero(i,j) != 0.0 )
+                    {
+                        irAvect.push_back( ra_id[i] );
+                        irAvect.push_back( ra_id[j] );
+                        irAvect.push_back( irA(i,j) );
+                    }
+                }
+            }
+
+            CHECK( irAcorr.size() == irAvect.size() );
+
+            for (size_t i = 0; i < irAvect.size();)
+            {
+                CHECK( irAcorr[i] == irAvect[i] );
+                CHECK( irAcorr[i+1] == irAvect[i+1] );
+                CHECK( irAcorr[i+2] == Catch::Approx(irAvect[i+2]) );
+                i = i +3;
+            }
+
+            std::vector<double> A22vect;
+            for (size_t i = 0; i < a22_id.size(); i++)
+            {
+                for (size_t j = 0; j <= i; j++)
+                {
+                    A22vect.push_back( A22(i,j) );
+                }
+            }
+
+            CHECK( A22corr.size() == A22vect.size() );
+
+            for (size_t i = 0; i < A22vect.size(); i++)
+                CHECK( A22corr[i] == Catch::Approx(A22vect[i]) );
+
+            std::vector<double> iA22vect;
+            for (size_t i = 0; i < ai22_id.size(); i++)
+            {
+                for (size_t j = 0; j <= i; j++)
+                {
+                    iA22vect.push_back( iA22(i,j) );
+                }
+            }
+
+            CHECK( iA22corr.size() == iA22vect.size() );
+
+            for (size_t i = 0; i < iA22vect.size(); i++)
+                CHECK( iA22corr[i] == Catch::Approx(iA22vect[i]) );
+
+            ap.clear();
+
+            iA.clean();
+            irA.clean();
+            iA22.clean();
+            A22.clean();
+
+            std::cout<<"passed 11"<<"\n";
+
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << e.what() << '\n';
+        }
+        catch(const std::string& e)
+        {
+            std::cerr << e << '\n';
+        }        
+    }
+
+    SECTION("12. Making All: sparse storage")
+    {
+        try
+        {
+            evoped::Amat<double> ap;
+            evolm::smatrix<double> iA;
+            std::vector<std::int64_t> a_id;
+            evolm::smatrix<double> irA;
+            std::vector<std::int64_t> ra_id;
+            evolm::smatrix<double> iA22;
+            std::vector<std::int64_t> ai22_id;
+            evolm::smatrix<double> A22;
+            std::vector<std::int64_t> a22_id;
+
+            ap.set_sparsiity_threshold(-1.0); // ensure sparse calculations
+            ap.make_all("tests/data/ped_bkg.dat", "tests/data/typed2");
+
+            ap.get_matrix("iA", iA, a_id);
+            ap.get_matrix("irA", irA, ra_id);
+            ap.get_matrix("iA22", iA22, ai22_id);
+            ap.get_matrix("A22", A22, a22_id);
+
+            iA.fread();
+            irA.fread();
+            iA22.fread();
+            A22.fread();
+
+            std::vector<double> iAvect;
+            for (size_t i = 0; i < a_id.size(); i++)
+            {
+                for (size_t j = 0; j <= i; j++)
+                {
+                    if ( iA.get_nonzero(i,j) != 0.0 )
+                    {
+                        iAvect.push_back( a_id[i] );
+                        iAvect.push_back( a_id[j] );
+                        iAvect.push_back( iA(i,j) );
+                    }
+                }
+            }
+
+            CHECK( iAcorr.size() == iAvect.size() );
+
+            for (size_t i = 0; i < iAvect.size();)
+            {
+                CHECK( iAcorr[i] == iAvect[i] );
+                CHECK( iAcorr[i+1] == iAvect[i+1] );
+                CHECK( iAcorr[i+2] == Catch::Approx(iAvect[i+2]) );
+                i = i + 3;
+            }
+
+            std::vector<double> irAvect;
+            for (size_t i = 0; i < ra_id.size(); i++)
+            {
+                for (size_t j = 0; j <= i; j++)
+                {
+                    if ( irA.get_nonzero(i,j) != 0.0 )
+                    {
+                        irAvect.push_back( ra_id[i] );
+                        irAvect.push_back( ra_id[j] );
+                        irAvect.push_back( irA(i,j) );
+                    }
+                }
+            }
+
+            CHECK( irAcorr.size() == irAvect.size() );
+
+            for (size_t i = 0; i < irAvect.size();)
+            {
+                CHECK( irAcorr[i] == irAvect[i] );
+                CHECK( irAcorr[i+1] == irAvect[i+1] );
+                CHECK( irAcorr[i+2] == Catch::Approx(irAvect[i+2]) );
+                i = i +3;
+            }
+
+            std::vector<double> A22vect;
+            for (size_t i = 0; i < a22_id.size(); i++)
+            {
+                for (size_t j = 0; j <= i; j++)
+                {
+                    A22vect.push_back( A22(i,j) );
+                }
+            }
+
+            CHECK( A22corr.size() == A22vect.size() );
+
+            for (size_t i = 0; i < A22vect.size(); i++)
+                CHECK( A22corr[i] == Catch::Approx(A22vect[i]) );
+
+            std::vector<double> iA22vect;
+            for (size_t i = 0; i < ai22_id.size(); i++)
+            {
+                for (size_t j = 0; j <= i; j++)
+                {
+                    iA22vect.push_back( iA22(i,j) );
+                }
+            }
+
+            CHECK( iA22corr.size() == iA22vect.size() );
+
+            for (size_t i = 0; i < iA22vect.size(); i++)
+                CHECK( iA22corr[i] == Catch::Approx(iA22vect[i]) );
+
+            ap.clear();
+
+            iA.clean();
+            irA.clean();
+            iA22.clean();
+            A22.clean();
+
+            std::cout<<"passed 12"<<"\n";
+
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << e.what() << '\n';
+        }
+        catch(const std::string& e)
+        {
+            std::cerr << e << '\n';
+        }        
+    }
+    SECTION("13. Making All: sparse storage, getting results into dense format")
+    {
+        try
+        {
+            evoped::Amat<double> ap;
+            evolm::matrix<double> iA;
+            std::vector<std::int64_t> a_id;
+            evolm::matrix<double> irA;
+            std::vector<std::int64_t> ra_id;
+            evolm::matrix<double> iA22;
+            std::vector<std::int64_t> ai22_id;
             evolm::matrix<double> A22;
             std::vector<std::int64_t> a22_id;
 
-            ap.make_all("tests/data/ped_bkg.dat", "tests/data/typed2", true);
-
-            ap.get_matrix("iA", iA, a_id, false);
-            ap.get_matrix("irA", irA, ra_id, false);
-            ap.get_matrix("iA22", iA22, ai22_id, false);
-            ap.get_matrix("A22", A22, a22_id, false);
+            ap.set_sparsiity_threshold(-1.0); // ensure sparse calculations
+            ap.make_all("tests/data/ped_bkg.dat", "tests/data/typed2");
+            ap.get_matrix("iA", iA, a_id);
+            ap.get_matrix("irA", irA, ra_id);
+            ap.get_matrix("iA22", iA22, ai22_id);
+            ap.get_matrix("A22", A22, a22_id);
+            
+            iA.fread();
+            irA.fread();
+            iA22.fread();
+            A22.fread();
 
             std::vector<double> iAvect;
             for (size_t i = 0; i < a_id.size(); i++)
@@ -838,6 +1171,20 @@ TEST_CASE("Testing Amat class")
             for (size_t i = 0; i < iA22vect.size(); i++)
                 CHECK( iA22corr[i] == Catch::Approx(iA22vect[i]) );
 
+            ap.clear();
+
+            iA.fclear();
+            irA.fclear();
+            iA22.fclear();
+            A22.fclear();
+
+            iA.clear();
+            irA.clear();
+            iA22.clear();
+            A22.clear();
+
+            std::cout<<"passed 13"<<"\n";
+
         }
         catch(const std::exception& e)
         {
@@ -848,6 +1195,7 @@ TEST_CASE("Testing Amat class")
             std::cerr << e << '\n';
         }        
     }
+
 }
 
 TEST_CASE( "Testing Gmat class" )
@@ -1129,12 +1477,13 @@ TEST_CASE( "Testing Gmat class" )
 
             gmat.read_matrix("tests/data/g_mat");
 
-            evoped::Amat<double> ap;
+            evoped::Amat<double> ap(100.0); // ensure dense format
             evolm::matrix<double> A22;
             std::vector<std::int64_t> a22_id;
 
-            ap.make_all("tests/data/ped_bkg.dat", "tests/data/typed2", false);
-            ap.get_matrix("A22", A22, a22_id, false);
+            ap.make_all("tests/data/ped_bkg.dat", "tests/data/typed2");
+            ap.get_matrix("A22", A22, a22_id);
+            A22.fread();
 
             gmat.scale_matrix(A22, 0.25);
             gmat.get_matrix(G,g_id);
@@ -1165,6 +1514,10 @@ TEST_CASE( "Testing Gmat class" )
             for (size_t i = 0; i < G.size(); i++)
                 CHECK( iG_true[i] == Catch::Approx(G[i]) );
 
+            ap.clear();
+            A22.fclear();
+            A22.clear();
+
         }
         catch(const std::exception& e)
         {
@@ -1186,12 +1539,14 @@ TEST_CASE( "Testing Gmat class" )
 
             gmat.read_matrix("tests/data/g_mat");
 
-            evoped::Amat<double> ap;
+            evoped::Amat<double> ap(100.0); // ensure dense format
             evolm::matrix<double> A22;
             std::vector<std::int64_t> a22_id;
 
-            ap.make_all("tests/data/ped_bkg.dat", "tests/data/typed2", false);
-            ap.get_matrix("A22", A22, a22_id, false);
+            ap.make_all("tests/data/ped_bkg.dat", "tests/data/typed2");
+            ap.get_matrix("A22", A22, a22_id);
+
+            A22.fread();
 
             gmat.scale_matrix(A22, 0.25);
 
@@ -1204,6 +1559,10 @@ TEST_CASE( "Testing Gmat class" )
 
             for (size_t i = 0; i < G.size(); i++)
                 CHECK( iG_sparse_true[i] == Catch::Approx(G[i]) );
+
+            ap.clear();
+            A22.fclear();
+            A22.clear();
 
         }
         catch(const std::exception& e)
@@ -1226,12 +1585,14 @@ TEST_CASE( "Testing Gmat class" )
 
             gmat.make_matrix("tests/data/allele.dat");
 
-            evoped::Amat<double> ap;
+            evoped::Amat<double> ap(100.0); // ensure dense format
             evolm::matrix<double> A22;
             std::vector<std::int64_t> a22_id;
 
-            ap.make_all("tests/data/ped_bkg.dat", "tests/data/typed2", false);
-            ap.get_matrix("A22", A22, a22_id, false);
+            ap.make_all("tests/data/ped_bkg.dat", "tests/data/typed2");
+            ap.get_matrix("A22", A22, a22_id);
+
+            A22.fread();
 
             gmat.scale_matrix(A22, 0.25);
 
@@ -1244,6 +1605,10 @@ TEST_CASE( "Testing Gmat class" )
 
             for (size_t i = 0; i < G.size(); i++)
                 CHECK( iG_sparse_true[i] == Catch::Approx(G[i]) );
+
+            ap.clear();
+            A22.fclear();
+            A22.clear();
         }
         catch(const std::exception& e)
         {
@@ -1267,11 +1632,16 @@ TEST_CASE( "Testing Gmat class" )
             evolm::matrix<double> A22;
             std::vector<std::int64_t> a22_id;
 
-            ap.make_all("tests/data/ped_bkg.dat", "tests/data/typed2", false);
+            ap.set_sparsiity_threshold(100.0); // ensure dense format
+            ap.make_all("tests/data/ped_bkg.dat", "tests/data/typed2");
             
-            ap.get_matrix("iA", iA, a_id, false);
-            ap.get_matrix("iA22", iA22, ai22_id, false);
-            ap.get_matrix("A22", A22, a22_id, false);
+            ap.get_matrix("iA", iA, a_id);
+            ap.get_matrix("iA22", iA22, ai22_id);
+            ap.get_matrix("A22", A22, a22_id);
+
+            iA.fread();
+            iA22.fread();
+            A22.fread();
 
             evoped::Gmat gmat;
             evolm::matrix<double> G;
@@ -1316,6 +1686,16 @@ TEST_CASE( "Testing Gmat class" )
                 CHECK(iH_sparse_true[i+2] == Catch::Approx(Hvect[i+2]) );
                 i = i + 3;
             }
+
+            ap.clear();
+
+            iA.fclear();
+            iA22.fclear();
+            A22.fclear();
+
+            iA.clear();
+            iA22.clear();
+            A22.clear();
         }
         catch(const std::exception& e)
         {

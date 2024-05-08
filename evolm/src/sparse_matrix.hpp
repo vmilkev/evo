@@ -25,60 +25,6 @@ namespace evolm
     {
     private:
 
-        struct ustorage // !!! DELETE THIS
-        {
-            std::unordered_map <size_t, T> A;
-
-            ustorage(const smatrix &obj)
-            {
-                compact = obj.compact;
-                numCol = obj.numCol;
-                numRow = obj.numRow;
-                A.insert(obj.A.begin(), obj.A.end()); //A = obj.A;
-            };
-
-            ~ustorage()
-            {
-                A.clear();
-            };
-
-            T get_nonzero(size_t atRow, size_t atCol)
-            {
-                typename std::unordered_map<size_t, T>::iterator it;
-                size_t key = 0;
-                if (!compact)
-                    key = atRow * numCol + atCol;
-                else
-                    key = atRow * (atRow + 1) / 2 + atCol;
-
-                it = A.find( key );
-
-                if (it != A.end())
-                    return it->second;
-                else
-                    return (T)0;
-            };
-
-            size_t nrows()
-            {
-                return numRow;
-            };
-
-            size_t ncols()
-            {
-                return numCol;
-            };
-
-            void clear()
-            {
-                A.clear();
-            };
-
-            size_t numRow;
-            size_t numCol;
-            bool compact;
-        };
-
         struct ordstorage
         {
             std::map <size_t, T> A;
@@ -88,7 +34,7 @@ namespace evolm
                 compact = obj.compact;
                 numCol = obj.numCol;
                 numRow = obj.numRow;
-                A.insert(obj.A.begin(), obj.A.end()); //A = obj.A;
+                A.insert(obj.A.begin(), obj.A.end());
             };
 
             ~ordstorage()
@@ -229,12 +175,14 @@ namespace evolm
         void fread();                                 /* Restore matrix from the disk into the memory. */
         void fclear();
         void clear();
+        void clean();
         bool empty();
         void resize(size_t row, size_t col);
         void resize(size_t lda);
         void resize(); // just empty container, rows = cols = 0
         bool nonzero(size_t atRow, size_t atCol); /* Checks if the specific matrix element is exists in the container (has the value different from 0).*/
         T get_nonzero(size_t atRow, size_t atCol); /* Checks if the specific matrix element is exists in the container (has the value different from 0).*/
+        size_t get_key( size_t element );
         bool nonzero(size_t key);
         T get_nonzero(size_t key);
         size_t nrows(); /* Returns the number of rows in the dense matrix. */
@@ -245,7 +193,8 @@ namespace evolm
         void printf(std::string whiichMatrix,
                     bool append);                     /* Prints all of a matrix into a specified file file name. */
         void set_thread_load( size_t load );
-
+        size_t get_memory_usage();
+        size_t get_memory_usage( size_t n_values );
     };
         
 } // end of namespace evolm

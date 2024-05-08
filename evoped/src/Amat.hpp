@@ -1,8 +1,6 @@
 #ifndef Amat_hpp__
 #define Amat_hpp__
 
-// #include <fstream>
-// #include <algorithm>
 #include "sparse_matrix.hpp"
 #include "cs_matrix.hpp"
 #include "Utilities2.hpp"
@@ -14,34 +12,38 @@ namespace evoped
     {
     public:
         Amat();
+        Amat( double threshold );
         ~Amat();
 
         void make_matrix(const std::string &ped_file,
-                         bool use_ainv,
-                         bool use_large);
+                         bool use_ainv);
         void make_matrix(const std::string &ped_file,
                          const std::string &g_file,
-                         bool use_ainv,
-                         bool use_large);
+                         bool use_ainv);        
         void make_all(const std::string &ped_file,
-                      const std::string &g_file,
-                      bool use_large);
+                      const std::string &g_file);
         void get_inbreeding(std::vector<T> &out);
+        
         void get_matrix(const std::string &name,
                         evolm::matrix<T> &arr,
-                        std::vector<std::int64_t> &out,
-                        bool keep_ondisk);
+                        std::vector<std::int64_t> &out);
+
         void get_matrix(const std::string &name,
                         evolm::smatrix<T> &arr,
-                        std::vector<std::int64_t> &out,
-                        bool keep_ondisk);
+                        std::vector<std::int64_t> &out);
         void get_matrix(const std::string &name,
                         std::vector<T> &arr,
-                        std::vector<std::int64_t> &out,
-                        bool keep_ondisk);
+                        std::vector<std::int64_t> &out);
+        
         void clear();
+        void set_sparsiity_threshold( double threshold );
 
     private:
+
+        double data_sparsity;
+        bool use_sparse; // the default is TRUE
+        double sparsity_threshold; // the default is 90.0
+
         struct PedPair
         {
             std::int64_t val_1; // KEY: day, PAIR: sire
@@ -55,6 +57,22 @@ namespace evoped
                     return this->val_2 < rhs.val_2;
             }
         };
+
+        struct EmptyDataStatus
+        {
+            bool A;
+            bool iA;
+            bool irA;
+            bool iA22;
+            bool A22;
+
+            bool A_s;
+            bool iA_s;
+            bool irA_s;
+            bool iA22_s;
+            bool A22_s;
+        };
+        EmptyDataStatus IsEmpty;
 
         std::map<std::int64_t, std::int64_t> birth_id_map; // the map which holds <animal_id, birth_day>, used when check correctness of pedigree
         std::vector<std::int64_t> traced_pedID;            // traced pedigree IDs
@@ -72,7 +90,7 @@ namespace evoped
         evolm::smatrix<T> iA_s;
         evolm::smatrix<T> irA_s;
         evolm::smatrix<T> iA22_s;
-        // evolm::matrix<T> A22_s;
+        evolm::smatrix<T> A22_s;
 
         std::vector<std::int64_t> id_iA;
         std::vector<std::int64_t> id_irA;
@@ -97,11 +115,13 @@ namespace evoped
                       std::vector<T> &dinv,
                       bool inbreed);
         std::int64_t pos_inped(std::map<std::int64_t, std::int64_t> &codemap,
-                               std::int64_t id);
-        void map_to_matr(std::map<PedPair, T> &amap,
-                         std::vector<std::int64_t> &ids,
-                         bool use_ainv,
-                         bool use_large);
+                               std::int64_t id);        
+        void map_to_matr(std::map<PedPair, T> &in_amap,
+                         std::vector<std::int64_t> &in_ids,
+                         evolm::smatrix<T> &out_matr);
+        void map_to_matr(std::map<PedPair, T> &in_amap,
+                         std::vector<std::int64_t> &in_ids,
+                         evolm::matrix<T> &out_matr);
         void get_A22(std::map<PedPair, PedPair> &ped,
                      std::vector<std::int64_t> &genotypedID);
         void getA22vector(std::vector<T> &w,
@@ -113,6 +133,9 @@ namespace evoped
         void get_iA22(evolm::smatrix<T> &full_matr,
                       std::vector<std::int64_t> &matr_ids,
                       std::vector<std::int64_t> &selected_ids);
+        
+        void dense_to_sparse(evolm::matrix<T> &from, evolm::smatrix<T> &to);
+        void sparse_to_dense(evolm::smatrix<T> &from, evolm::matrix<T> &to);
 
         // multithreading
         void thread_loads(std::vector<std::int64_t> &in,
