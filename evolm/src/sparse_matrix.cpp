@@ -1717,6 +1717,8 @@ namespace evolm
         {
             std::cerr << "Exception in smatrix<T>::get_key(size_t)" << '\n';
         }
+
+        return (T)0;
     }
 
     template size_t smatrix<float>::get_key( size_t element );

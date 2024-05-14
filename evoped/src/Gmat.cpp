@@ -3,43 +3,53 @@
 namespace evoped
 {
     //===============================================================================================================
-
-    Gmat::Gmat()
+    template <typename T>
+    Gmat<T>::Gmat()
     {
     }
 
+    template Gmat<float>::Gmat();
+    template Gmat<double>::Gmat();
     //===============================================================================================================
 
-    void Gmat::get_matrix(evolm::matrix<double> &arr, std::vector<std::int64_t>& ids)
+    template <typename T>
+    void Gmat<T>::get_matrix(evolm::matrix<T> &arr, std::vector<std::int64_t> &ids)
     {
         // Note, we operate with L-stored format, hence return lower triangular part
         try
         {
-            arr = G;
+            if ( !G.is_ondisk() )
+                G.fwrite();
+
+            arr = G; // copy by exchanging binary file names
             ids = gmatID;
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Gmat::get_matrix(evolm::matrix<double> &, std::vector<std::int64_t>&)" << '\n';
+            std::cerr << "Exception in Gmat<T>::get_matrix(evolm::matrix<T> &, std::vector<std::int64_t>&)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Gmat::get_matrix(evolm::matrix<double> &, std::vector<std::int64_t>&)" << '\n';
+            std::cerr << "Exception in Gmat<T>::get_matrix(evolm::matrix<T> &, std::vector<std::int64_t>&)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Gmat::get_matrix(evolm::matrix<double> &, std::vector<std::int64_t>&)" << '\n';
+            std::cerr << "Exception in Gmat<T>::get_matrix(evolm::matrix<T> &, std::vector<std::int64_t>&)" << '\n';
             throw;
         }
     }
 
+    template void Gmat<float>::get_matrix(evolm::matrix<float> &arr, std::vector<std::int64_t> &ids);
+    template void Gmat<double>::get_matrix(evolm::matrix<double> &arr, std::vector<std::int64_t> &ids);
+
     //===============================================================================================================
 
-    void Gmat::get_matrix(std::vector<double> &arr, std::vector<std::int64_t>& ids)
+    template <typename T>
+    void Gmat<T>::get_matrix(std::vector<T> &arr, std::vector<std::int64_t> &ids)
     {
         // This method is for Python interfacing;
         // Note, we operate with L-stored format, hence return lower triangular part
@@ -50,188 +60,230 @@ namespace evoped
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Gmat::get_matrix(std::vector<double> &, std::vector<std::int64_t>&)" << '\n';
+            std::cerr << "Exception in Gmat<T>::get_matrix(std::vector<T> &, std::vector<std::int64_t>&)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Gmat::get_matrix(std::vector<double> &, std::vector<std::int64_t>&)" << '\n';
+            std::cerr << "Exception in Gmat<T>::get_matrix(std::vector<T> &, std::vector<std::int64_t>&)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Gmat::get_matrix(std::vector<double> &, std::vector<std::int64_t>&)" << '\n';
+            std::cerr << "Exception in Gmat<T>::get_matrix(std::vector<T> &, std::vector<std::int64_t>&)" << '\n';
             throw;
         }
     }
 
+    template void Gmat<float>::get_matrix(std::vector<float> &arr, std::vector<std::int64_t> &ids);
+    template void Gmat<double>::get_matrix(std::vector<double> &arr, std::vector<std::int64_t> &ids);
+
     //===============================================================================================================
 
-    void Gmat::make_matrix(const std::string &fname)
+    template <typename T>
+    void Gmat<T>::make_matrix(const std::string &fname)
     {
         try
         {
-            read_snp(fname);
-            make_zmatrix();
+            read_snp(fname); // reads SNPs with IDs from ASCII fiele
+            make_zmatrix(); // scalling SNPs
             snp_map.clear();
-            make_matrix();
+            make_matrix(); // making G matrix
             Z.fclear();
             Z.clear();
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Gmat::make_matrix(const std::string &)" << '\n';
+            std::cerr << "Exception in Gmat<T>::make_matrix(const std::string &)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Gmat::make_matrix(const std::string &)" << '\n';
+            std::cerr << "Exception in Gmat<T>::make_matrix(const std::string &)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Gmat::make_matrix(const std::string &)" << '\n';
+            std::cerr << "Exception in Gmat<T>::make_matrix(const std::string &)" << '\n';
             throw;
         }
     }
 
+    template void Gmat<float>::make_matrix(const std::string &fname);
+    template void Gmat<double>::make_matrix(const std::string &fname);
+
     //===============================================================================================================
 
-    void Gmat::make_matrix(const std::string &fname, const std::string &fname_ids)
+    template <typename T>
+    void Gmat<T>::make_matrix(const std::string &fname, const std::string &fname_ids)
     {
         try
         {
-            read_snp(fname, fname_ids);
-            make_zmatrix();
+            read_snp(fname, fname_ids); // reads SNPs and its IDs from ASCII fieles (one for SNPs, another for IDs)
+            make_zmatrix(); // scalling SNPs
             snp_map.clear();
-            make_matrix();
+            make_matrix(); // making G matrix
             Z.fclear();
             Z.clear();
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Gmat::make_matrix(const std::string &, const std::string &)" << '\n';
+            std::cerr << "Exception in Gmat<T>::make_matrix(const std::string &, const std::string &)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Gmat::make_matrix(const std::string &, const std::string &)" << '\n';
+            std::cerr << "Exception in Gmat<T>::make_matrix(const std::string &, const std::string &)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Gmat::make_matrix(const std::string &, const std::string &)" << '\n';
+            std::cerr << "Exception in Gmat<T>::make_matrix(const std::string &, const std::string &)" << '\n';
             throw;
         }
     }
 
-    //===============================================================================================================
-
-    void Gmat::scale_genotypes(const std::string &fname)
-    {
-        try
-        {
-            read_snp(fname);
-            make_zmatrix();
-            G = Z;
-            snp_map.clear();
-            Z.fclear();
-            Z.clear();
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Exception in Gmat::scale_genotypes(const std::string &)" << '\n';
-            std::cerr << e.what() << '\n';
-            throw;
-        }
-        catch (const std::string &e)
-        {
-            std::cerr << "Exception in Gmat::scale_genotypes(const std::string &)" << '\n';
-            std::cerr << "Reason: " << e << '\n';
-            throw;
-        }
-        catch (...)
-        {
-            std::cerr << "Exception in Gmat::scale_genotypes(const std::string &)" << '\n';
-            throw;
-        }
-    }
+    template void Gmat<float>::make_matrix(const std::string &fname, const std::string &fname_ids);
+    template void Gmat<double>::make_matrix(const std::string &fname, const std::string &fname_ids);
 
     //===============================================================================================================
 
-    void Gmat::scale_genotypes(const std::string &fname, const std::string &fname_ids)
+    template <typename T>
+    void Gmat<T>::scale_genotypes(const std::string &fname)
     {
+        // Scaling SNPs
+
         try
         {
-            read_snp(fname, fname_ids);
-            make_zmatrix();
-            G = Z;
+            read_snp(fname); // reads SNPs with IDs from ASCII fiele
+            make_zmatrix(); // scalling
+            Z.fwrite(); // move data to a binary file
+            G = Z; // copy to the main container
             snp_map.clear();
             Z.fclear();
             Z.clear();
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Gmat::scale_genotypes(const std::string &, const std::string &)" << '\n';
+            std::cerr << "Exception in Gmat<T>::scale_genotypes(const std::string &)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Gmat::scale_genotypes(const std::string &, const std::string &)" << '\n';
+            std::cerr << "Exception in Gmat<T>::scale_genotypes(const std::string &)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Gmat::scale_genotypes(const std::string &, const std::string &)" << '\n';
+            std::cerr << "Exception in Gmat<T>::scale_genotypes(const std::string &)" << '\n';
             throw;
         }
     }
 
+    template void Gmat<float>::scale_genotypes(const std::string &fname);
+    template void Gmat<double>::scale_genotypes(const std::string &fname);
+
     //===============================================================================================================
 
-    void Gmat::invert_matrix()
+    template <typename T>
+    void Gmat<T>::scale_genotypes(const std::string &fname, const std::string &fname_ids)
     {
-        // Invert matrix as it is despite the conditions of PD or PSD may not be sutisfied;
-        // therefore, it is recommended to call the scale_matrix(...) methods first
+        // Scaling SNPs
+
         try
         {
+            read_snp(fname, fname_ids); // reads SNPs and its IDs from ASCII fieles (one for SNPs, another for IDs)
+            make_zmatrix(); // scalling
+            Z.fwrite(); // move data to a binary file
+            G = Z; // copy to the main container
+            snp_map.clear();
+            Z.fclear();
+            Z.clear();
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Gmat<T>::scale_genotypes(const std::string &, const std::string &)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Gmat<T>::scale_genotypes(const std::string &, const std::string &)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Gmat<T>::scale_genotypes(const std::string &, const std::string &)" << '\n';
+            throw;
+        }
+    }
+
+    template void Gmat<float>::scale_genotypes(const std::string &fname, const std::string &fname_ids);
+    template void Gmat<double>::scale_genotypes(const std::string &fname, const std::string &fname_ids);
+
+    //===============================================================================================================
+
+    template <typename T>
+    void Gmat<T>::invert_matrix()
+    {
+        // Inverting G matrix regardless of whether it is in compact or full storage format.
+        // Invert matrix as it is despite the conditions of PD or PSD may not be satisfied;
+        // therefore, it is recommended to call the scale_matrix(...) methods first.
+
+        try
+        {
+            if ( G.is_ondisk() )
+                G.fread();
+            
             G.invert();
+
+            G.fwrite();
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Gmat::invert_matrix()" << '\n';
+            std::cerr << "Exception in Gmat<T>::invert_matrix()" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Gmat::invert_matrix()" << '\n';
+            std::cerr << "Exception in Gmat<T>::invert_matrix()" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Gmat::invert_matrix()" << '\n';
+            std::cerr << "Exception in Gmat<T>::invert_matrix()" << '\n';
             throw;
         }
     }
 
+    template void Gmat<float>::invert_matrix();
+    template void Gmat<double>::invert_matrix();
+
     //===============================================================================================================
 
-    void Gmat::invert_matrix(bool full_store)
+    template <typename T>
+    void Gmat<T>::invert_matrix(bool full_store)
     {
+        // Invert G matrix as in full storage format.
         // Invert matrix as it is despite the conditions of PD or PSD may not be sutisfied;
-        // therefore, it is recommended to call the scale_matrix(...) methods first
+        // therefore, it is recommended to call the scale_matrix(...) methods first.
+
         try
         {
+            if ( G.is_ondisk() )
+                G.fread();
+
             if (full_store)
             {
                 G.symtorec();
@@ -244,40 +296,49 @@ namespace evoped
             }
             else
                 G.invert();
+
+            G.fwrite();
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Gmat::invert_matrix(bool)" << '\n';
+            std::cerr << "Exception in Gmat<T>::invert_matrix(bool)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Gmat::invert_matrix(bool)" << '\n';
+            std::cerr << "Exception in Gmat<T>::invert_matrix(bool)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Gmat::invert_matrix(bool)" << '\n';
+            std::cerr << "Exception in Gmat<T>::invert_matrix(bool)" << '\n';
             throw;
         }
     }
 
+    template void Gmat<float>::invert_matrix(bool full_store);
+    template void Gmat<double>::invert_matrix(bool full_store);
+
     //===============================================================================================================
 
-    void Gmat::invert_matrix(std::vector<std::int64_t> &core_id)
+    template <typename T>
+    void Gmat<T>::invert_matrix(std::vector<std::int64_t> &core_id)
     {
-        // sparse inverse (APY)
+        // Sparse inverse (APY)
 
         try
         {
             Utilities2 u;
 
-            if ( G.empty() )
+            if ( G.is_ondisk() )
+                G.fread();
+
+            if (G.empty())
                 throw std::string("There is no G matrix which needs to be inverted!");
 
-            if ( gmatID.empty() )
+            if (gmatID.empty())
                 throw std::string("The vector of G matrix IDs is empty!");
 
             // Check if all IDs in the core_id vector are in the gmatID vector
@@ -300,7 +361,7 @@ namespace evoped
             size_t r_gcc, c_gcc;
             r_gcc = c_gcc = core_id.size();
 
-            evolm::matrix<double> Gcc(r_gcc, c_gcc);
+            evolm::matrix<T> Gcc(r_gcc, c_gcc);
 
             // make the list of positions of coreIDs in genotypedIDs
             std::map<std::int64_t, std::int64_t> corePositions;
@@ -317,7 +378,7 @@ namespace evoped
                 for (size_t j = 0; j <= i; j++)
                 {
                     size_t c = corePositions[core_id[j]];
-                    Gcc(i, j) = Gcc(j, i) = G(r-1, c-1); // for half-store Gf
+                    Gcc(i, j) = Gcc(j, i) = G(r - 1, c - 1); // for half-store Gf
                 }
             }
 
@@ -338,7 +399,7 @@ namespace evoped
             r_gnc = gmatID.size() - core_id.size();
             c_gnc = c_gcc;
 
-            evolm::matrix<double> Gnc(r_gnc, c_gnc);
+            evolm::matrix<T> Gnc(r_gnc, c_gnc);
 
             // Make a vector of non-core IDs
             std::vector<int> noncoreID;
@@ -346,7 +407,7 @@ namespace evoped
             for (size_t i = 0; i < gmatID.size(); i++)
             {
                 std::int64_t id = gmatID[i];
-                if ( u.find_invect(core_id, id) == -1 )
+                if (u.find_invect(core_id, id) == -1)
                     noncoreID.push_back(id);
             }
 
@@ -375,18 +436,17 @@ namespace evoped
                 {
                     size_t c = corePositions[core_id[j]];
 
-                     if ( r >= c )
-                        Gnc(i,j) = G(r-1,c-1);
+                    if (r >= c)
+                        Gnc(i, j) = G(r - 1, c - 1);
                     else
-                        Gnc(i,j) = G(c-1,r-1); 
-                   /*size_t ind;
-                    if (noncoreID[i] >= core_id[j])
-                        ind = r * (r - 1) / 2 + c - 1;
-                    else
-                        ind = c * (c - 1) / 2 + r - 1;
+                        Gnc(i, j) = G(c - 1, r - 1);
+                    /*size_t ind;
+                     if (noncoreID[i] >= core_id[j])
+                         ind = r * (r - 1) / 2 + c - 1;
+                     else
+                         ind = c * (c - 1) / 2 + r - 1;
 
-                    Gnc[i * core_id.size() + j] = G[ind]; // for half-stored Gf*/
-
+                     Gnc[i * core_id.size() + j] = G[ind]; // for half-stored Gf*/
                 }
             }
 
@@ -399,7 +459,7 @@ namespace evoped
 
             // Make Gcn (transpose Gnc to get Gcn) and write it to a file
 
-            evolm::matrix<double> Gcn(c_gnc, r_gnc);
+            evolm::matrix<T> Gcn(c_gnc, r_gnc);
 
             // n_threads = std::thread::hardware_concurrency();
             // block_size = static_cast<unsigned int> (r_gnc/(1*n_threads));
@@ -421,7 +481,7 @@ namespace evoped
 
             // Calculate Gnn and then - invert it
 
-            evolm::matrix<double> GncGcc(r_gnc, c_gnc);
+            evolm::matrix<T> GncGcc(r_gnc, c_gnc);
 
             // restore Gcc from file:
             Gcc.fread();
@@ -434,20 +494,20 @@ namespace evoped
             // restore Gcn from file:
             Gcn.fread();
 
-            evolm::matrix<double> Gnnfull(r_gnc, r_gnc);
+            evolm::matrix<T> Gnnfull(r_gnc, r_gnc);
 
             Gnnfull = GncGcc * Gcn;
 
             Gcn.fwrite();
-            
-            //GncGcc.fwrite();
+
+            // GncGcc.fwrite();
             GncGcc.fclear();
             GncGcc.clear();
 
             size_t r_gnn, c_gnn;
             r_gnn = c_gnn = gmatID.size() - core_id.size();
 
-            evolm::matrix<double> Gnn(r_gnn, 1);
+            evolm::matrix<T> Gnn(r_gnn, 1);
 
             // n_threads = std::thread::hardware_concurrency();
             // block_size = static_cast<unsigned int> (noncoreID.size()/(1*n_threads));
@@ -462,11 +522,11 @@ namespace evoped
                 Gnn[i - 1] = 1.0 / (G[r * (r - 1) / 2 + r - 1] - Gnnfull[(i - 1) * r_gnc + (i - 1)]); // half-store case
             }
 
-            //Gnnfull.fwrite();
+            // Gnnfull.fwrite();
             Gnnfull.fclear();
             Gnnfull.clear();
 
-            //G.fwrite();
+            // G.fwrite();
             G.fclear();
             G.clear();
 
@@ -487,12 +547,12 @@ namespace evoped
             Gcc.fread();
 
             // Matrix product, produce Gcci*Gcn
-            evolm::matrix<double> G12(r_gcc, r_gnc);
+            evolm::matrix<T> G12(r_gcc, r_gnc);
 
             G12 = Gcc * Gcn;
 
             Gcc.fwrite();
-            //Gcn.fwrite();
+            // Gcn.fwrite();
             Gcn.fclear();
             Gcn.clear();
 
@@ -529,39 +589,39 @@ namespace evoped
 
             Gnc.fread();
 
-			evolm::matrix<double> G12_nc(r_g12, c_gnc);
+            evolm::matrix<T> G12_nc(r_g12, c_gnc);
 
             G12_nc = G12 * Gnc;
 
-            //Gnc.fwrite();
+            // Gnc.fwrite();
             Gnc.fclear();
             Gnc.clear();
 
             // complete making G12 by mult. by -1.
 #pragma omp parallel for
-			for (size_t i = 0; i < (r_g12 * c_g12); i++)
-				G12[i] = G12[i] * (-1.0);
+            for (size_t i = 0; i < (r_g12 * c_g12); i++)
+                G12[i] = G12[i] * (-1.0);
 
             G12.fwrite();
 
-			// adding identity matrix to G12_nc
+            // adding identity matrix to G12_nc
 
-			//n_threads = std::thread::hardware_concurrency();
-			//block_size = static_cast<unsigned int> (r_g12/(1*n_threads));
+            // n_threads = std::thread::hardware_concurrency();
+            // block_size = static_cast<unsigned int> (r_g12/(1*n_threads));
 
-#pragma omp parallel for //schedule(static, block_size) num_threads(n_threads)
-			for (size_t i = 0; i < r_g12; i++)
-				G12_nc[ i + i * c_gnc ] = G12_nc[ i + i * c_gnc ] + 1.0;
+#pragma omp parallel for // schedule(static, block_size) num_threads(n_threads)
+            for (size_t i = 0; i < r_g12; i++)
+                G12_nc[i + i * c_gnc] = G12_nc[i + i * c_gnc] + 1.0;
 
-			// restore Gcc
+            // restore Gcc
             Gcc.fread();
 
-			evolm::matrix<double> G11(r_gcc, c_gcc);
+            evolm::matrix<T> G11(r_gcc, c_gcc);
 
             G11 = G12_nc * Gcc;
 
-            //Gcc.fwrite();
-            //G12_nc.fwrite();
+            // Gcc.fwrite();
+            // G12_nc.fwrite();
             Gcc.fclear();
             Gcc.clear();
             G12_nc.fclear();
@@ -570,26 +630,26 @@ namespace evoped
             // ----------------------------------------------
             //                 G(-1)
             // ----------------------------------------------
-            evolm::matrix<double> G_11_12;
-            evolm::matrix<double> G_21_22;
-            evolm::matrix<double> Gnn_full;
+            evolm::matrix<T> G_11_12;
+            evolm::matrix<T> G_21_22;
+            evolm::matrix<T> Gnn_full;
 
             G12.fread();
-            
+
             G_11_12 = G11 << G12;
-            
+
             G_11_12.fwrite();
-            
+
             G11.fclear();
-            G11.clear();            
+            G11.clear();
 
             G12.transpose();
             Gnn.fread();
 
-            Gnn_full.resize( Gnn.size(),Gnn.size() );
+            Gnn_full.resize(Gnn.size(), Gnn.size());
 
-            for(size_t i = 0; i < Gnn.size(); i++)
-                Gnn_full(i,i) = Gnn[i];
+            for (size_t i = 0; i < Gnn.size(); i++)
+                Gnn_full(i, i) = Gnn[i];
 
             G_21_22 = G12 << Gnn_full;
 
@@ -599,7 +659,6 @@ namespace evoped
             Gnn.clear();
             Gnn_full.fclear();
             Gnn_full.clear();
-            
 
             G_11_12.fread();
             G.resize(gmatID.size(), gmatID.size());
@@ -609,9 +668,11 @@ namespace evoped
             G_11_12.fclear();
             G_11_12.clear();
             G_21_22.fclear();
-            G_21_22.clear();            
+            G_21_22.clear();
 
             G.rectosym();
+
+            G.fwrite();
 
             gmatID.clear();
             gmatID = coreNonCoreIDs;
@@ -621,30 +682,38 @@ namespace evoped
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Gmat::invert_matrix(std::vector<std::int64_t>&)" << '\n';
+            std::cerr << "Exception in Gmat<T>::invert_matrix(std::vector<std::int64_t>&)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Gmat::invert_matrix(std::vector<std::int64_t>&)" << '\n';
+            std::cerr << "Exception in Gmat<T>::invert_matrix(std::vector<std::int64_t>&)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Gmat::invert_matrix(std::vector<std::int64_t>&)" << '\n';
+            std::cerr << "Exception in Gmat<T>::invert_matrix(std::vector<std::int64_t>&)" << '\n';
             throw;
         }
     }
 
+    template void Gmat<float>::invert_matrix(std::vector<std::int64_t> &core_id);
+    template void Gmat<double>::invert_matrix(std::vector<std::int64_t> &core_id);
+
     //===============================================================================================================
 
-    void Gmat::scale_matrix(double scale_coef)
+    template <typename T>
+    void Gmat<T>::scale_matrix(T scale_coef)
     {
-        // Scale diagonal elements of G matrix by the scale_coef, then invert it
+        // Scale the diagonal elements of G matrix by the scale_coef
+
         try
         {
+            if ( G.is_ondisk() )
+                G.fread();
+
             evolm::matrix<size_t> shapeofg;
             shapeofg = G.shape();
 
@@ -653,32 +722,40 @@ namespace evoped
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Gmat::scale_matrix(double)" << '\n';
+            std::cerr << "Exception in Gmat<T>::scale_matrix(T)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Gmat::scale_matrix(double)" << '\n';
+            std::cerr << "Exception in Gmat<T>::scale_matrix(T)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Gmat::scale_matrix(double)" << '\n';
+            std::cerr << "Exception in Gmat<T>::scale_matrix(T)" << '\n';
             throw;
         }
     }
 
+    template void Gmat<float>::scale_matrix(float scale_coef);
+    template void Gmat<double>::scale_matrix(double scale_coef);
+
     //===============================================================================================================
 
-    void Gmat::scale_matrix(std::vector<double> &scale_matr, double scaling_weight)
+    template <typename T>
+    void Gmat<T>::scale_matrix(std::vector<T> &scale_matr, T scaling_weight)
     {
         // Use the matrix scale_matr to scale G matrix, then invert it;
         // This method is just to fit to the Python interface;
-        // Note, scale_matr is symetric and consists of only L-part (L-store format)
+        // Note, scale_matr is symetric and consists of only L-part (L-store format).
+
         try
         {
+            if ( G.is_ondisk() )
+                G.fread();
+
             // It is required the scaling matrix is the same dimension as the inverting G
 
             evolm::matrix<size_t> shapeofg;
@@ -686,7 +763,7 @@ namespace evoped
             if (shapeofg[0] != shapeofg[1])
                 throw std::string("G matrix has wrong dimension: number of raws is not the same as number of columns!");
 
-            evolm::matrix<double> amat; // assumed it is in L-stored format
+            evolm::matrix<T> amat; // assumed it is in L-stored format
             amat.resize(shapeofg[0]);
 
             if (amat.size() != scale_matr.size())
@@ -702,51 +779,58 @@ namespace evoped
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Gmat::scale_matrix(std::vector<double>&, double)" << '\n';
+            std::cerr << "Exception in Gmat<T>::scale_matrix(std::vector<T>&, T)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Gmat::scale_matrix(std::vector<double>&, double)" << '\n';
+            std::cerr << "Exception in Gmat<T>::scale_matrix(std::vector<T>&, T)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Gmat::scale_matrix(std::vector<double>&, double)" << '\n';
+            std::cerr << "Exception in Gmat<T>::scale_matrix(std::vector<T>&, T)" << '\n';
             throw;
         }
     }
 
+    template void Gmat<float>::scale_matrix(std::vector<float> &scale_matr, float scaling_weight);
+    template void Gmat<double>::scale_matrix(std::vector<double> &scale_matr, double scaling_weight);
+
     //===============================================================================================================
 
-    void Gmat::scale_matrix(evolm::matrix<double> &scale_matr, double scaling_weight)
+    template <typename T>
+    void Gmat<T>::scale_matrix(evolm::matrix<T> &scale_matr, T scaling_weight)
     {
-        // Direct inverse of G with prior scaling by the matrix 'scale_matr':
+        // Scaling by the matrix 'scale_matr':
         // G = (1-w)*Ga + wA; Ga = beta*G + alpha;
         // mean( diag(G) )*beta + alpha = mean( diag(A) );
         // mean( G )*beta + alpha = mean( A )
 
         try
         {
+            if ( G.is_ondisk() )
+                G.fread();
+
             evolm::matrix<size_t> shapeofa;
             shapeofa = scale_matr.shape();
 
             evolm::matrix<size_t> shapeofg;
             shapeofg = G.shape();
 
-            if ( shapeofa[0] != shapeofg[0] )
+            if (shapeofa[0] != shapeofg[0])
                 throw std::string("The passed scaleing matrix has wrong dimension: the number of rows is not the same as in the inverting G matrix!");
 
-            if ( shapeofa[1] != shapeofg[1] )
+            if (shapeofa[1] != shapeofg[1])
                 throw std::string("The passed scaleing matrix has wrong dimension: the number of columns is not the same as in the inverting G matrix!");
 
             // Get mean values of the scaler matrix:
 
-            double a_ofd_mean = 0.0;
-            double a_all_mean = 0.0;
-            double a_diag_mean = 0.0;
+            T a_ofd_mean = 0.0;
+            T a_all_mean = 0.0;
+            T a_diag_mean = 0.0;
 
 #pragma omp parallel for reduction(+ : a_diag_mean)
             for (size_t i = 0; i < shapeofa[0]; i++)
@@ -755,7 +839,7 @@ namespace evoped
             }
 
             a_all_mean = a_diag_mean;
-            a_diag_mean = a_diag_mean / ((double)shapeofa[0]);
+            a_diag_mean = a_diag_mean / ((T)shapeofa[0]);
 
 #pragma omp parallel for reduction(+ : a_ofd_mean)
             for (size_t i = 1; i < shapeofa[0]; i++)
@@ -766,17 +850,17 @@ namespace evoped
                 }
             }
 
-            a_all_mean = (a_all_mean + 2 * a_ofd_mean) / ( (double)shapeofa[0] * (double)shapeofa[0] );
-            a_ofd_mean = 2 * a_ofd_mean / ( (double)shapeofa[0] * (double)shapeofa[0] - (double)shapeofa[0] );
+            a_all_mean = (a_all_mean + 2 * a_ofd_mean) / ((T)shapeofa[0] * (T)shapeofa[0]);
+            a_ofd_mean = 2 * a_ofd_mean / ((T)shapeofa[0] * (T)shapeofa[0] - (T)shapeofa[0]);
 
             // Get mean values of G matrix
 
-            double g_ofd_mean = 0.0;
-            double g_all_mean = 0.0;
-            double g_diag_mean = 0.0;
+            T g_ofd_mean = 0.0;
+            T g_all_mean = 0.0;
+            T g_diag_mean = 0.0;
 
-            double alpha = 0.0;
-            double betha = 1.0;
+            T alpha = 0.0;
+            T betha = 1.0;
 
 #pragma omp parallel for reduction(+ : g_diag_mean)
             for (size_t i = 0; i < shapeofg[0]; i++)
@@ -793,13 +877,13 @@ namespace evoped
                 }
             }
 
-            g_all_mean = (g_diag_mean + 2 * g_ofd_mean) / ( (double)shapeofg[0] * (double)shapeofg[0] );
-            g_diag_mean = g_diag_mean / ((double)shapeofg[0]);
+            g_all_mean = (g_diag_mean + 2 * g_ofd_mean) / ((T)shapeofg[0] * (T)shapeofg[0]);
+            g_diag_mean = g_diag_mean / ((T)shapeofg[0]);
 
             betha = (a_all_mean - a_diag_mean) / (g_all_mean - g_diag_mean);
             alpha = a_diag_mean - g_diag_mean * betha;
 
-            g_ofd_mean = 2 * g_ofd_mean / ( (double)shapeofg[0] * (double)shapeofg[0] - (double)shapeofg[0] );
+            g_ofd_mean = 2 * g_ofd_mean / ((T)shapeofg[0] * (T)shapeofg[0] - (T)shapeofg[0]);
 
             shapeofa.clear();
             shapeofg.clear();
@@ -813,7 +897,7 @@ namespace evoped
             scaling_g_ofd = g_ofd_mean;
 #endif
 
-            if ( scaling_weight == 0.0 )
+            if (scaling_weight == 0.0)
             {
 #pragma omp parallel for
                 for (size_t i = 0; i < G.size(); i++)
@@ -825,30 +909,33 @@ namespace evoped
                 for (size_t i = 0; i < G.size(); i++)
                     G[i] = (G[i] * betha + alpha) * (1 - scaling_weight) + scale_matr[i] * scaling_weight;
             }
-
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Gmat::scale_matrix(evolm::matrix<double>&, double)" << '\n';
+            std::cerr << "Exception in Gmat<T>::scale_matrix(evolm::matrix<T>&, T)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Gmat::scale_matrix(evolm::matrix<double>&, double)" << '\n';
+            std::cerr << "Exception in Gmat<T>::scale_matrix(evolm::matrix<T>&, T)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Gmat::scale_matrix(evolm::matrix<double>&, double)" << '\n';
+            std::cerr << "Exception in Gmat<T>::scale_matrix(evolm::matrix<T>&, T)" << '\n';
             throw;
         }
     }
 
+    template void Gmat<float>::scale_matrix(evolm::matrix<float> &scale_matr, float scaling_weight);
+    template void Gmat<double>::scale_matrix(evolm::matrix<double> &scale_matr, double scaling_weight);
+
     //===============================================================================================================
 
-    Gmat::~Gmat()
+    template <typename T>
+    Gmat<T>::~Gmat()
     {
         try
         {
@@ -856,26 +943,30 @@ namespace evoped
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Gmat::~Gmat()" << '\n';
+            std::cerr << "Exception in Gmat<T>::~Gmat()" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Gmat::~Gmat()" << '\n';
+            std::cerr << "Exception in Gmat<T>::~Gmat()" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Gmat::~Gmat()" << '\n';
+            std::cerr << "Exception in Gmat<T>::~Gmat()" << '\n';
             throw;
         }
     }
 
+    template Gmat<float>::~Gmat();
+    template Gmat<double>::~Gmat();
+
     //===============================================================================================================
 
-    void Gmat::clear()
+    template <typename T>
+    void Gmat<T>::clear()
     {
         try
         {
@@ -883,7 +974,7 @@ namespace evoped
             G.clear();
             Z.fclear();
             Z.clear();
-            
+
             gmatID.clear();
             gmatID.shrink_to_fit();
             snp_map.clear();
@@ -891,28 +982,33 @@ namespace evoped
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Gmat::clear()" << '\n';
+            std::cerr << "Exception in Gmat<T>::clear()" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Gmat::clear()" << '\n';
+            std::cerr << "Exception in Gmat<T>::clear()" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Gmat::clear()" << '\n';
+            std::cerr << "Exception in Gmat<T>::clear()" << '\n';
             throw;
         }
     }
 
+    template void Gmat<float>::clear();
+    template void Gmat<double>::clear();
+
     //===============================================================================================================
+
     template <typename T>
-    void Gmat::read_matrix(const std::string &gmat_file, std::vector<std::int64_t> &g_row, std::vector<std::int64_t> &g_col, std::vector<T> &g_val)
+    void Gmat<T>::read_matrix(const std::string &gmat_file, std::vector<std::int64_t> &g_row, std::vector<std::int64_t> &g_col, std::vector<T> &g_val)
     {
-        // reads G matrix from gmat.dat file into the linked list container
+        // reads G matrix from gmat.dat file into std::vector container
+
         try
         {
             Utilities2 u;
@@ -947,7 +1043,7 @@ namespace evoped
                 g_col.push_back(static_cast<std::int64_t>(tmp_list[1]));
                 g_val.push_back(tmp_list[2]);
                 gmatID.push_back(int(tmp_list[0]));
-                //gmatID.push_back(int(tmp_list[1]));
+                // gmatID.push_back(int(tmp_list[1]));
 
                 if (static_cast<std::int64_t>(tmp_list[0]) == static_cast<std::int64_t>(tmp_list[1]))
                     diagonals++;
@@ -965,40 +1061,42 @@ namespace evoped
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Gmat::read_matrix(const std::string &, std::vector<std::int64_t> &, std::vector<std::int64_t> &, std::vector<T> &)" << '\n';
+            std::cerr << "Exception in Gmat<T>::read_matrix(const std::string &, std::vector<std::int64_t> &, std::vector<std::int64_t> &, std::vector<T> &)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Gmat::read_matrix(const std::string &, std::vector<std::int64_t> &, std::vector<std::int64_t> &, std::vector<T> &)" << '\n';
+            std::cerr << "Exception in Gmat<T>::read_matrix(const std::string &, std::vector<std::int64_t> &, std::vector<std::int64_t> &, std::vector<T> &)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Gmat::read_matrix(const std::string &, std::vector<std::int64_t> &, std::vector<std::int64_t> &, std::vector<T> &)" << '\n';
+            std::cerr << "Exception in Gmat<T>::read_matrix(const std::string &, std::vector<std::int64_t> &, std::vector<std::int64_t> &, std::vector<T> &)" << '\n';
             throw;
         }
     }
 
-    template void Gmat::read_matrix(const std::string &fname, std::vector<std::int64_t> &g_row, std::vector<std::int64_t> &g_col, std::vector<float> &g_val);
-    template void Gmat::read_matrix(const std::string &fname, std::vector<std::int64_t> &g_row, std::vector<std::int64_t> &g_col, std::vector<double> &g_val);
+    template void Gmat<float>::read_matrix(const std::string &fname, std::vector<std::int64_t> &g_row, std::vector<std::int64_t> &g_col, std::vector<float> &g_val);
+    template void Gmat<double>::read_matrix(const std::string &fname, std::vector<std::int64_t> &g_row, std::vector<std::int64_t> &g_col, std::vector<double> &g_val);
 
     //===============================================================================================================
 
-    void Gmat::read_matrix(const std::string &gmat_file)
+    template <typename T>
+    void Gmat<T>::read_matrix(const std::string &gmat_file)
     {
         // NOTE: reads from file G mmatrix in compact format upper (lower) triangular part!
         //       The function should accept a full store format as well, though will write
         //       only to the lower triangular part assuming the G matrix is always symmetric.
+
         try
         {
             Utilities2 u;
 
             std::vector<std::int64_t> g_row;
             std::vector<std::int64_t> g_col;
-            std::vector<double> g_val;
+            std::vector<T> g_val;
             std::map<std::int64_t, std::int64_t> rid_map;
 
             read_matrix(gmat_file, g_row, g_col, g_val);
@@ -1016,7 +1114,7 @@ namespace evoped
 
             G.resize(gmatID.size());
 
-#pragma omp parallel for // schedule(static, block_size) num_threads(n_threads)
+#pragma omp parallel for                              // schedule(static, block_size) num_threads(n_threads)
             for (size_t i = 0; i < g_row.size(); i++) // here indexing fro r & c starts from 1 (but not from 0), because of rid_map coding !
             {
                 size_t r = rid_map[g_row[i]];
@@ -1037,26 +1135,30 @@ namespace evoped
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Gmat::read_matrix(const std::string &)" << '\n';
+            std::cerr << "Exception in Gmat<T>::read_matrix(const std::string &)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Gmat::read_matrix(const std::string &)" << '\n';
+            std::cerr << "Exception in Gmat<T>::read_matrix(const std::string &)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Gmat::read_matrix(const std::string &)" << '\n';
+            std::cerr << "Exception in Gmat<T>::read_matrix(const std::string &)" << '\n';
             throw;
         }
     }
 
+    template void Gmat<float>::read_matrix(const std::string &gmat_file);
+    template void Gmat<double>::read_matrix(const std::string &gmat_file);
+
     //===============================================================================================================
 
-    void Gmat::read_snp(const std::string &snp_file)
+    template <typename T>
+    void Gmat<T>::read_snp(const std::string &snp_file)
     {
         /*
                 Reads file format:
@@ -1136,26 +1238,30 @@ namespace evoped
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Gmat::read_snp(const std::string &)" << '\n';
+            std::cerr << "Exception in Gmat<T>::read_snp(const std::string &)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Gmat::read_snp(const std::string &)" << '\n';
+            std::cerr << "Exception in Gmat<T>::read_snp(const std::string &)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Gmat::read_snp(const std::string &)" << '\n';
+            std::cerr << "Exception in Gmat<T>::read_snp(const std::string &)" << '\n';
             throw;
         }
     }
 
+    template void Gmat<float>::read_snp(const std::string &snp_file);
+    template void Gmat<double>::read_snp(const std::string &snp_file);
+
     //===============================================================================================================
 
-    void Gmat::read_snp(const std::string &snp_file, const std::string &ids_file)
+    template <typename T>
+    void Gmat<T>::read_snp(const std::string &snp_file, const std::string &ids_file)
     {
         /*
                 Reads SNPs file of the format:
@@ -1249,26 +1355,30 @@ namespace evoped
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Gmat::read_snp(const std::string &, const std::string&)" << '\n';
+            std::cerr << "Exception in Gmat<T>::read_snp(const std::string &, const std::string&)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Gmat::read_snp(const std::string &, const std::string&)" << '\n';
+            std::cerr << "Exception in Gmat<T>::read_snp(const std::string &, const std::string&)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Gmat::read_snp(const std::string &, const std::string&)" << '\n';
+            std::cerr << "Exception in Gmat<T>::read_snp(const std::string &, const std::string&)" << '\n';
             throw;
         }
     }
 
+    template void Gmat<float>::read_snp(const std::string &snp_file, const std::string &ids_file);
+    template void Gmat<double>::read_snp(const std::string &snp_file, const std::string &ids_file);
+
     //===============================================================================================================
 
-    void Gmat::parse_string(std::string &snp_str, std::vector<int> &markers)
+    template <typename T>
+    void Gmat<T>::parse_string(std::string &snp_str, std::vector<int> &markers)
     {
         try
         {
@@ -1285,26 +1395,30 @@ namespace evoped
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Gmat::parse_string(std::string& , std::vector<int>&)" << '\n';
+            std::cerr << "Exception in Gmat<T>::parse_string(std::string& , std::vector<int>&)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Gmat::parse_string(std::string& , std::vector<int>&)" << '\n';
+            std::cerr << "Exception in Gmat<T>::parse_string(std::string& , std::vector<int>&)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Gmat::parse_string(std::string& , std::vector<int>&)" << '\n';
+            std::cerr << "Exception in Gmat<T>::parse_string(std::string& , std::vector<int>&)" << '\n';
             throw;
         }
     }
 
+    template void Gmat<float>::parse_string(std::string &snp_str, std::vector<int> &markers);
+    template void Gmat<double>::parse_string(std::string &snp_str, std::vector<int> &markers);
+
     //===============================================================================================================
 
-    void Gmat::make_zmatrix()
+    template <typename T>
+    void Gmat<T>::make_zmatrix()
     {
         try
         {
@@ -1324,12 +1438,12 @@ namespace evoped
             tmpStr.shrink_to_fit();
 
             // declare the matrix M
-            evolm::matrix<double> M(snp_map.size(), snpNum);
+            evolm::matrix<T> M(snp_map.size(), snpNum);
 
             /* vector of SNPs frequences and missed values */
-            std::vector<double> P(snpNum, 0.0);
+            std::vector<T> P(snpNum, 0.0);
             std::vector<int> missed(snpNum, 0);
-            std::vector<double> missed2pq(snp_map.size(), 0.0);
+            std::vector<T> missed2pq(snp_map.size(), 0.0);
 
             // map of missed values locations
             std::vector<std::vector<int>> missedLocation;
@@ -1347,14 +1461,14 @@ namespace evoped
 
                 for (size_t i = 0; i < parsedMarkers.size(); i++)
                 {
-                    M(rowI, i) = static_cast<double>(parsedMarkers[i]);
+                    M(rowI, i) = static_cast<T>(parsedMarkers[i]);
                     if (parsedMarkers[i] != 0 && parsedMarkers[i] != 1 && parsedMarkers[i] != 2)
                     {
                         missed[i] += 1;
                         missedLocation[i].push_back(rowI);
                     }
                     else
-                        P[i] += static_cast<double>(parsedMarkers[i]);
+                        P[i] += static_cast<T>(parsedMarkers[i]);
                 }
                 rowI++;
             }
@@ -1428,26 +1542,30 @@ namespace evoped
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Gmat::make_zmatrix()" << '\n';
+            std::cerr << "Exception in Gmat<T>::make_zmatrix()" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Gmat::make_zmatrix()" << '\n';
+            std::cerr << "Exception in Gmat<T>::make_zmatrix()" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Gmat::make_zmatrix()" << '\n';
+            std::cerr << "Exception in Gmat<T>::make_zmatrix()" << '\n';
             throw;
         }
     }
 
+    template void Gmat<float>::make_zmatrix();
+    template void Gmat<double>::make_zmatrix();
+
     //===============================================================================================================
 
-    void Gmat::make_matrix()
+    template <typename T>
+    void Gmat<T>::make_matrix()
     {
         try
         {
@@ -1460,27 +1578,32 @@ namespace evoped
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Gmat::make_matrix()" << '\n';
+            std::cerr << "Exception in Gmat<T>::make_matrix()" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Gmat::make_matrix()" << '\n';
+            std::cerr << "Exception in Gmat<T>::make_matrix()" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Gmat::make_matrix()" << '\n';
+            std::cerr << "Exception in Gmat<T>::make_matrix()" << '\n';
             throw;
         }
     }
 
+    template void Gmat<float>::make_matrix();
+    template void Gmat<double>::make_matrix();
+
     //===============================================================================================================
 
 #ifdef UTEST
-    void Gmat::get_alpha_beta(double &alpha, double &beta, double &a_diag, double &a_ofd, double &g_diag, double &g_ofd)
+
+    template <typename T>
+    void Gmat<T>::get_alpha_beta(T &alpha, T &beta, T &a_diag, T &a_ofd, T &g_diag, T &g_ofd)
     {
         try
         {
@@ -1490,26 +1613,29 @@ namespace evoped
             a_ofd = scaling_a_ofd;
             g_diag = scaling_g_diag;
             g_ofd = scaling_g_ofd;
-
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Gmat::get_alpha_beta(double &, double &, double &, double &, double &, double &)" << '\n';
+            std::cerr << "Exception in Gmat<T>::get_alpha_beta(T &, T &, T &, T &, T &, T &)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Gmat::get_alpha_beta(double &, double &, double &, double &, double &, double &)" << '\n';
+            std::cerr << "Exception in Gmat<T>::get_alpha_beta(T &, T &, T &, T &, T &, T &)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Gmat::get_alpha_beta(double &, double &, double &, double &, double &, double &)" << '\n';
+            std::cerr << "Exception in Gmat<T>::get_alpha_beta(T &, T &, T &, T &, T &, T &)" << '\n';
             throw;
         }
     }
+
+    template void Gmat<float>::get_alpha_beta(float &alpha, float &beta, float &a_diag, float &a_ofd, float &g_diag, float &g_ofd);
+    template void Gmat<double>::get_alpha_beta(double &alpha, double &beta, double &a_diag, double &a_ofd, double &g_diag, double &g_ofd);
+
 #endif
 
     //===============================================================================================================

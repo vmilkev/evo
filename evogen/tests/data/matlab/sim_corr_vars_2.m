@@ -23,6 +23,7 @@ n_ploidy = 2;
 
 % Tr = mu + ploidy_effect * sum_qtl( dom_cases * (1 + k) * a * q ) + sum_qtl( e * q ),
 %
+% mu := expected value of traits in base pop
 % a := qtl effect;
 % q := genotype value (number of copies of ref allele);
 % k := dominance degree;
@@ -174,8 +175,20 @@ disp( corr( tr_G ) );
 disp("Correlation between traits components before variance adjustment: E");
 disp( corr( tr_E ) );
 
-figure(1); clf; subplot(2,2,1), plot(a(:,1), a(:,2), 'o'), title('a'), subplot(2,2,2), plot(e(:,1), e(:,2), 'o'), title('e'),
-                subplot(2,2,3), plot(tr_G(:,1), tr_G(:,2), 'o'), title('tr_G'), subplot(2,2,4), plot(tr_E(:,1), tr_E(:,2), 'o'), title('tr_E'),
+figure(1); clf;
+                subplot(6,2,1), plot(a(:,1), a(:,2), 'o'), title('a_{12}'),
+                subplot(6,2,2), plot(e(:,1), e(:,2), 'o'), title('e_{12}'),
+                subplot(6,2,3), plot(a(:,1), a(:,3), 'o'), title('a_{13}'),
+                subplot(6,2,4), plot(e(:,1), e(:,3), 'o'), title('e_{13}'),
+                subplot(6,2,5), plot(a(:,2), a(:,3), 'o'), title('a_{23}'),
+                subplot(6,2,6), plot(e(:,2), e(:,3), 'o'), title('e_{23}'),
+
+                subplot(6,2,7), plot(tr_G(:,1), tr_G(:,2), 'o'), title('tr_G_{12}'),
+                subplot(6,2,8), plot(tr_E(:,1), tr_E(:,2), 'o'), title('tr_E_{12}'),
+                subplot(6,2,9), plot(tr_G(:,1), tr_G(:,3), 'o'), title('tr_G_{13}'),
+                subplot(6,2,10), plot(tr_E(:,1), tr_E(:,3), 'o'), title('tr_E_{13}'),
+                subplot(6,2,11), plot(tr_G(:,2), tr_G(:,3), 'o'), title('tr_G_{23}'),
+                subplot(6,2,12), plot(tr_E(:,2), tr_E(:,3), 'o'), title('tr_E_{23}'),
 
 % -------------------------------------------------------------------------
 % CALCULATE SCALER FOR RE-ADJUSTMENT 
@@ -209,8 +222,20 @@ disp( corr( tr_G ) );
 disp("Correlation between traits components after variance adjustment: E");
 disp( corr( tr_E ) );
 
-figure(2); clf; subplot(2,2,1), plot(a(:,1), a(:,2), 'o'), title('a'), subplot(2,2,2), plot(e(:,1), e(:,2), 'o'), title('e'),
-                subplot(2,2,3), plot(tr_G(:,1), tr_G(:,2), 'o'), title('tr_G'), subplot(2,2,4), plot(tr_E(:,1), tr_E(:,2), 'o'), title('tr_E'),
+figure(2); clf;
+                subplot(6,2,1), plot(a(:,1), a(:,2), 'o'), title('a_{12}'),
+                subplot(6,2,2), plot(e(:,1), e(:,2), 'o'), title('e_{12}'),
+                subplot(6,2,3), plot(a(:,1), a(:,3), 'o'), title('a_{13}'),
+                subplot(6,2,4), plot(e(:,1), e(:,3), 'o'), title('e_{13}'),
+                subplot(6,2,5), plot(a(:,2), a(:,3), 'o'), title('a_{23}'),
+                subplot(6,2,6), plot(e(:,2), e(:,3), 'o'), title('e_{23}'),
+
+                subplot(6,2,7), plot(tr_G(:,1), tr_G(:,2), 'o'), title('tr_G_{12}'),
+                subplot(6,2,8), plot(tr_E(:,1), tr_E(:,2), 'o'), title('tr_E_{12}'),
+                subplot(6,2,9), plot(tr_G(:,1), tr_G(:,3), 'o'), title('tr_G_{13}'),
+                subplot(6,2,10), plot(tr_E(:,1), tr_E(:,3), 'o'), title('tr_E_{13}'),
+                subplot(6,2,11), plot(tr_G(:,2), tr_G(:,3), 'o'), title('tr_G_{23}'),
+                subplot(6,2,12), plot(tr_E(:,2), tr_E(:,3), 'o'), title('tr_E_{23}'),
 % -------------------------------------------------------------------------
 % Calculate final traits
 traits = tr_G + tr_E;
@@ -236,8 +261,12 @@ disp(traits_vars);
 % disp(traits_means);
 
 traits_adj = traits;
-traits_adj(:,1) = traits_adj(:,1) + correct_const(1,1);
-traits_adj(:,2) = traits_adj(:,2) + correct_const(2,1);
+
+for i = 1:size(traits,2)
+    traits_adj(:,i) = traits_adj(:,i) + correct_const(i,1);
+end
+%traits_adj(:,1) = traits_adj(:,1) + correct_const(1,1);
+%traits_adj(:,2) = traits_adj(:,2) + correct_const(2,1);
 
 %disp("Variances of integral trait (adjusted to the required mean):");
 %disp(var(traits_adj));
@@ -251,8 +280,13 @@ disp( var(tr_G)./var(traits) );
 disp("Expected heritability:");
 disp([ var_G(1)/(var_E(1)+var_G(1)) var_G(2)/(var_E(2)+var_G(2)) var_G(3)/(var_E(3)+var_G(3)) ]);
 
-figure(3); clf; subplot(2,2,1), histogram(traits(:,1)), title('tr1'), subplot(2,2,2), histogram(traits(:,2)), title('tr2'),
-                subplot(2,2,3), histogram(traits_adj(:,1)), title('tr1_{adj}'), subplot(2,2,4), histogram(traits_adj(:,2)), title('tr2_{adj}'),
+figure(3); clf;
+                subplot(2,3,1), histogram(traits(:,1)), title('tr_1'),
+                subplot(2,3,2), histogram(traits(:,2)), title('tr_2'),
+                subplot(2,3,3), histogram(traits(:,3)), title('tr_3'),
+                subplot(2,3,4), histogram(traits_adj(:,1)), title('tr_1_{adj}'),
+                subplot(2,3,5), histogram(traits_adj(:,2)), title('tr_2_{adj}'),
+                subplot(2,3,6), histogram(traits_adj(:,3)), title('tr_2_{adj}'),
 
 % -------------------------------------------------------------------------
 % FUNCTIONS

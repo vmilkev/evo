@@ -2282,12 +2282,15 @@ namespace evoped
         try
         {
             birth_id_map.clear();
+            
             A.fclear();
             A.clear();
+            
             traced_pedID.clear();
             traced_pedID.shrink_to_fit();
             inbrF.clear();
             inbrF.shrink_to_fit();
+            
             iA.fclear();
             iA.clear();
             irA.fclear();
@@ -2296,17 +2299,19 @@ namespace evoped
             iA22.clear();
             A22.fclear();
             A22.clear();
+            
             id_iA.clear();
             id_iA.shrink_to_fit();
             id_irA.clear();
             id_irA.shrink_to_fit();
             id_A22.clear();
             id_A22.shrink_to_fit();
-            A_s.resize();
-            iA_s.resize();
-            irA_s.resize();
-            iA22_s.resize();
-            A22_s.resize();
+            
+            A_s.clean();
+            iA_s.clean();
+            irA_s.clean();
+            iA22_s.clean();
+            A22_s.clean();
         }
         catch (const std::exception &e)
         {
@@ -2335,7 +2340,13 @@ namespace evoped
     template <typename T>
     void Amat<T>::get_matrix(const std::string &name, evolm::matrix<T> &arr, std::vector<std::int64_t> &out)
     {
-        // Note, we operate with L-stored format, hence return lower triangular part
+        /*
+            Note, we operate with L-stored format, hence return lower triangular part.
+            Note: in this current implementation copied-to-outside matrices remain linked with a class instance
+            because the same file names which become common for internal containers and copied matrices. When
+            class instance calls clear() or destructor - the binary files are cleaned from disk.
+        */
+
         try
         {
             if (name == "A") // we use iA as a container for A as well
@@ -2459,6 +2470,10 @@ namespace evoped
             Note, we operate with L-stored format, hence return lower triangular part.
             Here we copy not by value but by binary file: arr matrix inherits all propertie of copying matrix,
             if it is on disc, only file name is copied.
+
+            Note: in this current implementation copied-to-outside matrices remain linked with a class instance
+            because the same file names which become common for internal containers and copied matrices. When
+            class instance calls clear() or destructor - the binary files are cleaned from disk. 
         */
         try
         {
@@ -2579,8 +2594,14 @@ namespace evoped
     template <typename T>
     void Amat<T>::get_matrix(const std::string &name, std::vector<T> &arr, std::vector<std::int64_t> &out)
     {
-        // This method is for Python interfacing;
-        // Note, we operate with L-stored format, hence return lower triangular part
+        /* 
+            This method is for Python interfacing;
+            Note, we operate with L-stored format, hence return lower triangular part.
+            
+            Note: in this current implementation copied-to-outside matrices remain linked with a class instance
+            because the same file names which become common for internal containers and copied matrices. When
+            class instance calls clear() or destructor - the binary files are cleaned from disk. 
+        */
         try
         {
             if (name == "A")

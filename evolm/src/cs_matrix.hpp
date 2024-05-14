@@ -84,6 +84,7 @@ namespace evolm
         void invert();                                /* Matrix inversion. */
         void lchol();                                 /* Cholesky factorisation, gives lower triangular outpur. */
         void fread();                                 /* Restore matrix from the disk into the memory. */
+        bool is_ondisk();                             /* Checking if data is located on disk or in memory. */
         matrix<T> fget(size_t irow[], size_t icol[]); /* Reads and returns just part of data from a file.*/
         matrix<T> fget();                             /* Overloaded. Reads and returns all of data from a file.*/
         bool eq(const matrix &rhs);                   /* Compare dimensins and shapes of two matrix objects. */
@@ -377,7 +378,7 @@ namespace evolm
         int allocate(size_t lda);             /* Allocate memory for a half-store (compact) symmetric matrix. */
         void resize();                        /* Resizes memmory allocated for A. */
 
-        /* Interfaces to MKL routines */
+        /* Interfaces to MKL/OpenBLAS routines */
 
         void dotprod(double *_A, double *B, double *C, MKL_INT rowA/*, MKL_INT rowB*/, MKL_INT colA, MKL_INT colB);
         void dotprod(float *_A, float *B, float *C, MKL_INT rowA/*, MKL_INT rowB*/, MKL_INT colA, MKL_INT colB);
@@ -2605,6 +2606,23 @@ namespace evolm
         }
         else
             throw std::string("matrix<T>::fread() => Cannot open the binary file to read from!");
+    }
+
+    //===============================================================================================================
+
+    template <typename T>
+    bool matrix<T>::is_ondisk()
+    {
+        /*
+            Checks if data saved on DISK or is in memory.
+
+            Return value: bol.
+        */
+
+        if (ondisk)
+            return true;
+        else
+            return false;
     }
 
     //===============================================================================================================

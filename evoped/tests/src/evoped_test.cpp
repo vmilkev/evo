@@ -263,7 +263,7 @@ TEST_CASE("Testing Amat class")
             A.clean();
             ap.clear();
 
-            std::cout<<"passed 1"<<"\n";
+            std::cout<<"A: passed 1"<<"\n";
         }
         catch(const std::exception& e)
         {
@@ -315,7 +315,7 @@ TEST_CASE("Testing Amat class")
             ap.clear();
             A.clean();
 
-            std::cout<<"passed 2"<<"\n";
+            std::cout<<"A: passed 2"<<"\n";
         }
         catch(const std::exception& e)
         {
@@ -368,7 +368,7 @@ TEST_CASE("Testing Amat class")
             ap.clear();
             A.clean();
 
-            std::cout<<"passed 3"<<"\n";
+            std::cout<<"A: passed 3"<<"\n";
         }
         catch(const std::exception& e)
         {
@@ -420,7 +420,7 @@ TEST_CASE("Testing Amat class")
             ap.clear();
             rA.clean();
 
-            std::cout<<"passed 4"<<"\n";
+            std::cout<<"A: passed 4"<<"\n";
         }
         catch(const std::exception& e)
         {
@@ -473,7 +473,7 @@ TEST_CASE("Testing Amat class")
             ap.clear();
             rA.clean();
 
-            std::cout<<"passed 5"<<"\n";
+            std::cout<<"A: passed 5"<<"\n";
         }
         catch(const std::exception& e)
         {
@@ -526,7 +526,7 @@ TEST_CASE("Testing Amat class")
             ap.clear();
             iA.clean();
 
-            std::cout<<"passed 6"<<"\n";
+            std::cout<<"A: passed 6"<<"\n";
         }
         catch(const std::exception& e)
         {
@@ -579,7 +579,7 @@ TEST_CASE("Testing Amat class")
             ap.clear();
             iA.clean();
 
-            std::cout<<"passed 7"<<"\n";
+            std::cout<<"A: passed 7"<<"\n";
         }
         catch(const std::exception& e)
         {
@@ -632,7 +632,7 @@ TEST_CASE("Testing Amat class")
             ap.clear();
             iA.clean();
 
-            std::cout<<"passed 8"<<"\n";
+            std::cout<<"A: passed 8"<<"\n";
         }
         catch(const std::exception& e)
         {
@@ -685,7 +685,7 @@ TEST_CASE("Testing Amat class")
             ap.clear();
             iA.clean();
 
-            std::cout<<"passed 9"<<"\n";
+            std::cout<<"A: passed 9"<<"\n";
         }
         catch(const std::exception& e)
         {
@@ -801,7 +801,7 @@ TEST_CASE("Testing Amat class")
 
             ap.clear();
 
-            iA.fclear();
+            /*iA.fclear();
             irA.fclear();
             iA22.fclear();
             A22.fclear();
@@ -809,9 +809,9 @@ TEST_CASE("Testing Amat class")
             iA.clear();
             irA.clear();
             iA22.clear();
-            A22.clear();
+            A22.clear();*/
 
-            std::cout<<"passed 10"<<"\n";
+            std::cout<<"A: passed 10"<<"\n";
 
         }
         catch(const std::exception& e)
@@ -929,12 +929,12 @@ TEST_CASE("Testing Amat class")
 
             ap.clear();
 
-            iA.clean();
+            /*iA.clean();
             irA.clean();
             iA22.clean();
-            A22.clean();
+            A22.clean();*/
 
-            std::cout<<"passed 11"<<"\n";
+            std::cout<<"A: passed 11"<<"\n";
 
         }
         catch(const std::exception& e)
@@ -1052,12 +1052,15 @@ TEST_CASE("Testing Amat class")
 
             ap.clear();
 
-            iA.clean();
+            // We don't need to clean these matrices because they still are linked by their
+            // file names with the class instance ap, hence ap.clear() delete the files
+
+            /*iA.clean();
             irA.clean();
             iA22.clean();
-            A22.clean();
+            A22.clean();*/
 
-            std::cout<<"passed 12"<<"\n";
+            std::cout<<"A: passed 12"<<"\n";
 
         }
         catch(const std::exception& e)
@@ -1069,6 +1072,7 @@ TEST_CASE("Testing Amat class")
             std::cerr << e << '\n';
         }        
     }
+
     SECTION("13. Making All: sparse storage, getting results into dense format")
     {
         try
@@ -1183,8 +1187,7 @@ TEST_CASE("Testing Amat class")
             iA22.clear();
             A22.clear();
 
-            std::cout<<"passed 13"<<"\n";
-
+            std::cout<<"A: passed 13"<<"\n";
         }
         catch(const std::exception& e)
         {
@@ -1377,17 +1380,19 @@ TEST_CASE( "Testing Gmat class" )
 
     // ------------------------------------
 
-    SECTION( "Making G" )
+    SECTION( "14. Making G, use genotype ASCII file" )
     {
         try
         {
-            evoped::Gmat gmat;
+            evoped::Gmat<double> gmat;
             evolm::matrix<double> G;
             std::vector<std::int64_t> g_id;
 
             gmat.make_matrix("tests/data/allele.dat");
             gmat.get_matrix(G,g_id);
 
+            G.fread();
+
             std::vector<double> Gvect;
             for (size_t i = 0; i < g_id.size(); i++)
             {
@@ -1411,6 +1416,8 @@ TEST_CASE( "Testing Gmat class" )
                 CHECK( G_true[i+2] == Catch::Approx(Gvect[i+2]) );
                 i = i + 3;
             }
+
+            std::cout<<"G: passed 14"<<"\n";
         }
         catch(const std::exception& e)
         {
@@ -1422,17 +1429,19 @@ TEST_CASE( "Testing Gmat class" )
         }                
     }
 
-    SECTION( "Reading G" )
+    SECTION( "15. Reading G, use constructed G from an ASCII file" )
     {
         try
         {
-            evoped::Gmat gmat;
+            evoped::Gmat<double> gmat;
             evolm::matrix<double> G;
             std::vector<std::int64_t> g_id;
 
             gmat.read_matrix("tests/data/g_mat");
             gmat.get_matrix(G,g_id);
 
+            G.fread();
+
             std::vector<double> Gvect;
             for (size_t i = 0; i < g_id.size(); i++)
             {
@@ -1456,6 +1465,8 @@ TEST_CASE( "Testing Gmat class" )
                 CHECK( G_true[i+2] == Catch::Approx(Gvect[i+2]) );
                 i = i + 3;
             }
+
+            std::cout<<"G: passed 15"<<"\n";
         }
         catch(const std::exception& e)
         {
@@ -1467,11 +1478,11 @@ TEST_CASE( "Testing Gmat class" )
         }                
     }
 
-    SECTION( "Scalling G by A22 and (non-sparse) inversion" )
+    SECTION( "16. Scalling G by A22, then do non-sparse (APY) inversion" )
     {
         try
         {
-            evoped::Gmat gmat;
+            evoped::Gmat<double> gmat;
             evolm::matrix<double> G;
             std::vector<std::int64_t> g_id;
 
@@ -1487,6 +1498,8 @@ TEST_CASE( "Testing Gmat class" )
 
             gmat.scale_matrix(A22, 0.25);
             gmat.get_matrix(G,g_id);
+
+            G.fread();
 
 #ifdef UTEST
             double a, b, a_diag, a_ofd, g_diag, g_ofd;
@@ -1509,6 +1522,8 @@ TEST_CASE( "Testing Gmat class" )
             gmat.invert_matrix(true);
             gmat.get_matrix(G,g_id);
 
+            G.fread();
+
             CHECK( iG_true.size() == G.size() );
 
             for (size_t i = 0; i < G.size(); i++)
@@ -1517,7 +1532,10 @@ TEST_CASE( "Testing Gmat class" )
             ap.clear();
             A22.fclear();
             A22.clear();
+            G.fclear();
+            G.clear();
 
+            std::cout<<"G: passed 16"<<"\n";
         }
         catch(const std::exception& e)
         {
@@ -1529,11 +1547,11 @@ TEST_CASE( "Testing Gmat class" )
         }                
     }
 
-    SECTION( "Sparse inverse of (read + scaling) G" )
+    SECTION( "17. Sparse inverse (APY) of pre-constructed (read + scaled) G" )
     {
         try
         {
-            evoped::Gmat gmat;
+            evoped::Gmat<double> gmat;
             evolm::matrix<double> G;
             std::vector<std::int64_t> g_id;
 
@@ -1555,6 +1573,8 @@ TEST_CASE( "Testing Gmat class" )
             gmat.invert_matrix(core_id);
             gmat.get_matrix(G,g_id);
 
+            G.fread();
+
             CHECK( iG_sparse_true.size() == G.size() );
 
             for (size_t i = 0; i < G.size(); i++)
@@ -1563,7 +1583,10 @@ TEST_CASE( "Testing Gmat class" )
             ap.clear();
             A22.fclear();
             A22.clear();
+            G.fclear();
+            G.clear();
 
+            std::cout<<"G: passed 17"<<"\n";
         }
         catch(const std::exception& e)
         {
@@ -1575,11 +1598,11 @@ TEST_CASE( "Testing Gmat class" )
         }                
     }
 
-    SECTION( "Sparse inverse of (making + scaling) G" )
+    SECTION( "18. Make, scale, then sparsely invert" )
     {
         try
         {
-            evoped::Gmat gmat;
+            evoped::Gmat<double> gmat;
             evolm::matrix<double> G;
             std::vector<std::int64_t> g_id;
 
@@ -1601,6 +1624,8 @@ TEST_CASE( "Testing Gmat class" )
             gmat.invert_matrix(core_id);
             gmat.get_matrix(G,g_id);
 
+            G.fread();
+
             CHECK( iG_sparse_true.size() == G.size() );
 
             for (size_t i = 0; i < G.size(); i++)
@@ -1609,6 +1634,61 @@ TEST_CASE( "Testing Gmat class" )
             ap.clear();
             A22.fclear();
             A22.clear();
+            G.fclear();
+            G.clear();
+
+            std::cout<<"G: passed 18"<<"\n";
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << e.what() << '\n';
+        }
+        catch(const std::string& e)
+        {
+            std::cerr << e << '\n';
+        }                
+    }
+
+    SECTION( "19. Make, scale, then sparsely invert (with FLOAT type)" )
+    {
+        try
+        {
+            evoped::Gmat<float> gmat;
+            evolm::matrix<float> G;
+            std::vector<std::int64_t> g_id;
+
+            gmat.make_matrix("tests/data/allele.dat");
+
+            evoped::Amat<float> ap(100.0); // ensure dense format
+            evolm::matrix<float> A22;
+            std::vector<std::int64_t> a22_id;
+
+            ap.make_all("tests/data/ped_bkg.dat", "tests/data/typed2");
+            ap.get_matrix("A22", A22, a22_id);
+
+            A22.fread();
+
+            gmat.scale_matrix(A22, 0.25);
+
+            std::vector<std::int64_t> core_id{ 18, 20, 22, 25 };
+
+            gmat.invert_matrix(core_id);
+            gmat.get_matrix(G,g_id);
+
+            G.fread();
+
+            CHECK( iG_sparse_true.size() == G.size() );
+
+            for (size_t i = 0; i < G.size(); i++)
+                CHECK( iG_sparse_true[i] == Catch::Approx(G[i]) );
+
+            ap.clear();
+            A22.fclear();
+            A22.clear();
+            G.fclear();
+            G.clear();
+
+            std::cout<<"G: passed 19"<<"\n";
         }
         catch(const std::exception& e)
         {
@@ -1643,7 +1723,7 @@ TEST_CASE( "Testing Gmat class" )
             iA22.fread();
             A22.fread();
 
-            evoped::Gmat gmat;
+            evoped::Gmat<double> gmat;
             evolm::matrix<double> G;
             std::vector<std::int64_t> g_id;
 
@@ -1655,6 +1735,8 @@ TEST_CASE( "Testing Gmat class" )
 
             gmat.invert_matrix(core_id);
             gmat.get_matrix(G,g_id);
+
+            G.fread();
 
             evoped::Hmat h;
             evolm::matrix<double> H;
@@ -1696,6 +1778,11 @@ TEST_CASE( "Testing Gmat class" )
             iA.clear();
             iA22.clear();
             A22.clear();
+            G.fclear();
+            G.clear();
+            H.fclear();
+            H.clear();
+
         }
         catch(const std::exception& e)
         {

@@ -122,7 +122,7 @@ std::cout<<"getting A22"<<"\n";
     A22_sf.clean();
 
 exit(1);
-    evoped::Gmat gmat;
+    evoped::Gmat<double> gmat;
     evolm::matrix<double> iG;
     std::vector<std::int64_t> g_id;
 
