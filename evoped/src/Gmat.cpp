@@ -1,21 +1,45 @@
+/**
+ * @file Gmat.cpp
+ * @author Viktor Milkevych
+ * @brief 
+ * @version 0.1
+ * @date 2024-05-14
+ * 
+ * @copyright Copyright (c) 2024
+ * 
+ */
+
 #include "Gmat.hpp"
 
 namespace evoped
 {
     //===============================================================================================================
-    template <typename T>
-    Gmat<T>::Gmat()
-    {
-    }
-
+    /**
+     * @brief Construct a new Gmat< T>:: Gmat object
+     * 
+     * @tparam T 
+     */
+    template <typename T> Gmat<T>::
+    Gmat()
+    { }
     template Gmat<float>::Gmat();
     template Gmat<double>::Gmat();
     //===============================================================================================================
-
-    template <typename T>
-    void Gmat<T>::get_matrix(evolm::matrix<T> &arr, std::vector<std::int64_t> &ids)
-    {
-        // Note, we operate with L-stored format, hence return lower triangular part
+    /**
+     * @brief I/O interface for accessing the internal container storing results.
+     *          Note, we operate with L-stored format, hence return lower triangular part
+     * 
+     * @param arr empty dense matrix class object where the internal
+     *            storage conttainer (holding result) will be copied
+     * @param ids empty std vector where samples (individuals) IDs
+     *            corresponding to the data in arr will be copied
+     * 
+     * @returns none
+     * 
+     */
+    template <typename T> void Gmat<T>::
+    get_matrix(evolm::matrix<T> &arr, std::vector<std::int64_t> &ids)
+    {        
         try
         {
             if ( !G.is_ondisk() )
@@ -42,19 +66,28 @@ namespace evoped
             throw;
         }
     }
-
     template void Gmat<float>::get_matrix(evolm::matrix<float> &arr, std::vector<std::int64_t> &ids);
     template void Gmat<double>::get_matrix(evolm::matrix<double> &arr, std::vector<std::int64_t> &ids);
 
     //===============================================================================================================
-
-    template <typename T>
-    void Gmat<T>::get_matrix(std::vector<T> &arr, std::vector<std::int64_t> &ids)
+    /**
+     * @brief I/O interface for accessing the internal container storing the results.
+     *          Note, we operate with L-stored format, hence return lower triangular part
+     * 
+     * @param arr empty std vector object where the internal storage conttainer (holding result) will be copied
+     * @param ids empty std vector where samples (individuals) IDs corresponding to the data in arr will be copied
+     * 
+     * @returns none
+     * 
+     */
+    template <typename T> void Gmat<T>::
+    get_matrix(std::vector<T> &arr, std::vector<std::int64_t> &ids)
     {
-        // This method is for Python interfacing;
-        // Note, we operate with L-stored format, hence return lower triangular part
         try
         {
+            if ( !G.is_ondisk() )
+                G.fwrite();
+
             G.to_vector(arr);
             ids = gmatID;
         }
@@ -76,20 +109,38 @@ namespace evoped
             throw;
         }
     }
-
     template void Gmat<float>::get_matrix(std::vector<float> &arr, std::vector<std::int64_t> &ids);
     template void Gmat<double>::get_matrix(std::vector<double> &arr, std::vector<std::int64_t> &ids);
 
     //===============================================================================================================
-
-    template <typename T>
-    void Gmat<T>::make_matrix(const std::string &fname)
+    /**
+     * @brief Constructs G matrix by reading a text file consisting of samples and snp variants.
+     * 
+     * @tparam T defines type, float or double
+     * @param fname text file name where the first two cols are variant ID and chip ID, the rest is SNP variants
+     * 
+     * @returns none
+     * 
+     */
+    template <typename T> void Gmat<T>::
+    make_matrix(const std::string &fname)
     {
         try
         {
-            read_snp(fname); // reads SNPs with IDs from ASCII fiele
-            make_zmatrix(); // scalling SNPs
-            snp_map.clear();
+            if ( is_plink_file(fname) )
+            {
+                evolm::matrix<int> M;
+                get_m_matrix(fname, M);
+                make_zmatrix(M); // scalling SNPs
+                M.clear();
+            }
+            else
+            {
+                read_snp(fname); // reads SNPs with variant IDs from ASCII fiele and output to the snp_map
+                make_zmatrix(); // scalling SNPs
+                snp_map.clear();
+            }
+
             make_matrix(); // making G matrix
             Z.fclear();
             Z.clear();
@@ -112,14 +163,23 @@ namespace evoped
             throw;
         }
     }
-
     template void Gmat<float>::make_matrix(const std::string &fname);
     template void Gmat<double>::make_matrix(const std::string &fname);
 
     //===============================================================================================================
-
-    template <typename T>
-    void Gmat<T>::make_matrix(const std::string &fname, const std::string &fname_ids)
+    /**
+     * @brief Constructs G matrix by reading two text files,
+     *        one consisting of snp variants, and other consisting of samples IDs.
+     * 
+     * @tparam T defines type, float or double
+     * @param fname the text file with snp variants data
+     * @param fname_ids the text file with samples IDs
+     * 
+     * @returns none
+     * 
+     */
+    template <typename T> void Gmat<T>::
+    make_matrix(const std::string &fname, const std::string &fname_ids)
     {
         try
         {
@@ -153,12 +213,144 @@ namespace evoped
     template void Gmat<double>::make_matrix(const std::string &fname, const std::string &fname_ids);
 
     //===============================================================================================================
-
-    template <typename T>
-    void Gmat<T>::scale_genotypes(const std::string &fname)
+    /**
+     * @brief Check if provided file is a family of plink files (.bed, .bim, .fam).
+     * 
+     * @tparam T defines type, float or double
+     * @param fname the data file name
+     * 
+     * @returns false if the data file is not a plink family, true otherwise
+     * 
+     */
+    template <typename T> bool Gmat<T>::
+    is_plink_file(const std::string &fname)
     {
-        // Scaling SNPs
+        try
+        {
+            struct pio_file_t plink_file;
 
+            if( pio_open( &plink_file, fname.c_str() ) == PIO_OK )
+            {
+                pio_close( &plink_file );
+                return true;
+            }
+            else
+                return false;
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Gmat<T>::is_plink_file(const std::string &)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Gmat<T>::is_plink_file(const std::string &)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Gmat<T>::is_plink_file(const std::string &)" << '\n';
+            throw;
+        }
+    }
+    template bool Gmat<float>::is_plink_file(const std::string &fname);
+    template bool Gmat<double>::is_plink_file(const std::string &fname);
+
+    //===============================================================================================================
+    /**
+     * @brief Extract variants and samples from plink files (.bed, .bim, .fam).
+     * 
+     * @tparam T defines type, float or double
+     * @param fname the data file name
+     * @param M empty object of dense matrix class where the resulting vriants will be copied
+     * 
+     * @returns none
+     * 
+     */
+    template <typename T> void Gmat<T>::
+    get_m_matrix(const std::string &fname, evolm::matrix<int> &M)
+    {
+        try
+        {
+            struct pio_file_t plink_file;
+            snp_t *snp_buffer;
+            size_t sample_id;
+
+            if( pio_open( &plink_file, fname.c_str() ) != PIO_OK )
+                throw std::string( "Error: Could not open plink file!" );
+
+            if( !pio_one_locus_per_row( &plink_file ) )
+                throw std::string( "This script requires that snps are rows and samples columns." );
+
+            // get number of samples and SNPs:
+            size_t n_samples = pio_num_samples(&plink_file);
+            size_t n_variants = pio_num_loci(&plink_file);
+
+            M.resize(n_variants, n_samples);
+
+            size_t locus_id = 0;
+            size_t recoded_samples_id = 1;
+
+            snp_buffer = (snp_t *) malloc( pio_row_size( &plink_file ) );
+
+            while( pio_next_row( &plink_file, snp_buffer ) == PIO_OK )
+            {
+                for( sample_id = 0; sample_id < n_samples; sample_id++)
+                {
+                    struct pio_sample_t *sample = pio_get_sample( &plink_file, sample_id );
+                    struct pio_locus_t *locus = pio_get_locus( &plink_file, locus_id );
+
+                    M(locus_id, sample_id) = (int)snp_buffer[ sample_id ];
+                    samples_id_map[recoded_samples_id] = sample->iid;
+                    gmatID.push_back(recoded_samples_id);
+                                        
+                    recoded_samples_id++;
+                }
+
+                locus_id++;
+            }
+
+            free( snp_buffer );
+            pio_close( &plink_file );
+
+            M.transpose();
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Gmat<T>::get_m_matrix(const std::string &, evolm::matrix<int> &)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Gmat<T>::get_m_matrix(const std::string &, evolm::matrix<int> &)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Gmat<T>::get_m_matrix(const std::string &, evolm::matrix<int> &)" << '\n';
+            throw;
+        }
+    }
+    template void Gmat<float>::get_m_matrix(const std::string &fname, evolm::matrix<int> &M);
+    template void Gmat<double>::get_m_matrix(const std::string &fname, evolm::matrix<int> &M);
+
+    //===============================================================================================================
+    /**
+     * @brief Scales SNPs from the text file.
+     * 
+     * @tparam T defines type, float or double
+     * @param fname the text file name consisting the snp variants with samples information (IDs)
+     * 
+     * @returns none
+     * 
+     */
+    template <typename T> void Gmat<T>::
+    scale_genotypes(const std::string &fname)
+    {
         try
         {
             read_snp(fname); // reads SNPs with IDs from ASCII fiele
@@ -187,17 +379,23 @@ namespace evoped
             throw;
         }
     }
-
     template void Gmat<float>::scale_genotypes(const std::string &fname);
     template void Gmat<double>::scale_genotypes(const std::string &fname);
 
     //===============================================================================================================
-
-    template <typename T>
-    void Gmat<T>::scale_genotypes(const std::string &fname, const std::string &fname_ids)
+    /**
+     * @brief Scales SNPs from the text file.
+     * 
+     * @tparam T defines type, float or double
+     * @param fname the text file name consisting the snp variants without samples information (IDs)
+     * @param fname_ids the text file name with samples IDs
+     * 
+     * @returns none
+     * 
+     */
+    template <typename T> void Gmat<T>::
+    scale_genotypes(const std::string &fname, const std::string &fname_ids)
     {
-        // Scaling SNPs
-
         try
         {
             read_snp(fname, fname_ids); // reads SNPs and its IDs from ASCII fieles (one for SNPs, another for IDs)
@@ -226,19 +424,23 @@ namespace evoped
             throw;
         }
     }
-
     template void Gmat<float>::scale_genotypes(const std::string &fname, const std::string &fname_ids);
     template void Gmat<double>::scale_genotypes(const std::string &fname, const std::string &fname_ids);
 
     //===============================================================================================================
-
-    template <typename T>
-    void Gmat<T>::invert_matrix()
+    /**
+     * @brief Inverting G matrix regardless of whether it is in compact or full storage format.
+     *          Invert matrix as it is despite the conditions of PD or PSD may not be satisfied;
+     *          therefore, it is recommended to call the scale_matrix(...) methods first.
+     * 
+     * @tparam T defines type, float or double
+     * 
+     * @returns none
+     * 
+     */
+    template <typename T> void Gmat<T>::
+    invert_matrix()
     {
-        // Inverting G matrix regardless of whether it is in compact or full storage format.
-        // Invert matrix as it is despite the conditions of PD or PSD may not be satisfied;
-        // therefore, it is recommended to call the scale_matrix(...) methods first.
-
         try
         {
             if ( G.is_ondisk() )
@@ -266,19 +468,26 @@ namespace evoped
             throw;
         }
     }
-
     template void Gmat<float>::invert_matrix();
     template void Gmat<double>::invert_matrix();
 
     //===============================================================================================================
-
-    template <typename T>
-    void Gmat<T>::invert_matrix(bool full_store)
+    /**
+     * @brief Invert G matrix as in full storage format.
+     *          Invert matrix as it is despite the conditions of
+     *          PD or PSD may not be sutisfied;therefore,
+     *          it is recommended to call the scale_matrix(...) methods first.
+     * 
+     * @tparam T defines type, float or double
+     * @param full_store boolean parameter indicating a lower triangular or
+     *                   full store format inversion should be provided
+     * 
+     * @returns none
+     * 
+     */
+    template <typename T> void Gmat<T>::
+    invert_matrix(bool full_store)
     {
-        // Invert G matrix as in full storage format.
-        // Invert matrix as it is despite the conditions of PD or PSD may not be sutisfied;
-        // therefore, it is recommended to call the scale_matrix(...) methods first.
-
         try
         {
             if ( G.is_ondisk() )
@@ -317,17 +526,22 @@ namespace evoped
             throw;
         }
     }
-
     template void Gmat<float>::invert_matrix(bool full_store);
     template void Gmat<double>::invert_matrix(bool full_store);
 
     //===============================================================================================================
-
-    template <typename T>
-    void Gmat<T>::invert_matrix(std::vector<std::int64_t> &core_id)
+    /**
+     * @brief Invert G matrix through its sparse approximation, the APY method
+     * 
+     * @tparam T defines type, float or double
+     * @param core_id std vector of samples IDs which are core-id according to the APY method
+     * 
+     * @returns none
+     * 
+     */
+    template <typename T> void Gmat<T>::
+    invert_matrix(std::vector<std::int64_t> &core_id)
     {
-        // Sparse inverse (APY)
-
         try
         {
             Utilities2 u;
@@ -698,17 +912,22 @@ namespace evoped
             throw;
         }
     }
-
     template void Gmat<float>::invert_matrix(std::vector<std::int64_t> &core_id);
     template void Gmat<double>::invert_matrix(std::vector<std::int64_t> &core_id);
 
     //===============================================================================================================
-
-    template <typename T>
-    void Gmat<T>::scale_matrix(T scale_coef)
+    /**
+     * @brief Scale the diagonal elements of G matrix by the scalar
+     * 
+     * @tparam T defines type, float or double
+     * @param scale_coef floating point scalar
+     * 
+     * @returns none
+     * 
+     */
+    template <typename T> void Gmat<T>::
+    scale_matrix(T scale_coef)
     {
-        // Scale the diagonal elements of G matrix by the scale_coef
-
         try
         {
             if ( G.is_ondisk() )
@@ -738,19 +957,28 @@ namespace evoped
             throw;
         }
     }
-
     template void Gmat<float>::scale_matrix(float scale_coef);
     template void Gmat<double>::scale_matrix(double scale_coef);
 
     //===============================================================================================================
-
-    template <typename T>
-    void Gmat<T>::scale_matrix(std::vector<T> &scale_matr, T scaling_weight)
+    /**
+     * @brief Scaling G matrix by the A matrix:
+     *          G = (1-w)*Ga + wA;
+     *          Ga = beta*G + alpha;
+     *          mean( diag(G) )*beta + alpha = mean( diag(A) );
+     *          mean( G )*beta + alpha = mean( A ).
+     *          Note, scale_matr is symetric and consists of only L-part (L-store format).
+     * 
+     * @tparam T defines type, float or double
+     * @param scale_matr std vector of the scaler A matrix
+     * @param scaling_weight floatin point scalar, w
+     * 
+     * @returns none
+     * 
+     */
+    template <typename T> void Gmat<T>::
+    scale_matrix(std::vector<T> &scale_matr, T scaling_weight)
     {
-        // Use the matrix scale_matr to scale G matrix, then invert it;
-        // This method is just to fit to the Python interface;
-        // Note, scale_matr is symetric and consists of only L-part (L-store format).
-
         try
         {
             if ( G.is_ondisk() )
@@ -795,20 +1023,28 @@ namespace evoped
             throw;
         }
     }
-
     template void Gmat<float>::scale_matrix(std::vector<float> &scale_matr, float scaling_weight);
     template void Gmat<double>::scale_matrix(std::vector<double> &scale_matr, double scaling_weight);
 
     //===============================================================================================================
-
-    template <typename T>
-    void Gmat<T>::scale_matrix(evolm::matrix<T> &scale_matr, T scaling_weight)
+    /**
+     * @brief Scaling G matrix by the A matrix:
+     *          G = (1-w)*Ga + wA;
+     *          Ga = beta*G + alpha;
+     *          mean( diag(G) )*beta + alpha = mean( diag(A) );
+     *          mean( G )*beta + alpha = mean( A ).
+     *          Note, scale_matr is symetric and consists of only L-part (L-store format).
+     * 
+     * @tparam T defines type, float or double
+     * @param scale_matr dense matrix class object representing the scaler A matrix
+     * @param scaling_weight floatin point scalar, w
+     * 
+     * @returns none
+     * 
+     */
+    template <typename T> void Gmat<T>::
+    scale_matrix(evolm::matrix<T> &scale_matr, T scaling_weight)
     {
-        // Scaling by the matrix 'scale_matr':
-        // G = (1-w)*Ga + wA; Ga = beta*G + alpha;
-        // mean( diag(G) )*beta + alpha = mean( diag(A) );
-        // mean( G )*beta + alpha = mean( A )
-
         try
         {
             if ( G.is_ondisk() )
@@ -928,14 +1164,18 @@ namespace evoped
             throw;
         }
     }
-
     template void Gmat<float>::scale_matrix(evolm::matrix<float> &scale_matr, float scaling_weight);
     template void Gmat<double>::scale_matrix(evolm::matrix<double> &scale_matr, double scaling_weight);
 
     //===============================================================================================================
-
-    template <typename T>
-    Gmat<T>::~Gmat()
+    /**
+     * @brief Destroy the Gmat< T>:: Gmat object
+     * 
+     * @tparam T defines type, float or double
+     * 
+     */
+    template <typename T> Gmat<T>::
+    ~Gmat()
     {
         try
         {
@@ -959,14 +1199,20 @@ namespace evoped
             throw;
         }
     }
-
     template Gmat<float>::~Gmat();
     template Gmat<double>::~Gmat();
 
     //===============================================================================================================
-
-    template <typename T>
-    void Gmat<T>::clear()
+    /**
+     * @brief Clears the internal storage containers
+     * 
+     * @tparam T defines type, float or double
+     * 
+     * @returns none
+     * 
+     */
+    template <typename T> void Gmat<T>::
+    clear()
     {
         try
         {
@@ -998,17 +1244,25 @@ namespace evoped
             throw;
         }
     }
-
     template void Gmat<float>::clear();
     template void Gmat<double>::clear();
 
     //===============================================================================================================
-
-    template <typename T>
-    void Gmat<T>::read_matrix(const std::string &gmat_file, std::vector<std::int64_t> &g_row, std::vector<std::int64_t> &g_col, std::vector<T> &g_val)
+    /**
+     * @brief Reads G matrix from a text file into std::vector containers
+     * 
+     * @tparam T defines type, float or double
+     * @param gmat_file the text file in [row col value] format consisting G matrix
+     * @param g_row empty std vector where G-matrix row identifiers will be storeed
+     * @param g_col empty std vector where G-matrix col identifiers will be storeed
+     * @param g_val empty std vector where G-matrix values will be storeed
+     * 
+     * @returns none
+     * 
+     */
+    template <typename T> void Gmat<T>::
+    read_matrix(const std::string &gmat_file, std::vector<std::int64_t> &g_row, std::vector<std::int64_t> &g_col, std::vector<T> &g_val)
     {
-        // reads G matrix from gmat.dat file into std::vector container
-
         try
         {
             Utilities2 u;
@@ -1077,19 +1331,24 @@ namespace evoped
             throw;
         }
     }
-
     template void Gmat<float>::read_matrix(const std::string &fname, std::vector<std::int64_t> &g_row, std::vector<std::int64_t> &g_col, std::vector<float> &g_val);
     template void Gmat<double>::read_matrix(const std::string &fname, std::vector<std::int64_t> &g_row, std::vector<std::int64_t> &g_col, std::vector<double> &g_val);
 
     //===============================================================================================================
-
-    template <typename T>
-    void Gmat<T>::read_matrix(const std::string &gmat_file)
+    /**
+     * @brief Reads from text file G mmatrix in compact format upper (lower) triangular part.
+     *          The function should accept a full store format as well, though will write
+     *          only to the lower triangular part assuming the G matrix is always symmetric.
+     * 
+     * @tparam T defines type, float or double
+     * @param gmat_file the text file in [row col value] format consisting G matrix
+     * 
+     * @returns none
+     * 
+     */
+    template <typename T> void Gmat<T>::
+    read_matrix(const std::string &gmat_file)
     {
-        // NOTE: reads from file G mmatrix in compact format upper (lower) triangular part!
-        //       The function should accept a full store format as well, though will write
-        //       only to the lower triangular part assuming the G matrix is always symmetric.
-
         try
         {
             Utilities2 u;
@@ -1151,25 +1410,30 @@ namespace evoped
             throw;
         }
     }
-
     template void Gmat<float>::read_matrix(const std::string &gmat_file);
     template void Gmat<double>::read_matrix(const std::string &gmat_file);
 
     //===============================================================================================================
-
-    template <typename T>
-    void Gmat<T>::read_snp(const std::string &snp_file)
+    /**
+     * @brief Reads variants and samples data from a text file
+     *        Reads file format:
+     *        [observation ID] [devise code] [list of SNPs with " " delimiter]
+     * 
+     *          Example:
+     *          18 1000 2 0 1 1 0 0 0 2 1 2
+     *          19 1000 5 0 0 0 0 2 0 2 1 0
+     *          20 1000 1 5 2 1 1 0 0 2 1 2
+     *          21 1000 0 0 2 1 0 1 0 2 2 1
+     * 
+     * @tparam T defines type, float or double
+     * @param snp_file the name of SNPs text file
+     * 
+     * @returns none
+     * 
+     */
+    template <typename T> void Gmat<T>::
+    read_snp(const std::string &snp_file)
     {
-        /*
-                Reads file format:
-                [observation ID] [devise code] [list of SNPs with " " delimiter]
-
-                Example:
-                18 1000 2 0 1 1 0 0 0 2 1 2
-                19 1000 5 0 0 0 0 2 0 2 1 0
-                20 1000 1 5 2 1 1 0 0 2 1 2
-                21 1000 0 0 2 1 0 1 0 2 2 1
-        */
         try
         {
             Utilities2 u;
@@ -1254,34 +1518,34 @@ namespace evoped
             throw;
         }
     }
-
     template void Gmat<float>::read_snp(const std::string &snp_file);
     template void Gmat<double>::read_snp(const std::string &snp_file);
 
     //===============================================================================================================
-
-    template <typename T>
-    void Gmat<T>::read_snp(const std::string &snp_file, const std::string &ids_file)
+    /**
+     * @brief Reads variants and samples data from a text file
+     *        Reads file format:
+     *        [list of SNPs with " " delimiter]
+     * 
+     *          Example:
+     *          2 0 1 1 0 0 0 2 1 2
+     *          5 0 0 0 0 2 0 2 1 0
+     *          1 5 2 1 1 0 0 2 1 2
+     *          0 0 2 1 0 1 0 2 2 1
+     * 
+     *          Reads IDs file of the format:
+     *          [vector of IDs of type integer]
+     * 
+     * @tparam T defines type, float or double
+     * @param snp_file the name of SNPs text file
+     * @param ids+file text file name for samples identifiers (IDs)
+     * 
+     * @returns none
+     * 
+     */
+    template <typename T> void Gmat<T>::
+    read_snp(const std::string &snp_file, const std::string &ids_file)
     {
-        /*
-                Reads SNPs file of the format:
-                [list of SNPs with " " delimiter]
-
-                Example:
-                2 0 1 1 0 0 0 2 1 2
-                5 0 0 0 0 2 0 2 1 0
-                1 5 2 1 1 0 0 2 1 2
-                0 0 2 1 0 1 0 2 2 1
-
-                Reads IDs file of the format:
-                [vector of IDs of type integer]
-
-                Example:
-                101
-                543
-                20987
-                345
-        */
         try
         {
             Utilities2 u;
@@ -1371,14 +1635,22 @@ namespace evoped
             throw;
         }
     }
-
     template void Gmat<float>::read_snp(const std::string &snp_file, const std::string &ids_file);
     template void Gmat<double>::read_snp(const std::string &snp_file, const std::string &ids_file);
 
     //===============================================================================================================
-
-    template <typename T>
-    void Gmat<T>::parse_string(std::string &snp_str, std::vector<int> &markers)
+    /**
+     * @brief Parse std string of snp variants to integers
+     * 
+     * @tparam T defines type, float or double
+     * @param snp_str std string of snp variants
+     * @param markers empty std vector where parsed variants will be copied
+     * 
+     * @returns none
+     * 
+     */
+    template <typename T> void Gmat<T>::
+    parse_string(std::string &snp_str, std::vector<int> &markers)
     {
         try
         {
@@ -1411,19 +1683,27 @@ namespace evoped
             throw;
         }
     }
-
     template void Gmat<float>::parse_string(std::string &snp_str, std::vector<int> &markers);
     template void Gmat<double>::parse_string(std::string &snp_str, std::vector<int> &markers);
 
     //===============================================================================================================
-
-    template <typename T>
-    void Gmat<T>::make_zmatrix()
+    /**
+     * @brief Construct scaled variants (snps) matrix
+     * 
+     * @tparam T defines type, float or double
+     * 
+     * @returns none
+     */
+    template <typename T> void Gmat<T>::
+    make_zmatrix()
     {
         try
         {
             // get the number of SNPs
             std::vector<int> tmpVect;
+
+            if ( snp_map.empty() )
+                throw std::string("snp_map is empty!");
 
             auto it = snp_map.begin();
             std::string tmpStr = it->second;
@@ -1438,7 +1718,7 @@ namespace evoped
             tmpStr.shrink_to_fit();
 
             // declare the matrix M
-            evolm::matrix<T> M(snp_map.size(), snpNum);
+            evolm::matrix<int> M(snp_map.size(), snpNum);
 
             /* vector of SNPs frequences and missed values */
             std::vector<T> P(snpNum, 0.0);
@@ -1461,7 +1741,7 @@ namespace evoped
 
                 for (size_t i = 0; i < parsedMarkers.size(); i++)
                 {
-                    M(rowI, i) = static_cast<T>(parsedMarkers[i]);
+                    M(rowI, i) = parsedMarkers[i];
                     if (parsedMarkers[i] != 0 && parsedMarkers[i] != 1 && parsedMarkers[i] != 2)
                     {
                         missed[i] += 1;
@@ -1487,7 +1767,7 @@ namespace evoped
 #pragma omp parallel for schedule(static, block_size) num_threads(n_threads)
             for (size_t i = 0; i < P.size(); i++)
             {
-                P[i] = P[i] / (2 * (snp_map.size() - missed[i]));
+                P[i] = P[i] / (2.0 * (T)(snp_map.size() - missed[i]));
             }
 
             Z.resize(snp_map.size(), snpNum);
@@ -1496,7 +1776,7 @@ namespace evoped
             {
                 for (size_t j = 0; j < snpNum; j++)
                 {
-                    Z(i, j) = M(i, j) - 2 * P[j];
+                    Z(i, j) = (T)M(i, j) - 2.0 * P[j];
                 }
             }
 
@@ -1558,14 +1838,156 @@ namespace evoped
             throw;
         }
     }
-
     template void Gmat<float>::make_zmatrix();
     template void Gmat<double>::make_zmatrix();
 
     //===============================================================================================================
+    /**
+     * @brief Construct scaled variants (snps) matrix
+     * 
+     * @tparam T defines type, float or double
+     * @param M object of the dense matrix class with snp variants;
+     *          samples are in rows, variants are in columns;
+     *          M should be of dim:(sampleNum, snpNum)
+     * 
+     * @returns none
+     * 
+     */
+    template <typename T> void Gmat<T>::
+    make_zmatrix( evolm::matrix<int> &M )
+    {
+        try
+        {
+            evolm::matrix<size_t> shp; // shape of snp_variants matrix
+            shp = M.shape();
 
-    template <typename T>
-    void Gmat<T>::make_matrix()
+            if ( (shp[0] == 0) ||  (shp[1] == 0) )
+                throw std::string("snp_variants matrix is empty!");
+
+            size_t snpNum = shp[1];
+            size_t sampleNum = shp[0];
+
+            // vectors of SNPs frequences and missed values
+            std::vector<T> P(snpNum, 0.0);
+            std::vector<int> missed(snpNum, 0);
+            std::vector<T> missed2pq(sampleNum, 0.0);
+
+            // map of missed values locations
+            std::vector<std::vector<int>> missedLocation;
+            for (size_t i = 0; i < snpNum; i++)
+                missedLocation.push_back(std::vector<int>());
+
+            // count missing variants, and sums along columns (specific variants)
+            for (size_t row = 0; row < sampleNum; row++)
+            {
+                for (size_t col = 0; col < snpNum; col++)
+                {
+                    if ( M(row, col) == 3 )
+                    {
+                        missed[col] += 1;
+                        missedLocation[col].push_back(row);
+                    }
+                    else
+                        P[col] += M(row, col);
+                }
+            }
+
+            // finish to calculate allele frequences, additionally accounting missing values
+
+            auto n_threads = std::thread::hardware_concurrency();
+            auto block_size = static_cast<unsigned int>(P.size() / (n_threads));
+
+            if (block_size < workload)
+            {
+                block_size = P.size();
+                n_threads = 1;
+            }
+
+#pragma omp parallel for schedule(static, block_size) num_threads(n_threads)
+            for (size_t i = 0; i < P.size(); i++)
+            {
+                P[i] = P[i] / (2.0 * (T)(sampleNum - missed[i]));
+            }
+
+            Z.resize(sampleNum, snpNum);
+
+            for (size_t i = 0; i < sampleNum; i++)
+            {
+                for (size_t j = 0; j < snpNum; j++)
+                {
+                    Z(i, j) = (T)M(i, j) - 2.0 * P[j];
+                }
+            }
+
+            // modify Z matrix, so instead of missing values we put population average (0.0)
+
+#pragma omp parallel for schedule(static, block_size) num_threads(n_threads)
+            for (size_t i = 0; i < missedLocation.size(); i++)
+            {
+                for (size_t j = 0; j < missedLocation[i].size(); j++)
+                {
+                    Z(missedLocation[i][j], i) = 0.0;
+                    missed2pq[missedLocation[i][j]] = missed2pq[missedLocation[i][j]] + 2.0 * P[i] * (1.0 - P[i]);
+                }
+            }
+
+            freq = 0.0;
+#pragma omp parallel for schedule(static, block_size) num_threads(n_threads)
+            for (size_t j = 0; j < P.size(); j++)
+            {
+                freq += P[j] * (1.0 - P[j]);
+            }
+            freq = 2.0 * freq;
+
+#pragma omp parallel for schedule(static, block_size) num_threads(n_threads)
+            for (size_t i = 0; i < sampleNum; i++)
+            {
+                missed2pq[i] = sqrt(freq / (freq - missed2pq[i]));
+            }
+
+            // After centering, adjust for missing markers for each animal;
+            // adjust for sqrt[sum of 2pq over all loci /sum of 2pq over non-missing loci.
+
+#pragma omp parallel for schedule(static, block_size) num_threads(n_threads)
+            for (size_t i = 0; i < sampleNum; i++)
+            {
+                for (size_t j = 0; j < snpNum; j++)
+                {
+                    Z(i, j) = Z(i, j) * missed2pq[i];
+                }
+            }
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Gmat<T>::make_zmatrix(evolm::matrix<int> &)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Gmat<T>::make_zmatrix(evolm::matrix<int> &)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Gmat<T>::make_zmatrix(evolm::matrix<int> &)" << '\n';
+            throw;
+        }
+    }
+    template void Gmat<float>::make_zmatrix(evolm::matrix<int> &M);
+    template void Gmat<double>::make_zmatrix(evolm::matrix<int> &M);
+
+    //===============================================================================================================
+    /**
+     * @brief Constructs G matrix: G = (Z ^ 2) * (1 / freq)
+     * 
+     * @tparam T defines type, float or double
+     * 
+     * @returns none
+     */
+    template <typename T> void Gmat<T>::
+    make_matrix()
     {
         try
         {
@@ -1594,16 +2016,24 @@ namespace evoped
             throw;
         }
     }
-
     template void Gmat<float>::make_matrix();
     template void Gmat<double>::make_matrix();
 
     //===============================================================================================================
-
 #ifdef UTEST
-
-    template <typename T>
-    void Gmat<T>::get_alpha_beta(T &alpha, T &beta, T &a_diag, T &a_ofd, T &g_diag, T &g_ofd)
+    /**
+     * @brief I/O interface for utest, returns some scaling properties of G matrix
+     * 
+     * @tparam T 
+     * @param alpha 
+     * @param beta 
+     * @param a_diag 
+     * @param a_ofd 
+     * @param g_diag 
+     * @param g_ofd 
+     */
+    template <typename T> void Gmat<T>::
+    get_alpha_beta(T &alpha, T &beta, T &a_diag, T &a_ofd, T &g_diag, T &g_ofd)
     {
         try
         {
@@ -1632,11 +2062,9 @@ namespace evoped
             throw;
         }
     }
-
     template void Gmat<float>::get_alpha_beta(float &alpha, float &beta, float &a_diag, float &a_ofd, float &g_diag, float &g_ofd);
     template void Gmat<double>::get_alpha_beta(double &alpha, double &beta, double &a_diag, double &a_ofd, double &g_diag, double &g_ofd);
-
 #endif
 
     //===============================================================================================================
-}
+} // end of namespace evoped
