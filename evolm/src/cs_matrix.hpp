@@ -2016,7 +2016,7 @@ namespace evolm
             tmpM.resizedElements = numRow * numRow;
 
             gemmt_intrf(C.A, tmpM.A, C.numRow, C.numCol, tmpM.numCol);
-
+            
             /*
                 Because C is symmetrical, it consists of values only for 'L' part, 'U' part are zeros.
                 Therefore we restore and further return regular rectangular matrix.

@@ -129,9 +129,13 @@ namespace evoped
         {
             if ( is_plink_file(fname) )
             {
+                std::cout<<"start in plink pipeline"<<"\n";
                 evolm::matrix<int> M;
+                std::cout<<"getting M"<<"\n";
                 get_m_matrix(fname, M);
+                std::cout<<"making Z"<<"\n";
                 make_zmatrix(M); // scalling SNPs
+                std::cout<<"clear M"<<"\n";
                 M.clear();
             }
             else
@@ -140,7 +144,7 @@ namespace evoped
                 make_zmatrix(); // scalling SNPs
                 snp_map.clear();
             }
-
+std::cout<<"making G"<<"\n";
             make_matrix(); // making G matrix
             Z.fclear();
             Z.clear();
@@ -291,7 +295,6 @@ namespace evoped
             M.resize(n_variants, n_samples);
 
             size_t locus_id = 0;
-            size_t recoded_samples_id = 1;
 
             snp_buffer = (snp_t *) malloc( pio_row_size( &plink_file ) );
 
@@ -300,17 +303,24 @@ namespace evoped
                 for( sample_id = 0; sample_id < n_samples; sample_id++)
                 {
                     struct pio_sample_t *sample = pio_get_sample( &plink_file, sample_id );
-                    struct pio_locus_t *locus = pio_get_locus( &plink_file, locus_id );
-
                     M(locus_id, sample_id) = (int)snp_buffer[ sample_id ];
-                    samples_id_map[recoded_samples_id] = sample->iid;
-                    gmatID.push_back(recoded_samples_id);
-                                        
-                    recoded_samples_id++;
                 }
-
                 locus_id++;
             }
+
+            // we need to extract and recode samples IDs, so we ge back to first row and read it onece
+            pio_reset_row(&plink_file);
+            if( pio_next_row( &plink_file, snp_buffer ) == PIO_OK )
+            {
+                for( sample_id = 0; sample_id < n_samples; sample_id++)
+                {
+                    struct pio_sample_t *sample = pio_get_sample( &plink_file, sample_id );
+                    samples_id_map[sample_id+1] = sample->iid;
+                    gmatID.push_back(sample_id+1);
+                }
+            }
+
+            gmatID.shrink_to_fit();
 
             free( snp_buffer );
             pio_close( &plink_file );
@@ -1793,7 +1803,7 @@ namespace evoped
             }
 
             freq = 0.0;
-#pragma omp parallel for schedule(static, block_size) num_threads(n_threads)
+//#pragma omp parallel for schedule(static, block_size) num_threads(n_threads)
             for (size_t j = 0; j < P.size(); j++)
             {
                 freq += P[j] * (1.0 - P[j]);
@@ -1932,7 +1942,7 @@ namespace evoped
             }
 
             freq = 0.0;
-#pragma omp parallel for schedule(static, block_size) num_threads(n_threads)
+//#pragma omp parallel for schedule(static, block_size) num_threads(n_threads)
             for (size_t j = 0; j < P.size(); j++)
             {
                 freq += P[j] * (1.0 - P[j]);
@@ -1991,12 +2001,18 @@ namespace evoped
     {
         try
         {
-            G = (Z ^ 2) * (1 / freq);
+            G = Z;
+            Z.transpose();
+            G = G * Z;
+            G.rectosym();
+            G.scale(1 / freq);
+
+            //G = (Z ^ 2) * (1 / freq);
 
             // Because G is symmetric,
             // make it L-stored to save some memory
 
-            G.rectosym();
+            //G.rectosym();
         }
         catch (const std::exception &e)
         {

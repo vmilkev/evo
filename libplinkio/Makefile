@@ -1,6 +1,7 @@
 APPNAME := plinkio
 
 SRCDIR := src
+#BDIR_CLIB := /Users/au383883/Documents/MY/codebase/evo/libplinkio/release_lib
 BDIR_CLIB := release_lib
 BDIR_APP := release_app
 
