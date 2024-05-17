@@ -13,8 +13,13 @@ EXTSRC2 := ../libplinkio/src
 EXTLIB := ../libplinkio/release_lib
 EXTLIBNAME := plinkio
 #LIBRARY_PATH := /Users/au383883/Documents/MY/codebase/evo/libplinkio/release_lib
+<<<<<<< HEAD
 #LIBRARY_PATH := ../libplinkio/release_lib
 LIBRARY_PATH := /usr/home/qgg/vimi/codebase/evo/libplinkio/release_lib
+=======
+LIBRARY_PATH := /home/vimi/Documents/codebase/evo/libplinkio/release_lib
+#LIBRARY_PATH := ../libplinkio/release_lib
+>>>>>>> 1e91fff005a25124a0b9384211215f7862848ac6
 
 # determine OS and source of BLAS lib
 UNAME_OS := $(shell uname -s)
@@ -40,7 +45,7 @@ PYSUFF := $(shell python3-config --extension-suffix)
 
 #$(info $$PWDADDR is [${PWDADDR}])
 #$(info $$CXX is [${CXX}])
-#$(info $$UNAME_OS is [${UNAME_OS}])
+$(info $$UNAME_OS is [${UNAME_OS}])
 #$(info $$SOURSE_BLAS_IS_INTEL is [${SOURSE_BLAS_IS_INTEL}])
 
 ifeq ($(UNAME_OS),Darwin)
@@ -165,6 +170,10 @@ $(BDIR_PYLIB)/%.o: $(EXTSRC)/sparse_matrix.cpp
 
 #----------------------------------------------------------------
 
+ifeq ($(UNAME_OS),Linux)
+export LD_LIBRARY_PATH := $(LD_LIBRARY_PATH):$(LIBRARY_PATH)
+endif
+
 clean:
 	@echo " Cleaning..."
 	@rm -fr $(BDIR_PYLIB) $(BDIR_TST) $(BDIR_APP) $(TARGET_PYLIB) $(TARGET_TEST) 2>/dev/null || true
@@ -176,7 +185,12 @@ test:
 ifeq ($(UNAME_OS),Darwin)
 	@export DYLD_LIBRARY_PATH=$(LIBRARY_PATH); $(TARGET_TEST)
 else
+<<<<<<< HEAD
 	@export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:../libplinkio/release_lib; $(TARGET_TEST)
+=======
+	$(TARGET_TEST)
+#	@export LD_LIBRARY_PATH=$(LIBRARY_PATH); $(TARGET_TEST)
+>>>>>>> 1e91fff005a25124a0b9384211215f7862848ac6
 endif
 
 run:
@@ -184,7 +198,12 @@ run:
 ifeq ($(UNAME_OS),Darwin)
 	@export DYLD_LIBRARY_PATH=$(LIBRARY_PATH); time $(TARGET_APP)
 else
+<<<<<<< HEAD
 	@export LD_LIBRARY_PATH += :$(LIBRARY_PATH); time $(TARGET_APP)
+=======
+	time $(TARGET_APP)
+#	@export LD_LIBRARY_PATH=$(LIBRARY_PATH); time $(TARGET_APP)
+>>>>>>> 1e91fff005a25124a0b9384211215f7862848ac6
 endif
 
 cleanlogs:
