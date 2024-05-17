@@ -41,7 +41,7 @@ else
 #		ifeq ( $(SOURSE_BLAS_IS_INTEL), 1) # using Intel's MKL
 		ifdef SOURSE_BLAS_IS_INTEL
 			CFLAGS_APP := -O3 -I$(SRCDIR) -DMKL_ILP64 -I${MKLROOT}/include -std=c++17
-			CFLAGS_CLIB := -O3 -DMKL_ILP64 -I${MKLROOT}/include -fPIC -std=c++17
+			CFLAGS_CLIB := -O3 -I$(SRCDIR) -DMKL_ILP64 -I${MKLROOT}/include -fPIC -std=c++17
 			
 			EXTRA_CFLAGS := -Wall
 			EXTRA_LIBFLAGS := -L$(BDIR_CLIB) -l$(APPNAME)
@@ -50,7 +50,7 @@ else
 			LIBFLAGS := -shared -lm
 			LIBFLAGS_TEST := -lm
 		else # using openBLAS
-			CFLAGS_APP := -I$(SRCDIR) -I(EXTSRC)
+			CFLAGS_APP := -I$(SRCDIR) -I$(EXTSRC)
 			EXTRA_CFLAGS := -Wall -Wextra -pedantic -03 -std=c++17
 			LIBFLAGS_TEST := -lm
 		endif

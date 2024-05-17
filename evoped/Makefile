@@ -12,7 +12,9 @@ EXTSRC := ../evolm/src
 EXTSRC2 := ../libplinkio/src
 EXTLIB := ../libplinkio/release_lib
 EXTLIBNAME := plinkio
-LIBRARY_PATH := /Users/au383883/Documents/MY/codebase/evo/libplinkio/release_lib
+#LIBRARY_PATH := /Users/au383883/Documents/MY/codebase/evo/libplinkio/release_lib
+#LIBRARY_PATH := ../libplinkio/release_lib
+LIBRARY_PATH := /usr/home/qgg/vimi/codebase/evo/libplinkio/release_lib
 
 # determine OS and source of BLAS lib
 UNAME_OS := $(shell uname -s)
@@ -174,7 +176,7 @@ test:
 ifeq ($(UNAME_OS),Darwin)
 	@export DYLD_LIBRARY_PATH=$(LIBRARY_PATH); $(TARGET_TEST)
 else
-	@export LD_LIBRARY_PATH=$(LIBRARY_PATH); $(TARGET_TEST)
+	@export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:../libplinkio/release_lib; $(TARGET_TEST)
 endif
 
 run:
@@ -182,7 +184,7 @@ run:
 ifeq ($(UNAME_OS),Darwin)
 	@export DYLD_LIBRARY_PATH=$(LIBRARY_PATH); time $(TARGET_APP)
 else
-	@export LD_LIBRARY_PATH=$(LIBRARY_PATH); time $(TARGET_APP)
+	@export LD_LIBRARY_PATH += :$(LIBRARY_PATH); time $(TARGET_APP)
 endif
 
 cleanlogs:
