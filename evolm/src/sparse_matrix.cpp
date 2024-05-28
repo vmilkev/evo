@@ -17,8 +17,8 @@ namespace evolm
         srand(rd());
 
         int iNum = rand() % 100000;
-        binFilename_keys = "smatrix_key_" + std::to_string(iNum);
-        binFilename_vals = "smatrix_val_" + std::to_string(iNum);
+
+        binFilename = "smatrix_" + std::to_string(iNum);
 
         rectangular = true;
         compact = false;
@@ -38,7 +38,6 @@ namespace evolm
 
     template smatrix<float>::smatrix(size_t row, size_t col);
     template smatrix<double>::smatrix(size_t row, size_t col);
-    template smatrix<int>::smatrix(size_t row, size_t col);
 
     //===============================================================================================================
 
@@ -53,8 +52,8 @@ namespace evolm
         srand(rd());
 
         int iNum = rand() % 100000;
-        binFilename_keys = "smatrix_key_" + std::to_string(iNum);
-        binFilename_vals = "smatrix_val_" + std::to_string(iNum);
+
+        binFilename = "smatrix_" + std::to_string(iNum);
 
         rectangular = false;
         symetric = true;
@@ -73,7 +72,6 @@ namespace evolm
 
     template smatrix<float>::smatrix(size_t lda);
     template smatrix<double>::smatrix(size_t lda);
-    template smatrix<int>::smatrix(size_t lda);
     
     //===============================================================================================================
 
@@ -96,13 +94,14 @@ namespace evolm
             ondisc_elements = 0;
 
             // rename file name:
-            binFilename_keys.clear();
-            binFilename_vals.clear();
+
+            binFilename.clear();
+
             std::random_device rd;
             srand(rd());
             int iNum = rand() % 100000;
-            binFilename_keys = "smatrix_keys_" + std::to_string(iNum);
-            binFilename_vals = "smatrix_vals_" + std::to_string(iNum);
+
+            binFilename = "smatrix_" + std::to_string(iNum);
         }
         catch(const std::exception& e)
         {
@@ -117,7 +116,6 @@ namespace evolm
 
     template void smatrix<float>::resize(size_t row, size_t col);
     template void smatrix<double>::resize(size_t row, size_t col);
-    template void smatrix<int>::resize(size_t row, size_t col);
 
     //===============================================================================================================
 
@@ -139,13 +137,14 @@ namespace evolm
             ondisc_elements = 0;
 
             // rename file name:
-            binFilename_keys.clear();
-            binFilename_vals.clear();
+
+            binFilename.clear();
+
             std::random_device rd;
             srand(rd());
             int iNum = rand() % 100000;
-            binFilename_keys = "smatrix_keys_" + std::to_string(iNum);
-            binFilename_vals = "smatrix_vals_" + std::to_string(iNum);
+
+            binFilename = "smatrix_" + std::to_string(iNum);
         }
         catch(const std::exception& e)
         {
@@ -160,7 +159,6 @@ namespace evolm
 
     template void smatrix<float>::resize(size_t rlda);
     template void smatrix<double>::resize(size_t lda);
-    template void smatrix<int>::resize(size_t lda);
 
     //===============================================================================================================
 
@@ -182,14 +180,14 @@ namespace evolm
             ondisc_elements = 0;
 
             // rename file name:
-            binFilename_keys.clear();
-            binFilename_vals.clear();
+
+            binFilename.clear();
+
             std::random_device rd;
             srand(rd());
             int iNum = rand() % 100000;
 
-            binFilename_keys = "smatrix_keys_" + std::to_string(iNum);
-            binFilename_vals = "smatrix_vals_" + std::to_string(iNum);
+            binFilename = "smatrix_" + std::to_string(iNum);
         }
         catch(const std::exception& e)
         {
@@ -204,7 +202,6 @@ namespace evolm
 
     template void smatrix<float>::resize();
     template void smatrix<double>::resize();
-    template void smatrix<int>::resize();
 
     //===============================================================================================================
 
@@ -220,8 +217,7 @@ namespace evolm
         srand(rd());
         int iNum = rand() % 100000;
 
-        binFilename_keys = "smatrix_key_" + std::to_string(iNum);
-        binFilename_vals = "smatrix_val_" + std::to_string(iNum);
+        binFilename = "smatrix_" + std::to_string(iNum);
 
         rectangular = true;
         symetric = false;
@@ -239,7 +235,6 @@ namespace evolm
 
     template smatrix<float>::smatrix();
     template smatrix<double>::smatrix();
-    template smatrix<int>::smatrix();
 
     //===============================================================================================================
 
@@ -255,7 +250,6 @@ namespace evolm
 
     template smatrix<float>::~smatrix();
     template smatrix<double>::~smatrix();
-    template smatrix<int>::~smatrix();
 
     //===============================================================================================================
 
@@ -274,8 +268,9 @@ namespace evolm
             numCol = obj.numCol;
             numRow = obj.numRow;
             max_elements = obj.max_elements;
-            binFilename_keys = obj.binFilename_keys;
-            binFilename_vals = obj.binFilename_vals;
+
+            binFilename = obj.binFilename;
+
             ondisc_elements = obj.ondisc_elements;
             ondisk = obj.ondisk;
             work_load_perthread = obj.work_load_perthread;
@@ -294,7 +289,6 @@ namespace evolm
 
     template smatrix<float>::smatrix(const smatrix<float> &obj);
     template smatrix<double>::smatrix(const smatrix<double> &obj);
-    template smatrix<int>::smatrix(const smatrix<int> &obj);
 
     //===============================================================================================================
 
@@ -319,7 +313,6 @@ namespace evolm
 
     template void smatrix<float>::set_thread_load( size_t load );
     template void smatrix<double>::set_thread_load( size_t load );
-    template void smatrix<int>::set_thread_load( size_t load );
 
     //===============================================================================================================
 
@@ -347,7 +340,6 @@ namespace evolm
 
     template size_t smatrix<float>::nrows();
     template size_t smatrix<double>::nrows();
-    template size_t smatrix<int>::nrows();
 
     //===============================================================================================================
 
@@ -375,7 +367,6 @@ namespace evolm
 
     template size_t smatrix<float>::ncols();
     template size_t smatrix<double>::ncols();
-    template size_t smatrix<int>::ncols();
 
     //===============================================================================================================
 
@@ -403,7 +394,6 @@ namespace evolm
 
     template size_t smatrix<float>::size();
     template size_t smatrix<double>::size();
-    template size_t smatrix<int>::size();
 
     //===============================================================================================================
 
@@ -431,7 +421,6 @@ namespace evolm
 
     template size_t smatrix<float>::max_key();
     template size_t smatrix<double>::max_key();
-    template size_t smatrix<int>::max_key();
 
     //===============================================================================================================
 
@@ -455,7 +444,6 @@ namespace evolm
 
     template void smatrix<float>::clear();
     template void smatrix<double>::clear();
-    template void smatrix<int>::clear();
 
     //===============================================================================================================
 
@@ -480,7 +468,6 @@ namespace evolm
 
     template void smatrix<float>::clean();
     template void smatrix<double>::clean();
-    template void smatrix<int>::clean();
 
     //===============================================================================================================
 
@@ -489,13 +476,9 @@ namespace evolm
     {        
         try
         {
-            std::ifstream f(binFilename_keys.c_str());
+            std::ifstream f(binFilename.c_str());
             if (f.good())
-                remove(binFilename_keys.c_str());
-            
-            std::ifstream f2(binFilename_vals.c_str());
-            if (f2.good())
-                remove(binFilename_vals.c_str());
+                remove(binFilename.c_str());
         }
         catch(const std::exception& e)
         {
@@ -510,7 +493,31 @@ namespace evolm
 
     template void smatrix<float>::fclear();
     template void smatrix<double>::fclear();
-    template void smatrix<int>::fclear();
+
+    //===============================================================================================================
+
+    template <typename T>
+    void smatrix<T>::fclear(const std::string &fname)
+    {        
+        try
+        {
+            std::ifstream f(fname.c_str());
+            if (f.good())
+                remove(fname.c_str());
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << "Exception in smatrix<T>::fclear(const std::string &)" << '\n';
+            std::cerr << e.what() << '\n';
+        }
+        catch(...)
+        {
+            std::cerr << "Exception in smatrix<T>::fclear(const std::string &)" << '\n';
+        }
+    }
+
+    template void smatrix<float>::fclear(const std::string &fname);
+    template void smatrix<double>::fclear(const std::string &fname);
 
     //===============================================================================================================
 
@@ -536,7 +543,6 @@ namespace evolm
 
     template bool smatrix<float>::empty();
     template bool smatrix<double>::empty();
-    template bool smatrix<int>::empty();
 
     //===============================================================================================================
 
@@ -568,7 +574,6 @@ namespace evolm
 
     template size_t smatrix<float>::get_memory_usage();
     template size_t smatrix<double>::get_memory_usage();
-    template size_t smatrix<int>::get_memory_usage();
 
     //===============================================================================================================
 
@@ -600,7 +605,6 @@ namespace evolm
 
     template size_t smatrix<float>::get_memory_usage(size_t n_values);
     template size_t smatrix<double>::get_memory_usage(size_t n_values);
-    template size_t smatrix<int>::get_memory_usage(size_t n_values);
 
     //===============================================================================================================
 
@@ -636,7 +640,6 @@ namespace evolm
 
     template float &smatrix<float>::operator()(size_t atRow, size_t atCol);
     template double &smatrix<double>::operator()(size_t atRow, size_t atCol);
-    template int &smatrix<int>::operator()(size_t atRow, size_t atCol);
 
     //===============================================================================================================
 
@@ -655,7 +658,6 @@ namespace evolm
 
     template float &smatrix<float>::operator[](size_t atIndex);
     template double &smatrix<double>::operator[](size_t atIndex);
-    template int &smatrix<int>::operator[](size_t atIndex);
 
     //===============================================================================================================
 
@@ -706,7 +708,6 @@ namespace evolm
 
     template void smatrix<float>::thread_loads_unord(smatrix &in, std::vector<size_t> &out);
     template void smatrix<double>::thread_loads_unord(smatrix &in, std::vector<size_t> &out);
-    template void smatrix<int>::thread_loads_unord(smatrix &in, std::vector<size_t> &out);
 
     //===============================================================================================================
 
@@ -774,7 +775,6 @@ namespace evolm
 
     template void smatrix<float>::thread_loads_ord(ordstorage &in, std::vector<size_t> &out);
     template void smatrix<double>::thread_loads_ord(ordstorage &in, std::vector<size_t> &out);
-    template void smatrix<int>::thread_loads_ord(ordstorage &in, std::vector<size_t> &out);
 
     //===============================================================================================================
 
@@ -824,7 +824,6 @@ namespace evolm
 
     template void smatrix<float>::values_inrow(ordstorage &in, std::vector<size_t> &out_elements);
     template void smatrix<double>::values_inrow(ordstorage &in, std::vector<size_t> &out_elements);
-    template void smatrix<int>::values_inrow(ordstorage &in, std::vector<size_t> &out_elements);
 
     //===============================================================================================================
 
@@ -928,7 +927,6 @@ namespace evolm
 
     template smatrix<float> smatrix<float>::operator*(smatrix<float> &rhs);
     template smatrix<double> smatrix<double>::operator*(smatrix<double> &rhs);
-    template smatrix<int> smatrix<int>::operator*(smatrix<int> &rhs);
 
     //===============================================================================================================
 
@@ -1072,7 +1070,6 @@ namespace evolm
 
     template void smatrix<double>::dot_operation(smatrix &lhs, ordstorage &rhs, smatrix &out, std::vector<size_t> &range_vect, size_t thr_id);
     template void smatrix<float>::dot_operation(smatrix &lhs, ordstorage &rhs, smatrix &out, std::vector<size_t> &range_vect, size_t thr_id);
-    template void smatrix<int>::dot_operation(smatrix &lhs, ordstorage &rhs, smatrix &out, std::vector<size_t> &range_vect, size_t thr_id);
 
     //===============================================================================================================
 
@@ -1114,6 +1111,7 @@ namespace evolm
                 zeros_keys.push_back(e.first); // we do not want to store zeros !
         }
         //-------------------------------------
+        //-------------------------------------
         /*
         std::vector<size_t> loads;
 
@@ -1147,6 +1145,8 @@ namespace evolm
             vect_matr[i].resize();
         }
         */
+        //-------------------------------------
+        
         
         // remove from the matrix values equal to zero
         for (size_t i = 0; i < zeros_keys.size(); i++)
@@ -1157,7 +1157,6 @@ namespace evolm
 
     template smatrix<float> smatrix<float>::operator+(smatrix<float> &rhs);
     template smatrix<double> smatrix<double>::operator+(smatrix<double> &rhs);
-    template smatrix<int> smatrix<int>::operator+(smatrix<int> &rhs);
 
     //===============================================================================================================
 
@@ -1257,7 +1256,6 @@ namespace evolm
 
     template void smatrix<double>::plus_operation(smatrix &in, smatrix &res, std::vector<size_t> &zero_keys, smatrix &out, std::vector<size_t> &loads_vect, size_t thr_id);
     template void smatrix<float>::plus_operation(smatrix &in, smatrix &res, std::vector<size_t> &zero_keys, smatrix &out, std::vector<size_t> &loads_vect, size_t thr_id);
-    template void smatrix<int>::plus_operation(smatrix &in, smatrix &res, std::vector<size_t> &zero_keys, smatrix &out, std::vector<size_t> &loads_vect, size_t thr_id);
 
     //===============================================================================================================
 
@@ -1343,7 +1341,6 @@ namespace evolm
 
     template smatrix<float> smatrix<float>::operator-(smatrix<float> &rhs);
     template smatrix<double> smatrix<double>::operator-(smatrix<double> &rhs);
-    template smatrix<int> smatrix<int>::operator-(smatrix<int> &rhs);
 
     //===============================================================================================================
 
@@ -1443,7 +1440,6 @@ namespace evolm
 
     template void smatrix<double>::minus_operation(smatrix &in, smatrix &res, std::vector<size_t> &zero_keys, smatrix &out, std::vector<size_t> &loads_vect, size_t thr_id);
     template void smatrix<float>::minus_operation(smatrix &in, smatrix &res, std::vector<size_t> &zero_keys, smatrix &out, std::vector<size_t> &loads_vect, size_t thr_id);
-    template void smatrix<int>::minus_operation(smatrix &in, smatrix &res, std::vector<size_t> &zero_keys, smatrix &out, std::vector<size_t> &loads_vect, size_t thr_id);
 
     //===============================================================================================================
 
@@ -1503,7 +1499,6 @@ namespace evolm
 
     template bool smatrix<float>::nonzero(size_t atRow, size_t atCol);
     template bool smatrix<double>::nonzero(size_t atRow, size_t atCol);
-    template bool smatrix<int>::nonzero(size_t atRow, size_t atCol);
 
     //===============================================================================================================
 
@@ -1563,7 +1558,6 @@ namespace evolm
 
     template float smatrix<float>::get_nonzero(size_t atRow, size_t atCol);
     template double smatrix<double>::get_nonzero(size_t atRow, size_t atCol);
-    template int smatrix<int>::get_nonzero(size_t atRow, size_t atCol);
 
     //===============================================================================================================
 
@@ -1609,7 +1603,6 @@ namespace evolm
 
     template bool smatrix<float>::nonzero(size_t atRow);
     template bool smatrix<double>::nonzero(size_t atRow);
-    template bool smatrix<int>::nonzero(size_t atRow);
 
     //===============================================================================================================
 
@@ -1656,7 +1649,70 @@ namespace evolm
 
     template float smatrix<float>::get_nonzero(size_t atRow);
     template double smatrix<double>::get_nonzero(size_t atRow);
-    template int smatrix<int>::get_nonzero(size_t atRow);
+
+    //===============================================================================================================
+
+    template <typename T>
+    void smatrix<T>::get_keyslist( std::vector<size_t> &key_list )
+    {
+        try
+        {
+            if ( !key_list.empty() )
+                key_list.clear();
+
+            for ( auto const & k: A )
+                key_list.push_back( k.first );
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << "Exception in smatrix<T>::get_keyslist( std::vector<size_t> &)" << '\n';
+            std::cerr << e.what() << '\n';
+        }
+        catch(const std::string &e)
+        {
+            std::cerr << "Exception in smatrix<T>::get_keyslist( std::vector<size_t> &)" << '\n';
+            std::cerr << e << '\n';
+        }
+        catch(...)
+        {
+            std::cerr << "Exception in smatrix<T>::get_keyslist( std::vector<size_t> &)" << '\n';
+        }
+    }
+
+    template void smatrix<float>::get_keyslist( std::vector<size_t> &key_list );
+    template void smatrix<double>::get_keyslist( std::vector<size_t> &key_list );
+
+    //===============================================================================================================
+
+    template <typename T>
+    void smatrix<T>::get_keyslist( std::vector<std::int64_t> &key_list )
+    {
+        try
+        {
+            if ( !key_list.empty() )
+                key_list.clear();
+
+            for ( auto const & k: A )
+                key_list.push_back( static_cast<std::int64_t>(k.first) );
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << "Exception in smatrix<T>::get_keyslist( std::vector<size_t> &)" << '\n';
+            std::cerr << e.what() << '\n';
+        }
+        catch(const std::string &e)
+        {
+            std::cerr << "Exception in smatrix<T>::get_keyslist( std::vector<size_t> &)" << '\n';
+            std::cerr << e << '\n';
+        }
+        catch(...)
+        {
+            std::cerr << "Exception in smatrix<T>::get_keyslist( std::vector<size_t> &)" << '\n';
+        }
+    }
+
+    template void smatrix<float>::get_keyslist( std::vector<std::int64_t> &key_list );
+    template void smatrix<double>::get_keyslist( std::vector<std::int64_t> &key_list );
 
     //===============================================================================================================
 
@@ -1723,7 +1779,41 @@ namespace evolm
 
     template size_t smatrix<float>::get_key( size_t element );
     template size_t smatrix<double>::get_key( size_t element );
-    template size_t smatrix<int>::get_key( size_t element );
+
+    //===============================================================================================================
+
+    template <typename T>
+    bool smatrix<T>::is_ondisk()
+    {
+        /*
+            Checks if data saved on DISK or is in memory.
+
+            Return value: bool.
+        */
+
+        if (ondisk)
+            return true;
+        else
+            return false;
+    }
+    template bool smatrix<float>::is_ondisk();
+    template bool smatrix<double>::is_ondisk();
+
+    //===============================================================================================================
+
+    template <typename T>
+    double smatrix<T>::get_sparsity()
+    {
+        /*
+            Checks if data saved on DISK or is in memory.
+
+            Return value: bool.
+        */
+
+        return ( 100.0 - 100.0 * (double)A.size() / (double)max_elements );
+    }
+    template double smatrix<float>::get_sparsity();
+    template double smatrix<double>::get_sparsity();
 
     //===============================================================================================================
 
@@ -1737,26 +1827,20 @@ namespace evolm
 
                 Return value: none.
             */
-            fA_keys.exceptions(std::ifstream::failbit | std::ifstream::badbit);
-            fA_keys.open(binFilename_keys, fA_keys.binary | fA_keys.trunc | fA_keys.out);
 
-            if (!fA_keys.is_open())
-                throw std::string("Error while opening a keys binary file. smatrix<T>::fwrite()");
+            fA.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+            fA.open(binFilename, fA.binary | fA.trunc | fA.out);
 
-            fA_vals.exceptions(std::ifstream::failbit | std::ifstream::badbit);
-            fA_vals.open(binFilename_vals, fA_vals.binary | fA_vals.trunc | fA_vals.out);
-
-            if (!fA_vals.is_open())
-                throw std::string("Error while opening a values binary file. smatrix<T>::fwrite()");
+            if (!fA.is_open())
+                throw std::string("Error while opening a binary file. smatrix<T>::fwrite()");
 
             for (auto const& v : A)
             {
-                fA_keys.write(reinterpret_cast<const char *>(&v.first), sizeof(size_t));
-                fA_vals.write(reinterpret_cast<const char *>(&v.second), sizeof(T));
+                fA.write(reinterpret_cast<const char *>(&v.first), sizeof(size_t));
+                fA.write(reinterpret_cast<const char *>(&v.second), sizeof(T));
             }
 
-            fA_keys.close();
-            fA_vals.close();
+            fA.close();
 
             ondisk = true;
             ondisc_elements = A.size();
@@ -1776,7 +1860,131 @@ namespace evolm
 
     template void smatrix<float>::fwrite();
     template void smatrix<double>::fwrite();
-    template void smatrix<int>::fwrite();
+
+    //===============================================================================================================
+
+    template <typename T>
+    void smatrix<T>::fwrite(const std::string &fname)
+    {
+        try
+        {
+            /*
+                Moves matrix to a DISK and clears memory allocated for the container A.
+
+                Return value: none.
+            */
+           
+           size_t B[7];
+
+           B[0] = matrix_type;
+           B[1] = numRow;
+           B[2] = numCol;
+           B[3] = (size_t)compact;
+           B[4] = max_elements;
+           B[5] = A.size();;
+           B[6] = (size_t)sizeof(T);          
+
+            fA.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+            fA.open(fname, fA.binary | fA.trunc | fA.out);
+
+            if (!fA.is_open())
+                throw std::string("Error while opening a binary file. smatrix<T>::fwrite()");
+
+            fA.write(reinterpret_cast<const char *>(&B), 7 * sizeof(size_t));
+
+            for (auto const& v : A)
+            {
+                fA.write(reinterpret_cast<const char *>(&v.first), sizeof(size_t));
+                fA.write(reinterpret_cast<const char *>(&v.second), sizeof(T));
+            }
+
+            fA.close();
+
+            A.clear();
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << "Exception in smatrix<T>::fwrite(const std::string &)" << '\n';
+            std::cerr << e.what() << '\n';
+        }
+        catch(...)
+        {
+            std::cerr << "Exception in smatrix<T>::fwrite(const std::string &)" << '\n';
+        }            
+    }
+
+    template void smatrix<float>::fwrite(const std::string &fname);
+    template void smatrix<double>::fwrite(const std::string &fname);
+
+    //===============================================================================================================
+
+    template <typename T>
+    void smatrix<T>::fread(const std::string &fname)
+    {
+        try
+        {
+            /*
+                Reads matrix from DISK back to the memory.
+
+                Return value: none.
+            */
+
+            fA.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+            fA.open(fname, fA.binary | fA.in);
+
+            if (!fA.is_open())
+                throw std::string("Error while opening a binary file. smatrix<T>::fread()");
+            
+            size_t B[7];
+
+            fA.read(reinterpret_cast<char *>(&B), 7 * sizeof(size_t));
+
+            ondisc_elements = 0;
+
+            size_t matr_type = B[0];
+            numRow = B[1];
+            numCol = B[2];
+            compact = (bool)B[3];
+            max_elements = B[4];
+            ondisc_elements = B[5];
+            size_t var_inbytes = B[6];
+
+            if ( matr_type != matrix_type )
+                throw std::string("The wrong kind of matrix trying to read the data from file! smatrix<T>::fread(const std::string &)");
+
+            if ( var_inbytes != sizeof(T) )
+                throw std::string("The data type stored in file is not consistent with type of the matrix trying to read the data. smatrix<T>::fread(const std::string &)");
+
+            if ( ondisc_elements == 0 )
+                throw std::string("The number of values to be read is zerro! smatrix<T>::fread(const std::string &)");
+
+            for (size_t i = 0; i < ondisc_elements; i++)
+            {
+                size_t key;
+                T val;
+                fA.read(reinterpret_cast<char *>(&key), sizeof(size_t));
+                fA.read(reinterpret_cast<char *>(&val), sizeof(T));
+                A[key] = val;
+            }
+
+            fA.close();
+
+            ondisk = false;
+            ondisc_elements = 0;
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << "Exception in smatrix<T>::fread(const std::string &)" << '\n';
+            std::cerr << e.what() << '\n';
+        }
+        catch(...)
+        {
+            std::cerr << "Exception in smatrix<T>::fread(const std::string &)" << '\n';
+        }            
+    }
+
+    template void smatrix<float>::fread(const std::string &fname);
+    template void smatrix<double>::fread(const std::string &fname);
 
     //===============================================================================================================
 
@@ -1791,29 +1999,22 @@ namespace evolm
                 Return value: none.
             */
 
-            fA_keys.exceptions(std::ifstream::failbit | std::ifstream::badbit);
-            fA_keys.open(binFilename_keys, fA_keys.binary | fA_keys.in);
+            fA.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+            fA.open(binFilename, fA.binary | fA.in);
 
-            if (!fA_keys.is_open())
-                throw std::string("Error while opening a keys' binary file. smatrix<T>::fread()");
-
-            fA_vals.exceptions(std::ifstream::failbit | std::ifstream::badbit);
-            fA_vals.open(binFilename_vals, fA_vals.binary | fA_vals.in);
-
-            if (!fA_vals.is_open())
-                throw std::string("Error while opening a values' binary file. smatrix<T>::fread()");
+            if (!fA.is_open())
+                throw std::string("Error while opening a binary file. smatrix<T>::fread()");
 
             for (size_t i = 0; i < ondisc_elements; i++)
             {
                 size_t key;
                 T val;
-                fA_keys.read(reinterpret_cast<char *>(&key), sizeof(size_t));
-                fA_vals.read(reinterpret_cast<char *>(&val), sizeof(T));
+                fA.read(reinterpret_cast<char *>(&key), sizeof(size_t));
+                fA.read(reinterpret_cast<char *>(&val), sizeof(T));
                 A[key] = val;
             }
 
-            fA_keys.close();
-            fA_vals.close();
+            fA.close();
 
             ondisk = false;
             ondisc_elements = 0;
@@ -1831,7 +2032,6 @@ namespace evolm
 
     template void smatrix<float>::fread();
     template void smatrix<double>::fread();
-    template void smatrix<int>::fread();
 
     //===============================================================================================================
 
@@ -1860,8 +2060,7 @@ namespace evolm
             
             if ( ondisk ) // exchange file names only if rhs is not on memory!
             {
-                std::swap(binFilename_keys, tmpObj.binFilename_keys);
-                std::swap(binFilename_vals, tmpObj.binFilename_vals);
+                std::swap(binFilename, tmpObj.binFilename);
             }
             
             A.swap( tmpObj.A );
@@ -1881,7 +2080,6 @@ namespace evolm
 
     template smatrix<float> &smatrix<float>::operator=(const smatrix<float> &rhs);
     template smatrix<double> &smatrix<double>::operator=(const smatrix<double> &rhs);
-    template smatrix<int> &smatrix<int>::operator=(const smatrix<int> &rhs);
 
     //===============================================================================================================
 
@@ -1946,7 +2144,6 @@ namespace evolm
 
     template void smatrix<float>::transpose();
     template void smatrix<double>::transpose();
-    template void smatrix<int>::transpose();
 
     //===============================================================================================================
 
@@ -1990,7 +2187,6 @@ namespace evolm
 
     template void smatrix<double>::transpose_operation(smatrix &in, smatrix &out, std::vector<size_t> &loads_vect, size_t thr_id);
     template void smatrix<float>::transpose_operation(smatrix &in, smatrix &out, std::vector<size_t> &loads_vect, size_t thr_id);
-    template void smatrix<int>::transpose_operation(smatrix &in, smatrix &out, std::vector<size_t> &loads_vect, size_t thr_id);
 
     //===============================================================================================================
 
@@ -2041,7 +2237,6 @@ namespace evolm
 
     template void smatrix<float>::rectosym();
     template void smatrix<double>::rectosym();
-    template void smatrix<int>::rectosym();
 
     //===============================================================================================================
 
@@ -2086,7 +2281,6 @@ namespace evolm
 
     template void smatrix<double>::rectosym_operation(smatrix &in, smatrix &out, std::vector<size_t> &loads_vect, size_t thr_id);
     template void smatrix<float>::rectosym_operation(smatrix &in, smatrix &out, std::vector<size_t> &loads_vect, size_t thr_id);
-    template void smatrix<int>::rectosym_operation(smatrix &in, smatrix &out, std::vector<size_t> &loads_vect, size_t thr_id);
 
     //===============================================================================================================
 
@@ -2138,7 +2332,6 @@ namespace evolm
 
     template void smatrix<float>::symtorec();
     template void smatrix<double>::symtorec();
-    template void smatrix<int>::symtorec();
 
     //===============================================================================================================
 
@@ -2183,7 +2376,6 @@ namespace evolm
 
     template void smatrix<double>::symtorec_operation(smatrix &in, smatrix &out, std::vector<size_t> &loads_vect, size_t thr_id);
     template void smatrix<float>::symtorec_operation(smatrix &in, smatrix &out, std::vector<size_t> &loads_vect, size_t thr_id);
-    template void smatrix<int>::symtorec_operation(smatrix &in, smatrix &out, std::vector<size_t> &loads_vect, size_t thr_id);
 
     //===============================================================================================================
 
@@ -2204,7 +2396,6 @@ namespace evolm
 
     template size_t smatrix<float>::find_inrange(std::vector<size_t> &where, size_t what);
     template size_t smatrix<double>::find_inrange(std::vector<size_t> &where, size_t what);
-    template size_t smatrix<int>::find_inrange(std::vector<size_t> &where, size_t what);
 
     //===============================================================================================================
 
@@ -2223,7 +2414,6 @@ namespace evolm
 
     template size_t smatrix<float>::find_invect(std::vector<size_t> &where, size_t what);
     template size_t smatrix<double>::find_invect(std::vector<size_t> &where, size_t what);
-    template size_t smatrix<int>::find_invect(std::vector<size_t> &where, size_t what);
 
     //===============================================================================================================
 
@@ -2242,7 +2432,6 @@ namespace evolm
 
     template size_t smatrix<float>::key_insym(size_t key, size_t row);
     template size_t smatrix<double>::key_insym(size_t key, size_t row);
-    template size_t smatrix<int>::key_insym(size_t key, size_t row);
 
     //===============================================================================================================
 
@@ -2261,7 +2450,6 @@ namespace evolm
 
     template size_t smatrix<float>::key_inrec(size_t key, size_t row);
     template size_t smatrix<double>::key_inrec(size_t key, size_t row);
-    template size_t smatrix<int>::key_inrec(size_t key, size_t row);
 
     //===============================================================================================================
 
@@ -2280,7 +2468,6 @@ namespace evolm
 
     template size_t smatrix<float>::col_insym(size_t key, size_t row);
     template size_t smatrix<double>::col_insym(size_t key, size_t row);
-    template size_t smatrix<int>::col_insym(size_t key, size_t row);
 
     //===============================================================================================================
 
@@ -2299,7 +2486,6 @@ namespace evolm
 
     template size_t smatrix<float>::row_insym(size_t key, size_t col);
     template size_t smatrix<double>::row_insym(size_t key, size_t col);
-    template size_t smatrix<int>::row_insym(size_t key, size_t col);
 
     //===============================================================================================================
 
@@ -2318,7 +2504,6 @@ namespace evolm
 
     template size_t smatrix<float>::row_insym(size_t key);
     template size_t smatrix<double>::row_insym(size_t key);
-    template size_t smatrix<int>::row_insym(size_t key);
 
     //===============================================================================================================
 
@@ -2337,7 +2522,6 @@ namespace evolm
 
     template size_t smatrix<float>::col_inrec(size_t key, size_t row);
     template size_t smatrix<double>::col_inrec(size_t key, size_t row);
-    template size_t smatrix<int>::col_inrec(size_t key, size_t row);
 
     //===============================================================================================================
 
@@ -2356,7 +2540,6 @@ namespace evolm
 
     template size_t smatrix<float>::row_inrec(size_t key, size_t col);
     template size_t smatrix<double>::row_inrec(size_t key, size_t col);
-    template size_t smatrix<int>::row_inrec(size_t key, size_t col);
 
     //===============================================================================================================
 
@@ -2375,7 +2558,6 @@ namespace evolm
 
     template size_t smatrix<float>::row_inrec(size_t key);
     template size_t smatrix<double>::row_inrec(size_t key);
-    template size_t smatrix<int>::row_inrec(size_t key);
 
     //===============================================================================================================
 
@@ -2482,7 +2664,6 @@ namespace evolm
 
     template void smatrix<float>::print(std::string whiichMatrix);
     template void smatrix<double>::print(std::string whiichMatrix);
-    template void smatrix<int>::print(std::string whiichMatrix);
 
     //===============================================================================================================
 
@@ -2584,7 +2765,6 @@ namespace evolm
 
     template void smatrix<float>::printf(std::string whiichMatrix, bool append);
     template void smatrix<double>::printf(std::string whiichMatrix, bool append);
-    template void smatrix<int>::printf(std::string whiichMatrix, bool append);
 
     //===============================================================================================================
 }

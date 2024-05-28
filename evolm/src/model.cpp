@@ -697,6 +697,7 @@ namespace evolm
                 residual[i] = arr[i];
 
             residual.fwrite();
+
             residuals.push_back(residual);
         }
         catch (const std::exception &e)
@@ -736,6 +737,7 @@ namespace evolm
                 observation[i] = arr[i];
 
             observation.fwrite();
+
             observations.push_back(observation);
         }
         catch (const std::exception &e)
@@ -1741,7 +1743,9 @@ namespace evolm
                 if (residuals.size() > 0)
                 {
                     for (size_t i = 0; i < residuals.size(); i++)
+                    {
                         sz = sz + residuals[i].size();
+                    }
                 }
                 return sz;
             }

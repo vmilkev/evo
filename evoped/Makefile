@@ -12,14 +12,13 @@ EXTSRC := ../evolm/src
 EXTSRC2 := ../libplinkio/src
 EXTLIB := ../libplinkio/release_lib
 EXTLIBNAME := plinkio
+
+# Mac
 #LIBRARY_PATH := /Users/au383883/Documents/MY/codebase/evo/libplinkio/release_lib
-<<<<<<< HEAD
-#LIBRARY_PATH := ../libplinkio/release_lib
+# Debian
 LIBRARY_PATH := /usr/home/qgg/vimi/codebase/evo/libplinkio/release_lib
-=======
-LIBRARY_PATH := /home/vimi/Documents/codebase/evo/libplinkio/release_lib
-#LIBRARY_PATH := ../libplinkio/release_lib
->>>>>>> 1e91fff005a25124a0b9384211215f7862848ac6
+# Ubuntu
+#LIBRARY_PATH := /home/vimi/Documents/codebase/evo/libplinkio/release_lib
 
 # determine OS and source of BLAS lib
 UNAME_OS := $(shell uname -s)
@@ -27,11 +26,10 @@ SOURSE_BLAS_IS_INTEL := 1
 
 # determine compiler
 ifeq ($(UNAME_OS),Darwin)
-#	@echo " Using clang++ compiler ..."
 	CXX := clang++
 else
 	SHELL := /bin/bash
-#	ifeq ( $(SOURSE_BLAS_IS_INTEL), 1)
+	export LD_LIBRARY_PATH := $(LD_LIBRARY_PATH):$(LIBRARY_PATH)
 	ifdef SOURSE_BLAS_IS_INTEL
 		CXX := icpx
 	else
@@ -43,19 +41,17 @@ PWDADDR := $(shell pwd)
 PYBINDINCL := $(shell python3 -m pybind11 --includes)
 PYSUFF := $(shell python3-config --extension-suffix)
 
-#$(info $$PWDADDR is [${PWDADDR}])
+#$(info $$UNAME_OS is [${UNAME_OS}])
 #$(info $$CXX is [${CXX}])
 $(info $$UNAME_OS is [${UNAME_OS}])
 #$(info $$SOURSE_BLAS_IS_INTEL is [${SOURSE_BLAS_IS_INTEL}])
 
 ifeq ($(UNAME_OS),Darwin)
 $(info compiling for OpenBlas libs on MacOS)
-#	CFLAGS_TEST :=  -I$(SRCDIR) $(PYBINDINCL)
 	CFLAGS_APP := -I$(SRCDIR) -I$(EXTSRC) -I$(EXTSRC2)
 	CFLAGS_PYLIB := -DPYBIND $(PYBINDINCL) -I$(EXTSRC) -I$(EXTSRC2)
 
 	EXTRA_CFLAGS := -Wall -Wextra -pedantic -Wno-c99-extensions -D UTEST -O3 -Xpreprocessor -fopenmp -I/opt/homebrew/opt/openblas/include -I/opt/homebrew/opt/libomp/include -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -std=c++17 -pthread
-#	EXTRA_CFLAGS := -Wall -Wextra -pedantic -Wno-c99-extensions -O3 -Xpreprocessor -fopenmp -I/opt/homebrew/opt/openblas/include -I/opt/homebrew/opt/libomp/include -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -std=c++17 -pthread
 
 	LIBFLAGS_PY := -undefined dynamic_lookup -shared -lpthread -lm -lomp -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -L/opt/homebrew/opt/libomp/lib -L/opt/homebrew/opt/openblas/lib -lopenblas
 	LIBFLAGS_TEST := -undefined dynamic_lookup -lpthread -lm -lomp -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -L/opt/homebrew/opt/libomp/lib -L/opt/homebrew/opt/openblas/lib -lopenblas
@@ -63,19 +59,17 @@ $(info compiling for OpenBlas libs on MacOS)
 	EXTRA_LIBFLAGS := -L$(LIBRARY_PATH) -l$(EXTLIBNAME)
 else
 	ifeq ($(UNAME_OS),Linux)
-#		ifeq ( $(SOURSE_BLAS_IS_INTEL), 1) # using Intel's MKL
 		ifdef SOURSE_BLAS_IS_INTEL
 $(info compiling for Intel libs on Linux)
-#			CFLAGS_TEST :=  -I$(SRCDIR) $(PYBINDINCL) 
 			CFLAGS_APP := -I$(SRCDIR) -I$(EXTSRC) -I$(EXTSRC2)
 			CFLAGS_PYLIB := -DPYBIND $(PYBINDINCL) -I$(EXTSRC) -I$(EXTSRC2) -fPIC
 			
-			EXTRA_CFLAGS := -O3 -qopenmp -D UTEST -D intelmkl -Wall -DMKL_ILP64 -I"${MKLROOT}/include" -std=c++17  -pthread
+			EXTRA_CFLAGS := -O3 -qopenmp -DUTEST -Dintelmkl -Wall -DMKL_ILP64 -I"${MKLROOT}/include" -std=c++17  -pthread
 						
 			LIBFLAGS_PY := -shared -qopenmp -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_ilp64.a ${MKLROOT}/lib/intel64/libmkl_core.a ${MKLROOT}/lib/intel64/libmkl_intel_thread.a -Wl,--end-group -lpthread -lm
 			LIBFLAGS_TEST := -qopenmp -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_ilp64.a ${MKLROOT}/lib/intel64/libmkl_core.a ${MKLROOT}/lib/intel64/libmkl_intel_thread.a -Wl,--end-group -lpthread -lm
 			
-			EXTRA_LIBFLAGS :=-L$(LIBRARY_PATH) -l$(EXTLIBNAME)
+			EXTRA_LIBFLAGS := -L$(LIBRARY_PATH) -l$(EXTLIBNAME)
 
 		else # using openBLAS
 			CFLAGS_APP := -I$(SRCDIR) -I$(EXTSRC) -I$(EXTSRC2)
@@ -115,10 +109,6 @@ OBJECT_TST := $(patsubst $(TSRCDIR)/%,$(BDIR_TST)/%,$(SOURCES_TST:.cpp=.o))
 OBJECT_TST += $(patsubst $(SRCDIR)/%,$(BDIR_PYLIB)/%,$(SOURCES:.cpp=.o))
 OBJECT_TST += $(BDIR_APP)/sparse_matrix.o
 
-#$(info $$SOURCES_ALL is [${SOURCES_ALL}])
-#$(info $$SOURCES is [${SOURCES}])
-#$(info $$OBJECT_TST is [${OBJECT_TST}])
-#$(info $$OBJECT_APP is [${OBJECT_APP}])
 #----------------------------------------------------------------
 # build lib for python
 $(TARGET_PYLIB): $(OBJECT_PYL)
@@ -170,10 +160,6 @@ $(BDIR_PYLIB)/%.o: $(EXTSRC)/sparse_matrix.cpp
 
 #----------------------------------------------------------------
 
-ifeq ($(UNAME_OS),Linux)
-export LD_LIBRARY_PATH := $(LD_LIBRARY_PATH):$(LIBRARY_PATH)
-endif
-
 clean:
 	@echo " Cleaning..."
 	@rm -fr $(BDIR_PYLIB) $(BDIR_TST) $(BDIR_APP) $(TARGET_PYLIB) $(TARGET_TEST) 2>/dev/null || true
@@ -185,12 +171,7 @@ test:
 ifeq ($(UNAME_OS),Darwin)
 	@export DYLD_LIBRARY_PATH=$(LIBRARY_PATH); $(TARGET_TEST)
 else
-<<<<<<< HEAD
-	@export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:../libplinkio/release_lib; $(TARGET_TEST)
-=======
 	$(TARGET_TEST)
-#	@export LD_LIBRARY_PATH=$(LIBRARY_PATH); $(TARGET_TEST)
->>>>>>> 1e91fff005a25124a0b9384211215f7862848ac6
 endif
 
 run:
@@ -198,12 +179,7 @@ run:
 ifeq ($(UNAME_OS),Darwin)
 	@export DYLD_LIBRARY_PATH=$(LIBRARY_PATH); time $(TARGET_APP)
 else
-<<<<<<< HEAD
-	@export LD_LIBRARY_PATH += :$(LIBRARY_PATH); time $(TARGET_APP)
-=======
 	time $(TARGET_APP)
-#	@export LD_LIBRARY_PATH=$(LIBRARY_PATH); time $(TARGET_APP)
->>>>>>> 1e91fff005a25124a0b9384211215f7862848ac6
 endif
 
 cleanlogs:

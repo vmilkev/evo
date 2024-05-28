@@ -1,8 +1,6 @@
 #ifndef Amat_hpp__
 #define Amat_hpp__
 
-#include "sparse_matrix.hpp"
-#include "cs_matrix.hpp"
 #include "Utilities2.hpp"
 
 namespace evoped
@@ -19,9 +17,19 @@ namespace evoped
                          bool use_ainv);
         void make_matrix(const std::string &ped_file,
                          const std::string &g_file,
+                         bool use_ainv);
+        void make_matrix_forgenotyped(
+                         const std::string &ped_file,
+                         const std::string &g_file,
+                         bool use_ainv);        
+        void make_matrix_forgenotyped(
+                         const std::string &ped_file,
+                         std::vector<std::int64_t> &genotyped_ids,
                          bool use_ainv);        
         void make_all(const std::string &ped_file,
                       const std::string &g_file);
+        void make_all(const std::string &ped_file,
+                      std::vector<std::int64_t> &g_ids);
         void get_inbreeding(std::vector<T> &out);
         
         void get_matrix(const std::string &name,
@@ -134,9 +142,6 @@ namespace evoped
                       std::vector<std::int64_t> &matr_ids,
                       std::vector<std::int64_t> &selected_ids);
         
-        void dense_to_sparse(evolm::matrix<T> &from, evolm::smatrix<T> &to);
-        void sparse_to_dense(evolm::smatrix<T> &from, evolm::matrix<T> &to);
-
         // multithreading
         void thread_loads(std::vector<std::int64_t> &in,
                           std::vector<size_t> &out);

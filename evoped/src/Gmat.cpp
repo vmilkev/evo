@@ -42,10 +42,16 @@ namespace evoped
     {        
         try
         {
-            if ( !G.is_ondisk() )
-                G.fwrite();
+            //if ( !G.is_ondisk() )
+            //    G.fwrite();
+            //if ( G.is_ondisk() )
+            //    G.fread();
 
-            arr = G; // copy by exchanging binary file names
+            arr = G;
+
+            if (!ids.empty())
+                ids.clear();
+            
             ids = gmatID;
         }
         catch (const std::exception &e)
@@ -68,7 +74,218 @@ namespace evoped
     }
     template void Gmat<float>::get_matrix(evolm::matrix<float> &arr, std::vector<std::int64_t> &ids);
     template void Gmat<double>::get_matrix(evolm::matrix<double> &arr, std::vector<std::int64_t> &ids);
+    //===============================================================================================================
+    /**
+     * @brief I/O interface for saving on disk the internal matrix container holding results.
+     *          Note, we operate with L-stored format, hence return lower triangular part
+     * 
+     * @param arr file name for saving a dense matrix class object where the internal
+     *            storage conttainer (holding result) will be copied
+     * @param ids file name for saving std vector where samples (individuals) IDs
+     *            corresponding to the data in arr will be copied
+     * 
+     * @returns none
+     * 
+     */
+    template <typename T> void Gmat<T>::
+    save_matrix(const std::string &arr, const std::string &ids)
+    {        
+        try
+        {
+            Utilities2 u;
 
+            //if ( G.is_ondisk() )
+            //    G.fread();
+
+            G.fwrite(arr);
+            //G.fwrite();
+
+            u.vect_to_binary(gmatID, ids);
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Gmat<T>::save_matrix(const std::string &, const std::string &)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Gmat<T>::save_matrix(const std::string &, const std::string &)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Gmat<T>::save_matrix(const std::string &, const std::string &)" << '\n';
+            throw;
+        }
+    }
+    template void Gmat<float>::save_matrix(const std::string &arr, const std::string &ids);
+    template void Gmat<double>::save_matrix(const std::string &arr, const std::string &ids);
+    //===============================================================================================================
+    /**
+     * @brief I/O interface for saving on disk the internal matrix container holding results.
+     *          Note, we operate with L-stored format, hence return lower triangular part
+     * 
+     * @param arr file name for saving a dense matrix class object where the internal
+     *            storage conttainer (holding result) will be copied
+     *
+     * @returns none
+     * 
+     */
+    template <typename T> void Gmat<T>::
+    save_matrix(const std::string &arr)
+    {        
+        try
+        {
+            //if ( G.is_ondisk() )
+            //    G.fread();
+
+            G.fwrite(arr);
+            //G.fwrite();
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Gmat<T>::save_matrix(const std::string &)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Gmat<T>::save_matrix(const std::string &)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Gmat<T>::save_matrix(const std::string &)" << '\n';
+            throw;
+        }
+    }
+    template void Gmat<float>::save_matrix(const std::string &arr);
+    template void Gmat<double>::save_matrix(const std::string &arr);
+    //===============================================================================================================
+    /**
+     * @brief I/O interface for saving on disk the list of IDs of the internal matrix container.
+     * 
+     * @param ids file name for saving std vector where samples (individuals) IDs
+     *            corresponding to the data in arr will be copied
+     * 
+     * @returns none
+     * 
+     */
+    template <typename T> void Gmat<T>::
+    save_ids(const std::string &ids)
+    {        
+        try
+        {
+            Utilities2 u;
+
+            u.vect_to_binary(gmatID, ids);
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Gmat<T>::save_ids(const std::string &)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Gmat<T>::save_ids(const std::string &)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Gmat<T>::save_ids(const std::string &)" << '\n';
+            throw;
+        }
+    }
+    template void Gmat<float>::save_ids(const std::string &ids);
+    template void Gmat<double>::save_ids(const std::string &ids);
+
+    //===============================================================================================================
+    /**
+     * @brief I/O interface for accessing the internal container storing results.
+     *          Note, we operate with L-stored format, hence return lower triangular part
+     * 
+     * @param arr empty dense matrix class object where the internal
+     *            storage conttainer (holding result) will be copied
+     * 
+     * @returns none
+     * 
+     */
+    template <typename T> void Gmat<T>::
+    get_matrix(evolm::matrix<T> &arr)
+    {        
+        try
+        {
+            //if ( !G.is_ondisk() )
+            //    G.fwrite();
+
+            arr = G;
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Gmat<T>::get_matrix(evolm::matrix<T> &)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Gmat<T>::get_matrix(evolm::matrix<T> &)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Gmat<T>::get_matrix(evolm::matrix<T> &)" << '\n';
+            throw;
+        }
+    }
+    template void Gmat<float>::get_matrix(evolm::matrix<float> &arr);
+    template void Gmat<double>::get_matrix(evolm::matrix<double> &arr);
+    //===============================================================================================================
+    /**
+     * @brief I/O interface for accessing the internal container storing results.
+     *          Note, we operate with L-stored format, hence return lower triangular part
+     * 
+     * @param ids empty std vector where samples (individuals) IDs
+     *            corresponding to the data in arr will be copied
+     * 
+     * @returns none
+     * 
+     */
+    template <typename T> void Gmat<T>::
+    get_matrix(std::vector<std::int64_t> &ids)
+    {        
+        try
+        {
+             if (!ids.empty())
+                ids.clear();
+            
+            ids = gmatID;
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Gmat<T>::get_matrix(std::vector<std::int64_t>&)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Gmat<T>::get_matrix(std::vector<std::int64_t>&)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Gmat<T>::get_matrix(std::vector<std::int64_t>&)" << '\n';
+            throw;
+        }
+    }
+    template void Gmat<float>::get_matrix(std::vector<std::int64_t> &ids);
+    template void Gmat<double>::get_matrix(std::vector<std::int64_t> &ids);
     //===============================================================================================================
     /**
      * @brief I/O interface for accessing the internal container storing the results.
@@ -127,24 +344,19 @@ namespace evoped
     {
         try
         {
-            if ( is_plink_file(fname) )
+            if ( is_plink_file(fname) ) // the pipeline for binary (.bad) plink-formated data
             {
-                std::cout<<"start in plink pipeline"<<"\n";
                 evolm::matrix<int> M;
-                std::cout<<"getting M"<<"\n";
                 get_m_matrix(fname, M);
-                std::cout<<"making Z"<<"\n";
                 make_zmatrix(M); // scalling SNPs
-                std::cout<<"clear M"<<"\n";
                 M.clear();
             }
-            else
+            else // the pipeline for text (.ped) plink-formated data !!! not implemented yet
             {
                 read_snp(fname); // reads SNPs with variant IDs from ASCII fiele and output to the snp_map
                 make_zmatrix(); // scalling SNPs
                 snp_map.clear();
             }
-std::cout<<"making G"<<"\n";
             make_matrix(); // making G matrix
             Z.fclear();
             Z.clear();
@@ -316,7 +528,8 @@ std::cout<<"making G"<<"\n";
                 {
                     struct pio_sample_t *sample = pio_get_sample( &plink_file, sample_id );
                     samples_id_map[sample_id+1] = sample->iid;
-                    gmatID.push_back(sample_id+1);
+                    //gmatID.push_back(sample_id+1);
+                    gmatID.push_back( std::stol(sample->iid) );
                 }
             }
 
@@ -365,7 +578,7 @@ std::cout<<"making G"<<"\n";
         {
             read_snp(fname); // reads SNPs with IDs from ASCII fiele
             make_zmatrix(); // scalling
-            Z.fwrite(); // move data to a binary file
+            //Z.fwrite(); // move data to a binary file
             G = Z; // copy to the main container
             snp_map.clear();
             Z.fclear();
@@ -410,7 +623,7 @@ std::cout<<"making G"<<"\n";
         {
             read_snp(fname, fname_ids); // reads SNPs and its IDs from ASCII fieles (one for SNPs, another for IDs)
             make_zmatrix(); // scalling
-            Z.fwrite(); // move data to a binary file
+            //Z.fwrite(); // move data to a binary file
             G = Z; // copy to the main container
             snp_map.clear();
             Z.fclear();
@@ -453,12 +666,12 @@ std::cout<<"making G"<<"\n";
     {
         try
         {
-            if ( G.is_ondisk() )
-                G.fread();
+            //if ( G.is_ondisk() )
+            //    G.fread();
             
             G.invert();
 
-            G.fwrite();
+            //G.fwrite();
         }
         catch (const std::exception &e)
         {
@@ -500,8 +713,8 @@ std::cout<<"making G"<<"\n";
     {
         try
         {
-            if ( G.is_ondisk() )
-                G.fread();
+            //if ( G.is_ondisk() )
+            //    G.fread();
 
             if (full_store)
             {
@@ -516,7 +729,7 @@ std::cout<<"making G"<<"\n";
             else
                 G.invert();
 
-            G.fwrite();
+            //G.fwrite();
         }
         catch (const std::exception &e)
         {
@@ -556,8 +769,8 @@ std::cout<<"making G"<<"\n";
         {
             Utilities2 u;
 
-            if ( G.is_ondisk() )
-                G.fread();
+            //if ( G.is_ondisk() )
+            //    G.fread();
 
             if (G.empty())
                 throw std::string("There is no G matrix which needs to be inverted!");
@@ -896,7 +1109,7 @@ std::cout<<"making G"<<"\n";
 
             G.rectosym();
 
-            G.fwrite();
+            //G.fwrite();
 
             gmatID.clear();
             gmatID = coreNonCoreIDs;
@@ -927,48 +1140,48 @@ std::cout<<"making G"<<"\n";
 
     //===============================================================================================================
     /**
-     * @brief Scale the diagonal elements of G matrix by the scalar
+     * @brief Add scalar value to the diagonal elements of matrix
      * 
      * @tparam T defines type, float or double
-     * @param scale_coef floating point scalar
+     * @param scale_coef floating point value
      * 
      * @returns none
      * 
      */
     template <typename T> void Gmat<T>::
-    scale_matrix(T scale_coef)
+    scale_diag(T scale_coef)
     {
         try
         {
-            if ( G.is_ondisk() )
-                G.fread();
+            //if ( G.is_ondisk() )
+            //    G.fread();
 
             evolm::matrix<size_t> shapeofg;
             shapeofg = G.shape();
 
             for (size_t i = 0; i < shapeofg[0]; i++)
-                G(i, i) = G(i, i) * scale_coef;
+                G(i, i) = G(i, i) + scale_coef;
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Gmat<T>::scale_matrix(T)" << '\n';
+            std::cerr << "Exception in Gmat<T>::scale_diag(T)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Gmat<T>::scale_matrix(T)" << '\n';
+            std::cerr << "Exception in Gmat<T>::scale_diag(T)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Gmat<T>::scale_matrix(T)" << '\n';
+            std::cerr << "Exception in Gmat<T>::scale_diag(T)" << '\n';
             throw;
         }
     }
-    template void Gmat<float>::scale_matrix(float scale_coef);
-    template void Gmat<double>::scale_matrix(double scale_coef);
+    template void Gmat<float>::scale_diag(float scale_coef);
+    template void Gmat<double>::scale_diag(double scale_coef);
 
     //===============================================================================================================
     /**
@@ -991,8 +1204,8 @@ std::cout<<"making G"<<"\n";
     {
         try
         {
-            if ( G.is_ondisk() )
-                G.fread();
+            //if ( G.is_ondisk() )
+            //    G.fread();
 
             // It is required the scaling matrix is the same dimension as the inverting G
 
@@ -1057,8 +1270,8 @@ std::cout<<"making G"<<"\n";
     {
         try
         {
-            if ( G.is_ondisk() )
-                G.fread();
+            //if ( G.is_ondisk() )
+            //    G.fread();
 
             evolm::matrix<size_t> shapeofa;
             shapeofa = scale_matr.shape();
@@ -1346,9 +1559,9 @@ std::cout<<"making G"<<"\n";
 
     //===============================================================================================================
     /**
-     * @brief Reads from text file G mmatrix in compact format upper (lower) triangular part.
-     *          The function should accept a full store format as well, though will write
-     *          only to the lower triangular part assuming the G matrix is always symmetric.
+     * @brief Reads G mmatrix in compact format (upper/lower triangular part) from a text file.
+     *          The method should accept a full store format as well, though will write
+     *          only to the lower triangular part considering the matrix is always symmetric.
      * 
      * @tparam T defines type, float or double
      * @param gmat_file the text file in [row col value] format consisting G matrix
@@ -2005,7 +2218,7 @@ std::cout<<"making G"<<"\n";
             Z.transpose();
             G = G * Z;
             G.rectosym();
-            G.scale(1 / freq);
+            G.scale(1.0 / freq);
 
             //G = (Z ^ 2) * (1 / freq);
 

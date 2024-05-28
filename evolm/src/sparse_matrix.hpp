@@ -125,10 +125,11 @@ namespace evolm
         size_t work_load_perthread;
         T zerro_tolerance;
         std::string debug_file;
-        std::string binFilename_keys; /* Name of binary file to store A on disck. */
-        std::string binFilename_vals; /* Name of binary file to store A on disck. */
-        std::fstream fA_keys;
-        std::fstream fA_vals;
+        
+        std::string binFilename;
+        std::fstream fA;
+
+        const size_t matrix_type = 2002;
 
         size_t col_insym(size_t key, size_t row); /* returns col of symmetric matrix knowing the index (key) and the specific row */
         size_t row_insym(size_t key, size_t col); /* ... the same but for row */
@@ -166,14 +167,16 @@ namespace evolm
         smatrix operator*(smatrix &rhs);  /* Overloaded '*' operator to multiply two matrix objects. */
         smatrix operator+(smatrix &rhs);
         smatrix operator-(smatrix &rhs);
-        //smatrix operator*(const T &val);
 
         void transpose();                             /* Transpose matrix. */
         void rectosym();                              /* transform matrix from full storage to compact (lower triangular part), assuming the matrix is symmetric */
         void symtorec();                              /* transform matrix from compact storage (lower triangular part, assuming the matrix is symmetric) to full (rectangular) storage */
         void fwrite();                                /* Move matrix to the disk and clear memory. */
+        void fwrite(const std::string &fname);        /* Save matrix to the disk and not clears memory. */
         void fread();                                 /* Restore matrix from the disk into the memory. */
+        void fread(const std::string &fname);         /* Restore matrix from the disk into the memory. */
         void fclear();
+        void fclear(const std::string &fname);
         void clear();
         void clean();
         bool empty();
@@ -195,6 +198,10 @@ namespace evolm
         void set_thread_load( size_t load );
         size_t get_memory_usage();
         size_t get_memory_usage( size_t n_values );
+        void get_keyslist( std::vector<size_t> &key_list );
+        void get_keyslist( std::vector<std::int64_t> &key_list );
+        bool is_ondisk();
+        double get_sparsity();
     };
         
 } // end of namespace evolm

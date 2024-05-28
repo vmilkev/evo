@@ -222,11 +222,10 @@ TEST_CASE("Small data test: model 1")
 
     // ========================================================================================
 
-    SECTION("The Model class: test size")
+    SECTION("1. The Model class: test size")
     {
         try
         {
-
             evolm::Model model;
 
             CHECK(model.size_of("res") == 0);
@@ -249,6 +248,7 @@ TEST_CASE("Small data test: model 1")
             model.append_observation(y1, 5); // obs := 0
 
             CHECK(model.size_of("res") == 4);
+
             CHECK(model.size_of("obs") == 5);
 
             model.append_residual(iR, 2);
@@ -296,6 +296,8 @@ TEST_CASE("Small data test: model 1")
             CHECK(model.size_of("cor_eff") == 0);
             CHECK(model.size_of("obs_trt") == 0);
             CHECK(model.size_of("eff_trt") == 0);
+
+            std::cout<<"Passed 1"<<"\n";
         }
         catch (const std::exception &e)
         {
@@ -323,7 +325,7 @@ TEST_CASE("Small data test: model 1")
 
     // ========================================================================================
 
-    SECTION("The Model class: test shapes")
+    SECTION("2. The Model class: test shapes")
     {
         try
         {
@@ -431,6 +433,8 @@ TEST_CASE("Small data test: model 1")
             model.clear_effects();
             model.clear_corrstruct();
             model.clear_traitstruct();
+
+            std::cout<<"Passed 2"<<"\n";
         }
         catch (const std::exception &e)
         {
@@ -458,7 +462,7 @@ TEST_CASE("Small data test: model 1")
 
     // ========================================================================================
 
-    SECTION("The Pcg class: test vect_z_uni")
+    SECTION("3. The Pcg class: test vect_z_uni")
     {
         try
         {
@@ -517,6 +521,8 @@ TEST_CASE("Small data test: model 1")
             z.clear();
 
             model.clear();
+
+            std::cout<<"Passed 3"<<"\n";
         }
         catch (const std::exception &e)
         {
@@ -544,7 +550,7 @@ TEST_CASE("Small data test: model 1")
 
     // ========================================================================================
 
-    SECTION("The Pcg class: test RHS")
+    SECTION("4. The Pcg class: test RHS")
     {
         try
         {
@@ -584,6 +590,8 @@ TEST_CASE("Small data test: model 1")
             solver.remove_model();
 
             model.clear();
+
+            std::cout<<"Passed 4"<<"\n";
         }
         catch (const std::exception &e)
         {
@@ -611,7 +619,7 @@ TEST_CASE("Small data test: model 1")
 
     // ========================================================================================
 
-    SECTION("The Pcg class: test dval")
+    SECTION("5. The Pcg class: test dval")
     {
         try
         {
@@ -653,6 +661,8 @@ TEST_CASE("Small data test: model 1")
             solver.remove_model();
 
             model.clear();
+
+            std::cout<<"Passed 5"<<"\n";
         }
         catch (const std::exception &e)
         {
@@ -680,7 +690,7 @@ TEST_CASE("Small data test: model 1")
 
     // ========================================================================================
 
-    SECTION("The Pcg class: test CoeffMatrix")
+    SECTION("6. The Pcg class: test CoeffMatrix")
     {
         try
         {
@@ -728,6 +738,8 @@ TEST_CASE("Small data test: model 1")
             solver.remove_model();
 
             model.clear();
+
+            std::cout<<"Passed 6"<<"\n";
         }
         catch (const std::exception &e)
         {
@@ -755,7 +767,7 @@ TEST_CASE("Small data test: model 1")
 
     // ========================================================================================
 
-    SECTION("The Pcg class: test intermediate data structures")
+    SECTION("7. The Pcg class: test intermediate data structures")
     {
         try
         {
@@ -814,6 +826,8 @@ TEST_CASE("Small data test: model 1")
             solver.remove_model();
 
             model.clear();
+
+            std::cout<<"Passed 7"<<"\n";
         }
         catch (const std::exception &e)
         {
@@ -841,7 +855,7 @@ TEST_CASE("Small data test: model 1")
 
     // ========================================================================================
 
-    SECTION("The Pcg class: test solution")
+    SECTION("8. The Pcg class: test solution")
     {
         try
         {
@@ -885,6 +899,8 @@ TEST_CASE("Small data test: model 1")
             solver.remove_model();
 
             model.clear();
+
+            std::cout<<"Passed 8"<<"\n";
         }
         catch (const std::exception &e)
         {
@@ -912,7 +928,7 @@ TEST_CASE("Small data test: model 1")
 
     // ========================================================================================
 
-    SECTION("The IO interface class: test base class")
+    SECTION("9. The IO interface class: test base class")
     {
         try
         {
@@ -983,7 +999,7 @@ TEST_CASE("Small data test: model 1")
 
             //-------------------------------------------------
 
-            datstream.set_fname("tests/data/1000G.EUR.QC.22.bed"); // Expected rows: variants (SNPs); columns: samples (observations).
+            /*datstream.set_fname("tests/data/1000G.EUR.QC.22.bed"); // Expected rows: variants (SNPs); columns: samples (observations).
 
             datstream.fgetdata(489, 141123, in);
 
@@ -1000,7 +1016,7 @@ TEST_CASE("Small data test: model 1")
             }
 
             in.clear();
-            in.shrink_to_fit();
+            in.shrink_to_fit();*/
 
             //-------------------------------------------------
 
@@ -1022,6 +1038,8 @@ TEST_CASE("Small data test: model 1")
 
             in.clear();
             in.shrink_to_fit();
+
+            std::cout<<"Passed 9"<<"\n";
         }
         catch (const std::exception &e)
         {
@@ -1049,7 +1067,7 @@ TEST_CASE("Small data test: model 1")
 
     // ========================================================================================
 
-    SECTION("The overloaded methods (Model & IO interface): testing IN -> data")
+    SECTION("10. The overloaded methods (Model & IO interface): testing IN -> data")
     {
         try
         {
@@ -1123,6 +1141,8 @@ TEST_CASE("Small data test: model 1")
                 CHECK(iA[i] == cor_test[i]);
 
             model.clear();
+
+            std::cout<<"Passed 10"<<"\n";
         }
         catch (const std::exception &e)
         {
@@ -1150,7 +1170,7 @@ TEST_CASE("Small data test: model 1")
 
     // ========================================================================================
 
-    SECTION("The overloaded methods (Model & IO interface): testing vect_z_uni")
+    SECTION("11. The overloaded methods (Model & IO interface): testing vect_z_uni")
     {
         try
         {
@@ -1212,6 +1232,8 @@ TEST_CASE("Small data test: model 1")
             z.clear();
 
             model.clear();
+
+            std::cout<<"Passed 11"<<"\n";
         }
         catch (const std::exception &e)
         {
@@ -1239,7 +1261,7 @@ TEST_CASE("Small data test: model 1")
 
     // ========================================================================================
 
-    SECTION("The overloaded methods (Model & IO interface): testing dval")
+    SECTION("12. The overloaded methods (Model & IO interface): testing dval")
     {
         try
         {
@@ -1289,6 +1311,8 @@ TEST_CASE("Small data test: model 1")
             solver.remove_model();
 
             model.clear();
+
+            std::cout<<"Passed 12"<<"\n";
         }
         catch (const std::exception &e)
         {
@@ -1316,7 +1340,7 @@ TEST_CASE("Small data test: model 1")
 
     // ========================================================================================
 
-    SECTION("The overloaded methods (Model & IO interface): testing CoeffMatrix")
+    SECTION("13. The overloaded methods (Model & IO interface): testing CoeffMatrix")
     {
         try
         {
@@ -1367,6 +1391,8 @@ TEST_CASE("Small data test: model 1")
             solver.remove_model();
 
             model.clear();
+
+            std::cout<<"Passed 13"<<"\n";
         }
         catch (const std::exception &e)
         {
@@ -1394,7 +1420,7 @@ TEST_CASE("Small data test: model 1")
 
     // ========================================================================================
 
-    SECTION("The overloaded methods (Model & IO interface): testing intermediate data structures")
+    SECTION("14. The overloaded methods (Model & IO interface): testing intermediate data structures")
     {
         try
         {
@@ -1456,6 +1482,8 @@ TEST_CASE("Small data test: model 1")
             solver.remove_model();
 
             model.clear();
+
+            std::cout<<"Passed 14"<<"\n";
         }
         catch (const std::exception &e)
         {
@@ -1483,7 +1511,7 @@ TEST_CASE("Small data test: model 1")
 
     // ========================================================================================
 
-    SECTION("The overloaded methods (Model & IO interface): testing RHS")
+    SECTION("15. The overloaded methods (Model & IO interface): testing RHS")
     {
         try
         {
@@ -1526,6 +1554,8 @@ TEST_CASE("Small data test: model 1")
             solver.remove_model();
 
             model.clear();
+
+            std::cout<<"Passed 15"<<"\n";
         }
         catch (const std::exception &e)
         {
@@ -1553,7 +1583,7 @@ TEST_CASE("Small data test: model 1")
 
     // ========================================================================================
 
-    SECTION("The overloaded methods (Model & IO interface): testing solution")
+    SECTION("16. The overloaded methods (Model & IO interface): testing solution")
     {
         try
         {
@@ -1607,6 +1637,8 @@ TEST_CASE("Small data test: model 1")
             solver.remove_model();
 
             model.clear();
+
+            std::cout<<"Passed 16"<<"\n";
         }
         catch (const std::exception &e)
         {

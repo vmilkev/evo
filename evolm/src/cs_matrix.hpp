@@ -76,14 +76,17 @@ namespace evolm
         matrix<size_t> shape() const;                 /* Returns a vector with number of rows and columns. */
         void clear();                                 /* Frees an allocated memmory of A. */
         void fclear();                                /* Removes (if exists) a binary file associated with A. */
+        void fclear(const std::string &fname);        /* Removes (if exists) a named binary file. */
         bool empty();                                 /* Checks if memmory is allocated to A. */
         void symtorec();                              /* Transform symmetric matrix in compact form to rectangular form. */
         void rectosym();                              /* Transform square matrix to triangular compact form (only for symmetric matrices). */
         void transpose();                             /* Transpose matrix. */
+        void fwrite(const std::string &fname);        /* Save matrix to disk, and not clear memory. */
         void fwrite();                                /* Move matrix to the disk and clear memory. */
         void invert();                                /* Matrix inversion. */
         void lchol();                                 /* Cholesky factorisation, gives lower triangular outpur. */
-        void fread();                                 /* Restore matrix from the disk into the memory. */
+        void fread();                                 /* Restore matrix saved on disk into the memory. */
+        void fread(const std::string &fname);         /* Restore matrix from the disk into the memory. */
         bool is_ondisk();                             /* Checking if data is located on disk or in memory. */
         matrix<T> fget(size_t irow[], size_t icol[]); /* Reads and returns just part of data from a file.*/
         matrix<T> fget();                             /* Overloaded. Reads and returns all of data from a file.*/
@@ -407,6 +410,8 @@ namespace evolm
         std::string debug_file = "MATRIX.log";
         std::string binFilename; /* Name of binary file to store A on disck. */
         std::fstream fA;
+
+        const size_t matrix_type = 1001;
 
     public:
         /* FRIEND OPERATORS */
@@ -987,7 +992,6 @@ namespace evolm
 #ifdef intelmkl
         A = (T *)mkl_malloc(sz * sizeof(T), sizeof(T) * 8);
 #else
-        // A = (T *)aligned_alloc(sizeof(T) * 8, sz * sizeof(T));
         A = (T *)malloc(sz * sizeof(T));
 #endif
         if (A == NULL)
@@ -2459,6 +2463,24 @@ namespace evolm
     //===============================================================================================================
 
     template <typename T>
+    void matrix<T>::fclear(const std::string &fname)
+    {
+        /*
+            Removes a binary file (if exists) associated with A.
+            Note: this shouldbe called before clear() becaause
+            the last call changes the name of associated binary file!
+
+            Return value: none.
+        */
+
+        std::ifstream f(fname.c_str());
+        if (f.good())
+            remove(fname.c_str());
+    }
+
+    //===============================================================================================================
+
+    template <typename T>
     bool matrix<T>::empty()
     {
         /*
@@ -2471,6 +2493,50 @@ namespace evolm
             return false;
 
         return true;
+    }
+    //===============================================================================================================
+
+    template <typename T>
+    matrix<T>::matrix(const matrix<T> &obj)
+    {
+        /*
+            Copy constructor.
+        */
+        compact = obj.compact;
+        rectangular = obj.rectangular;
+        symetric = obj.symetric;
+        failbit = obj.failbit;
+        failinfo = obj.failinfo;
+        numCol = obj.numCol;
+        numRow = obj.numRow;
+        resizedElements = obj.resizedElements;
+        binFilename = obj.binFilename;
+        allocated = false;
+        ondisk = obj.ondisk;
+
+        if (compact)
+            allocate(numRow);
+        else
+            allocate(numRow, numCol);
+        
+        allocated = true;
+
+        if (obj.allocated)
+        {
+            std::memcpy(A, obj.A, sizeof(T) * this->size());
+        }
+        else
+        {
+#ifdef intelmkl
+            mkl_free(A);
+#else
+            free(A);
+#endif
+            allocated = false;
+            failbit = false;
+            failinfo = 0;
+            resizedElements = 0;
+        }
     }
 
     //===============================================================================================================
@@ -2485,6 +2551,7 @@ namespace evolm
         */
 
         matrix<T> tmpObj(rhs);
+
         std::swap(compact, tmpObj.compact);
         std::swap(ondisk, tmpObj.ondisk);
         std::swap(rectangular, tmpObj.rectangular);
@@ -2494,12 +2561,10 @@ namespace evolm
         std::swap(numCol, tmpObj.numCol);
         std::swap(numRow, tmpObj.numRow);
         std::swap(resizedElements, tmpObj.resizedElements);
-        
+
         if ( ondisk ) // exchange file names only if rhs is not on memory!
-        {
             std::swap(binFilename, tmpObj.binFilename);
-        }
-        
+
         std::swap(allocated, tmpObj.allocated);
         std::swap(A, tmpObj.A);
 
@@ -2538,15 +2603,54 @@ namespace evolm
 
         ondisk = true;
 
-        if (allocated)
-        {
+        //if (allocated)
+        //{
 #ifdef intelmkl
             mkl_free(A);
 #else
             free(A);
 #endif
             allocated = false;
+        //}
+    }
+
+    //===============================================================================================================
+
+    template <typename T>
+    void matrix<T>::fwrite(const std::string &fname)
+    {
+        /*
+            Saves matrix to a DISK and not clears memory allocated for the container A.
+
+            Return value: none.
+        */
+        fA.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+        fA.open(fname, fA.binary | fA.trunc | fA.out);
+
+        if (!fA.is_open())
+        {
+            failbit = true;
+            throw std::string("Error while opening a binary file. matrix<T>::fwrite(const std::string &)");
         }
+
+        size_t sz;
+        if (!compact)
+            sz = numRow * numCol;
+        else
+            sz = (numCol * numCol + numCol) / 2;
+
+        size_t B[5];
+        B[0] = matrix_type;
+        B[1] = (size_t)compact;
+        B[2] = numRow;
+        B[3] = numCol;
+        B[4] = (size_t)sizeof(T); // points to a type of matrix     
+        
+        fA.write(reinterpret_cast<char *>(&B), 5 * sizeof(size_t));
+
+        fA.write(reinterpret_cast<char *>(A), sz * sizeof(T));
+
+        fA.close();
     }
 
     //===============================================================================================================
@@ -2607,6 +2711,80 @@ namespace evolm
         else
             throw std::string("matrix<T>::fread() => Cannot open the binary file to read from!");
     }
+    //===============================================================================================================
+
+    template <typename T>
+    void matrix<T>::fread(const std::string &fname)
+    {
+        /*
+            Moves saved on DISK matrix back to the memory.
+
+            Return value: none.
+        */
+
+        std::ifstream f( fname.c_str() );
+        if ( f.good() )
+        {
+
+            fA.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+            fA.open(fname, fA.binary | fA.in);
+
+            if (!fA.is_open())
+            {
+                failbit = true;
+                throw std::string("Error while opening a binary file. matrix<T>::fread(const std::string &)");
+            }
+
+            size_t B[5];
+
+            fA.read(reinterpret_cast<char *>(&B), 5 * sizeof(size_t));
+
+            size_t matr_type = B[0];
+            compact = (bool)B[1];
+            numRow = B[2];
+            numCol = B[3];
+            size_t var_inbytes = B[4];
+            
+            if ( matr_type != matrix_type )
+                throw std::string("The wrong kind of matrix trying to read the data from file! matrix<T>::fread(const std::string &)");
+
+            if ( var_inbytes != sizeof(T) )
+                throw std::string("The data type stored in file is not consistent with type of the matrix trying to read the data. matrix<T>::fread(const std::string &)");
+
+            size_t sz;
+            if (!compact)
+            {
+
+                sz = numRow * numCol;
+
+                int status = allocate(numRow, numCol);
+                if (status != 0)
+                    throw std::string("Memory allocation error. matrix<T>::fread(const std::string &)");
+
+                allocated = true;
+            }
+            else
+            {
+                sz = (numCol * numCol + numCol) / 2;
+
+                int status = allocate(numCol);
+                if (status != 0)
+                    throw std::string("Memory allocation error. matrix<T>::fread(const std::string &fname)");
+
+                allocated = true;
+            }
+
+            fA.read(reinterpret_cast<char *>(A), sz * sizeof(T));
+
+            fA.close();
+
+            ondisk = false;
+
+            resizedElements = sz;
+        }
+        else
+            throw std::string("matrix<T>::fread(const std::string &) => Cannot open the binary file to read from!");
+    }
 
     //===============================================================================================================
 
@@ -2616,7 +2794,7 @@ namespace evolm
         /*
             Checks if data saved on DISK or is in memory.
 
-            Return value: bol.
+            Return value: bool.
         */
 
         if (ondisk)
@@ -4695,9 +4873,11 @@ namespace evolm
         int matrix_order = LAPACK_ROW_MAJOR;
 
         info = LAPACKE_spptrf(matrix_order, 'L', colA, _A);
+
         if (info != 0)
         {
-            throw std::string("Error during computationof  the Cholesky factorization of a symmetric (Hermitian) positive-definite matrix using packed storage. matrix<T>::inv_sym(float *, MKL_INT)");
+            std::cout<<"info = "<<info<<"\n";
+            throw std::string("Error during computation of the Cholesky factorization of a symmetric (Hermitian) positive-definite matrix using packed storage. matrix<T>::inv_sym(float *, MKL_INT)");
         }
 
         info = LAPACKE_spptri(matrix_order, 'L', colA, _A);
@@ -4963,30 +5143,6 @@ namespace evolm
 #endif
             allocated = false;
         }
-    }
-
-    //===============================================================================================================
-
-    template <typename T>
-    matrix<T>::matrix(const matrix<T> &obj)
-    {
-        /*
-            Copy constructor.
-        */
-        compact = obj.compact;
-        rectangular = obj.rectangular;
-        symetric = obj.symetric;
-        failbit = obj.failbit;
-        failinfo = obj.failinfo;
-        numCol = obj.numCol;
-        numRow = obj.numRow;
-        resizedElements = obj.resizedElements;
-        binFilename = obj.binFilename;
-        allocated = false;
-        ondisk = obj.ondisk;
-        resize(numRow, numCol);
-        if (obj.allocated)
-            std::memcpy(A, obj.A, sizeof(T) * this->size());
     }
 
     //===============================================================================================================

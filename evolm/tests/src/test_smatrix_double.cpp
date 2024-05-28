@@ -549,6 +549,60 @@ TEST_CASE("Sparse matrix, checking class constructors, type = double")
         M.fclear();
     }
 
+    SECTION("fwrite(const std::string &) / fread(const std::string &)")
+    {
+        evolm::smatrix<double> M(5, 4);
+        evolm::smatrix<double> N;
+
+        M(0, 0) = 1.0;
+        M(2, 0) = 2.0;
+        M(2, 2) = 3.0;
+        M(4, 1) = 4;
+        M(4, 2) = 5.0;
+
+        CHECK(M.size() == 5);
+        CHECK(M.empty() == false);
+
+        size_t count = 0;
+        for (size_t i = 0; i < M.nrows(); i++)
+        {
+            for (size_t j = 0; j < M.ncols(); j++)
+            {
+                if (M.nonzero(i, j))
+                {
+                    CHECK(M(i, j) == ++count);
+                }
+            }
+        }
+
+        CHECK(M.size() == 5);
+
+        CHECK(M.size() == 5);
+
+        M.fwrite("M.smat");
+
+        CHECK(M.size() == 0);
+        CHECK(M.empty() == true);
+
+        N.fread("M.smat");
+
+        CHECK(N.size() == 5);
+
+        count = 0;
+        for (size_t i = 0; i < N.nrows(); i++)
+        {
+            for (size_t j = 0; j < N.ncols(); j++)
+            {
+                if (N.nonzero(i, j))
+                {
+                    CHECK(N(i, j) == ++count);
+                }
+            }
+        }
+
+        N.fclear("M.smat");
+    }
+
     SECTION("transpose()")
     {
         evolm::smatrix<double> M(5, 4);

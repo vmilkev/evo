@@ -335,11 +335,7 @@ namespace evoped
                 throw std::string("The number of elements in calculated A(-1) matrix is higher than the number of traced IDs!!");
 
             data_sparsity = ( 1.0 - (double)ainv.size() / (double)limit ) * 100.0;
-            
-            //size_t dense_mem = limit*sizeof(T);
-            //size_t sparse_mem = A_s.get_memory_usage( ainv.size() );
-            //std::cout<<"expected size of dense matrix: "<<dense_mem<<", expected size of sparse matrix: "<<sparse_mem<<", data sparsity: "<<data_sparsity<<", ratio: "<<(double)dense_mem/sparse_mem<<"\n";
-            
+                        
             if ( data_sparsity >= sparsity_threshold )
                 use_sparse = true; // the default is false
 
@@ -396,7 +392,7 @@ namespace evoped
     template <typename T>
     void Amat<T>::make_matrix(const std::string &ped_file, const std::string &g_file, bool use_ainv)
     {
-        // Making A(-1) based on reduced pedigree traced on IDs in the file 'g_file'
+        // Making A or A(-1) based on reduced pedigree traced on IDs in the file 'g_file'
         try
         {
             std::vector<std::int64_t> pedID;
@@ -418,6 +414,14 @@ namespace evoped
                 traced_pedID.erase(traced_pedID.begin(), traced_pedID.end());
 
             trace_pedigree(pedigree_from_file, r_pedigree, genotypedID); // tracing reduced pedigree for genotyped individuals
+
+            if (traced_pedID.empty())
+                throw std::string("The list of traced IDs of the reduced pedigree is empty!");
+            
+            Utilities2 u;
+
+            if ( !u.is_value_in_vect(traced_pedID, genotypedID) )
+                throw std::string("There are genotyped IDs which are not part of the reduced A(-1) matrix!");
 
             if (!inbrF.empty())
                 inbrF.erase(inbrF.begin(), inbrF.end());
@@ -445,10 +449,6 @@ namespace evoped
                 throw std::string("The number of elements in calculated A(-1) matrix is higher than the number of traced IDs!!");
 
             data_sparsity = ( 1.0 - (double)r_ainv.size() / (double)limit ) * 100.0;
-
-            //size_t dense_mem = limit*sizeof(T);
-            //size_t sparse_mem = A_s.get_memory_usage( r_ainv.size() );
-            //std::cout<<"expected size of dense matrix: "<<dense_mem<<", expected size of sparse matrix: "<<sparse_mem<<", data sparsity: "<<data_sparsity<<", ratio: "<<(double)dense_mem/sparse_mem<<"\n";
 
             if ( data_sparsity >= sparsity_threshold )
                 use_sparse = true;
@@ -543,10 +543,6 @@ namespace evoped
 
             data_sparsity = ( 1.0 - (double)ainv.size() / (double)limit ) * 100.0;
 
-            //size_t dense_mem = limit*sizeof(T);
-            //size_t sparse_mem = A_s.get_memory_usage( ainv.size() );
-            //std::cout<<"expected size of dense matrix: "<<dense_mem<<", expected size of sparse matrix: "<<sparse_mem<<", data sparsity: "<<data_sparsity<<", ratio: "<<(double)dense_mem/sparse_mem<<"\n";
-
             if ( data_sparsity >= sparsity_threshold )
                 use_sparse = true;
             
@@ -593,12 +589,23 @@ namespace evoped
 
             trace_pedigree(pedigree_from_file, r_pedigree, genotypedID); // tracing reduced pedigree for genotyped individuals
 
+            if (traced_pedID.empty())
+                throw std::string("The list of traced IDs of the reduced pedigree is empty!");
+            
+            Utilities2 u;
+
+            if ( !u.is_value_in_vect(traced_pedID, genotypedID) )
+                throw std::string("There are genotyped IDs which are not part of the reduced A(-1) matrix!");
+
             if (!inbrF.empty())
                 inbrF.erase(inbrF.begin(), inbrF.end());
 
             std::map<PedPair, T> r_ainv;
 
             get_ainv(r_pedigree, r_ainv, true); // making reduced A(-1)
+
+            if (r_ainv.size() == 0)
+                throw std::string("The size of reduced pedigree for genotyped individuaals is empty!");
 
             pedigree_from_file.clear();
 
@@ -608,10 +615,9 @@ namespace evoped
                 throw std::string("The number of elements in calculated reduced A(-1) matrix is higher than the number of traced IDs!!");
 
             data_sparsity = ( 1.0 - (double)r_ainv.size() / (double)limit ) * 100.0;
-
-            //dense_mem = limit*sizeof(T);
-            //sparse_mem = A_s.get_memory_usage( r_ainv.size() );
-            //std::cout<<"expected size of dense matrix: "<<dense_mem<<", expected size of sparse matrix: "<<sparse_mem<<", data sparsity: "<<data_sparsity<<", ratio: "<<(double)dense_mem/sparse_mem<<"\n";
+            
+            if ( data_sparsity >= sparsity_threshold )
+                use_sparse = true;
 
             if (use_sparse)
             {
@@ -636,14 +642,12 @@ namespace evoped
 
             id_irA = traced_pedID;
 
+            if ( traced_pedID.empty() )
+                throw std::string("The list of traced IDs for genotyped individuals is empty!");
+
             // -----------------------------------------------------
             // This matrix assumed as always dense !
             // -------------------- A22 ----------------------------
-
-            //limit = 0.5 * (genotypedID.size() - 1) * genotypedID.size() + genotypedID.size();
-            //dense_mem = limit*sizeof(T);
-            //sparse_mem = A_s.get_memory_usage( limit );
-            //std::cout<<"expected size of dense matrix: "<<dense_mem<<", expected size of sparse matrix: "<<sparse_mem<<", data sparsity: "<<data_sparsity<<", ratio: "<<(double)dense_mem/sparse_mem<<"\n";
             
             get_A22(r_pedigree, genotypedID);
             
@@ -695,25 +699,578 @@ namespace evoped
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Amat<T>::make_all(std::string &, std::string &, bool)" << '\n';
+            std::cerr << "Exception in Amat<T>::make_all(std::string &, std::string &)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Amat<T>::make_all(std::string &, std::string &, bool)" << '\n';
+            std::cerr << "Exception in Amat<T>::make_all(std::string &, std::string &)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Amat<T>::make_all(std::string &, std::string &, bool)" << '\n';
+            std::cerr << "Exception in Amat<T>::make_all(std::string &, std::string &)" << '\n';
             throw;
         }
     }
 
     template void Amat<float>::make_all(const std::string &ped_file, const std::string &g_file);
     template void Amat<double>::make_all(const std::string &ped_file, const std::string &g_file);
+
+    //===============================================================================================================
+
+    template <typename T>
+    void Amat<T>::make_all(const std::string &ped_file, std::vector<std::int64_t> &g_ids)
+    {
+        // Making all matrices required for ssBlup: A(-1), red_A(-1), A22, A22(-1)
+        try
+        {
+            // -----------------------------------------------------
+            // ---------- full A(-1) -------------------------------
+
+            std::vector<std::int64_t> pedID;
+            std::map<PedPair, PedPair> pedigree_from_file;
+            std::map<PedPair, PedPair> pedigree;
+
+            fread_pedigree(ped_file, pedigree_from_file, pedID);
+
+            if (pedID.empty())
+                throw std::string("Empty pedigree IDs!");
+
+            if (pedigree_from_file.empty())
+                throw std::string("File provided pedigree is empty!");
+
+            if (!traced_pedID.empty())
+                traced_pedID.erase(traced_pedID.begin(), traced_pedID.end());
+
+            trace_pedigree(pedigree_from_file, pedigree, pedID); // tracing full pedigree
+
+            if (!inbrF.empty())
+                inbrF.erase(inbrF.begin(), inbrF.end());
+
+            std::map<PedPair, T> ainv;
+
+            get_ainv(pedigree, ainv, true); // making A(-1)
+
+            size_t limit = 0.5 * (traced_pedID.size() - 1) * traced_pedID.size() + traced_pedID.size();
+
+            if (limit < ainv.size())
+                throw std::string("The number of elements in calculated full A(-1) matrix is higher than the number of traced IDs!!");
+
+            data_sparsity = ( 1.0 - (double)ainv.size() / (double)limit ) * 100.0;
+
+            if ( data_sparsity >= sparsity_threshold )
+                use_sparse = true;
+            
+            pedigree.clear();
+            pedID.clear();
+            pedID.shrink_to_fit();
+
+            if (use_sparse)
+            {
+                map_to_matr(ainv, traced_pedID, A_s); // converting ainv map to sparse ( A or A(-1) ) matrix
+                A_s.fwrite(); // 1. Wrire to binary
+                iA_s = A_s;   // 2. Copy matrix by exchanging the internal binary file name
+                A_s.resize();
+
+                IsEmpty.iA_s = false;
+            }
+            else
+            {
+                map_to_matr(ainv, traced_pedID, A); // converting ainv map to ( A or A(-1) ) matrix
+                A.fwrite(); // 1. Wrire to binary
+                iA = A;     // 2. Copy matrix by exchanging the internal binary file name
+                A.clear();  // 3. Clears the memory and gets new name for internal binary file
+
+                IsEmpty.iA = false;
+            }
+            
+            ainv.clear();
+
+            id_iA = traced_pedID;
+
+            // -----------------------------------------------------
+            // ---------- reduced A(-1) ----------------------------
+
+            std::vector<std::int64_t> genotypedID;
+            std::map<PedPair, PedPair> r_pedigree;
+
+            genotypedID = g_ids;
+
+            if (genotypedID.empty())
+                throw std::string("Cannot trace the reduced pedigree: ID's vector is empty!");
+
+            if (!traced_pedID.empty())
+                traced_pedID.erase(traced_pedID.begin(), traced_pedID.end());
+
+            trace_pedigree(pedigree_from_file, r_pedigree, genotypedID); // tracing reduced pedigree for genotyped individuals
+
+            if (traced_pedID.empty())
+                throw std::string("The list of traced IDs of the reduced pedigree is empty!");
+            
+            Utilities2 u;
+
+            if ( !u.is_value_in_vect(traced_pedID, genotypedID) )
+                throw std::string("There are genotyped IDs which are not part of the reduced A(-1) matrix!");
+
+            if (!inbrF.empty())
+                inbrF.erase(inbrF.begin(), inbrF.end());
+
+            std::map<PedPair, T> r_ainv;
+
+            get_ainv(r_pedigree, r_ainv, true); // making reduced A(-1)
+
+            if (r_ainv.size() == 0)
+                throw std::string("The size of reduced pedigree for genotyped individuaals is empty!");
+
+            pedigree_from_file.clear();
+
+            limit = 0.5 * (traced_pedID.size() - 1) * traced_pedID.size() + traced_pedID.size();
+
+            if (limit < r_ainv.size())
+                throw std::string("The number of elements in calculated reduced A(-1) matrix is higher than the number of traced IDs!!");
+
+            data_sparsity = ( 1.0 - (double)r_ainv.size() / (double)limit ) * 100.0;
+            
+            if ( data_sparsity >= sparsity_threshold )
+                use_sparse = true;
+
+            if (use_sparse)
+            {
+                map_to_matr(r_ainv, traced_pedID, A_s); // converting r_ainv map to A(-1) matrix
+                A_s.fwrite(); // 1. Wrire to binary
+                irA_s = A_s;  // 2. Copy matrix by just exchanging the internal binary file name
+                A_s.resize();
+
+                IsEmpty.irA_s = false;
+            }
+            else
+            {
+                map_to_matr(r_ainv, traced_pedID, A); // converting r_ainv map to A(-1) matrix
+                A.fwrite(); // 1. Wrire to binary
+                irA = A;    // 2. Copy matrix by just exchanging the internal binary file name
+                A.clear();  // 3. Clears the memory and gets new name for internal binary file
+
+                IsEmpty.irA = false;
+            }
+
+            r_ainv.clear();
+
+            id_irA = traced_pedID;
+
+            if ( traced_pedID.empty() )
+                throw std::string("The list of traced IDs for genotyped individuals is empty!");
+
+            // -----------------------------------------------------
+            // This matrix assumed as always dense !
+            // -------------------- A22 ----------------------------
+            
+            get_A22(r_pedigree, genotypedID);
+            
+            id_A22 = genotypedID;
+
+            r_pedigree.clear();
+            birth_id_map.clear();
+
+            // Here we expect A22 is always dense, hense, the used matrix
+            A.fwrite(); // 1. Wrire to binary
+            A22 = A;    // 2. Copy matrix by just exchanging the internal binary file name
+            A.clear();  // 3. Clears the memory and gets new name for internal binary file
+
+            IsEmpty.A22 = false;
+
+            // -----------------------------------------------------
+            // The pathway depends on the sparsity of calculated irA_s or irA
+            // -------------------- A22(-1) ------------------------
+
+            if ( !IsEmpty.irA_s ) // irA_s is not empty (was processed through a sparse pathway)
+            {
+                irA_s.fread();
+
+                get_iA22(irA_s, id_irA, genotypedID);
+
+                irA_s.fwrite();
+
+                A_s.fwrite(); // 1. Wrire to binary
+                iA22_s = A_s; // 2. Copy matrix by just exchanging the internal binary file name
+                A_s.resize(); // 3. Clears the memory and gets new name for internal binary file
+
+                IsEmpty.iA22_s = false;
+            }
+            else
+            {
+                irA.fread();
+                get_iA22(irA, id_irA, genotypedID);
+                irA.fwrite();
+
+                A.fwrite(); // 1. Wrire to binary
+                iA22 = A;   // 2. Copy matrix by just exchanging the internal binary file name
+                A.clear();  // 3. Clears the memory and gets new name for internal binary file
+
+                IsEmpty.iA22 = false;
+            }
+
+            genotypedID.clear();
+            genotypedID.shrink_to_fit();
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Amat<T>::make_all(std::string &, std::vector<std::int64_t> &)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Amat<T>::make_all(std::string &, std::vector<std::int64_t> &)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Amat<T>::make_all(std::string &, std::vector<std::int64_t> &)" << '\n';
+            throw;
+        }
+    }
+
+    template void Amat<float>::make_all(const std::string &ped_file, std::vector<std::int64_t> &g_ids);
+    template void Amat<double>::make_all(const std::string &ped_file, std::vector<std::int64_t> &g_ids);
+
+    //===============================================================================================================
+
+    template <typename T>
+    void Amat<T>::make_matrix_forgenotyped(const std::string &ped_file, const std::string &g_file, bool use_ainv)
+    {
+        // Making matrices required for scalling G (GRM) matrix: A22 or A22(-1)
+        try
+        {
+            // -----------------------------------------------------
+            std::vector<std::int64_t> pedID;
+            std::map<PedPair, PedPair> pedigree_from_file;
+
+            fread_pedigree(ped_file, pedigree_from_file, pedID);
+
+            if (pedID.empty())
+                throw std::string("Empty pedigree IDs!");
+
+            if (pedigree_from_file.empty())
+                throw std::string("File provided pedigree is empty!");
+
+            if (!traced_pedID.empty())
+                traced_pedID.erase(traced_pedID.begin(), traced_pedID.end());
+
+            // -----------------------------------------------------
+            // ---------- reduced A(-1) ----------------------------
+
+            std::vector<std::int64_t> genotypedID;
+            std::map<PedPair, PedPair> r_pedigree;
+
+            fread_genotyped_id(g_file, genotypedID);
+
+            if (genotypedID.empty())
+                throw std::string("Cannot trace the reduced pedigree: ID's vector is empty!");
+
+            trace_pedigree(pedigree_from_file, r_pedigree, genotypedID); // tracing reduced pedigree for genotyped individuals
+
+            if (traced_pedID.empty())
+                throw std::string("The list of traced IDs of the reduced pedigree is empty!");
+            
+            Utilities2 u;
+
+            if ( !u.is_value_in_vect(traced_pedID, genotypedID) )
+                throw std::string("There are genotyped IDs which are not part of the reduced A(-1) matrix!");
+
+            if (!inbrF.empty())
+                inbrF.erase(inbrF.begin(), inbrF.end());
+
+            std::map<PedPair, T> r_ainv;
+
+            get_ainv(r_pedigree, r_ainv, true); // making reduced A(-1)
+
+            pedigree_from_file.clear();
+
+            size_t limit = 0.5 * (traced_pedID.size() - 1) * traced_pedID.size() + traced_pedID.size();
+
+            if (limit < r_ainv.size())
+                throw std::string("The number of elements in calculated reduced A(-1) matrix is higher than the number of traced IDs!!");
+
+            data_sparsity = ( 1.0 - (double)r_ainv.size() / (double)limit ) * 100.0;
+
+            if ( data_sparsity >= sparsity_threshold )
+                use_sparse = true;
+
+            if ( use_ainv )
+            {
+                if (use_sparse)
+                {
+                    map_to_matr(r_ainv, traced_pedID, A_s); // converting r_ainv map to A(-1) matrix
+                    A_s.fwrite(); // 1. Wrire to binary
+                    irA_s = A_s;  // 2. Copy matrix by just exchanging the internal binary file name
+                    A_s.resize();
+
+                    IsEmpty.irA_s = false;
+                }
+                else
+                {
+                    map_to_matr(r_ainv, traced_pedID, A); // converting r_ainv map to A(-1) matrix
+                    A.fwrite(); // 1. Wrire to binary
+                    irA = A;    // 2. Copy matrix by just exchanging the internal binary file name
+                    A.clear();  // 3. Clears the memory and gets new name for internal binary file
+
+                    IsEmpty.irA = false;
+                }
+
+                r_ainv.clear();
+
+                id_irA = traced_pedID;
+
+                // -----------------------------------------------------
+                // The pathway depends on the sparsity of calculated irA_s or irA
+                // -------------------- A22(-1) ------------------------
+
+                if ( !IsEmpty.irA_s ) // irA_s is not empty (was processed through a sparse pathway)
+                {
+                    irA_s.fread();
+                    
+                    get_iA22(irA_s, id_irA, genotypedID);
+
+                    irA_s.fwrite();
+
+                    A_s.fwrite(); // 1. Wrire to binary
+                    iA22_s = A_s; // 2. Copy matrix by just exchanging the internal binary file name
+                    A_s.resize(); // 3. Clears the memory and gets new name for internal binary file
+
+                    IsEmpty.iA22_s = false;
+                }
+                else
+                {
+                    irA.fread();
+
+                    get_iA22(irA, id_irA, genotypedID);
+                    irA.fwrite();
+
+                    A.fwrite(); // 1. Wrire to binary
+                    iA22 = A;   // 2. Copy matrix by just exchanging the internal binary file name
+                    A.clear();  // 3. Clears the memory and gets new name for internal binary file
+
+                    IsEmpty.iA22 = false;
+                }
+
+                id_A22 = genotypedID;
+            }
+            else
+            {
+                // -----------------------------------------------------
+                // This matrix assumed as always dense !
+                // -------------------- A22 ----------------------------
+                
+                get_A22(r_pedigree, genotypedID);
+                
+                id_A22 = genotypedID;
+
+                r_pedigree.clear();
+                birth_id_map.clear();
+
+                // Here we expect A22 is always dense, hense, the used matrix
+                A.fwrite(); // 1. Wrire to binary
+                A22 = A;    // 2. Copy matrix by just exchanging the internal binary file name
+                A.clear();  // 3. Clears the memory and gets new name for internal binary file
+
+                IsEmpty.A22 = false;
+            }
+
+            genotypedID.clear();
+            genotypedID.shrink_to_fit();
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Amat<T>::make_matrix_forgenotyped(std::string &, std::string &, bool)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Amat<T>::make_matrix_forgenotyped(std::string &, std::string &, bool)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Amat<T>::make_matrix_forgenotyped(std::string &, std::string &, bool)" << '\n';
+            throw;
+        }
+    }
+
+    template void Amat<float>::make_matrix_forgenotyped(const std::string &ped_file, const std::string &g_file, bool use_ainv);
+    template void Amat<double>::make_matrix_forgenotyped(const std::string &ped_file, const std::string &g_file, bool use_ainv);
+
+    //===============================================================================================================
+
+    template <typename T>
+    void Amat<T>::make_matrix_forgenotyped(const std::string &ped_file, std::vector<std::int64_t> &genotyped_ids, bool use_ainv)
+    {
+        // Making matrices required for scalling G (GRM) matrix: A22 or A22(-1)
+        try
+        {
+            // -----------------------------------------------------
+            std::vector<std::int64_t> pedID;
+            std::map<PedPair, PedPair> pedigree_from_file;
+            
+            fread_pedigree(ped_file, pedigree_from_file, pedID);
+
+            if (pedID.empty())
+                throw std::string("Empty pedigree IDs!");
+
+            if (pedigree_from_file.empty())
+                throw std::string("File provided pedigree is empty!");
+
+            if (!traced_pedID.empty())
+                traced_pedID.erase(traced_pedID.begin(), traced_pedID.end());
+
+            // -----------------------------------------------------
+            // ---------- reduced A(-1) ----------------------------
+
+            std::vector<std::int64_t> genotypedID;
+            std::map<PedPair, PedPair> r_pedigree;
+
+            genotypedID = genotyped_ids;
+
+            if (genotypedID.empty())
+                throw std::string("Cannot trace the reduced pedigree: ID's vector is empty!");
+
+            trace_pedigree(pedigree_from_file, r_pedigree, genotypedID); // tracing reduced pedigree for genotyped individuals
+
+            if (traced_pedID.empty())
+                throw std::string("The list of traced IDs of the reduced pedigree is empty!");
+            
+            Utilities2 u;
+
+            if ( !u.is_value_in_vect(traced_pedID, genotypedID) )
+                throw std::string("There are genotyped IDs which are not part of the reduced A(-1) matrix!");
+
+            if (!inbrF.empty())
+                inbrF.erase(inbrF.begin(), inbrF.end());
+
+            std::map<PedPair, T> r_ainv;
+
+            get_ainv(r_pedigree, r_ainv, true); // making reduced A(-1)
+
+            pedigree_from_file.clear();
+
+            size_t limit = 0.5 * (traced_pedID.size() - 1) * traced_pedID.size() + traced_pedID.size();
+
+            if (limit < r_ainv.size())
+                throw std::string("The number of elements in calculated reduced A(-1) matrix is higher than the number of traced IDs!!");
+
+            data_sparsity = ( 1.0 - (double)r_ainv.size() / (double)limit ) * 100.0;
+            
+            if ( data_sparsity >= sparsity_threshold )
+                use_sparse = true;
+
+            if ( use_ainv )
+            {
+                if (use_sparse)
+                {
+                    map_to_matr(r_ainv, traced_pedID, A_s); // converting r_ainv map to A(-1) matrix
+                    A_s.fwrite(); // 1. Wrire to binary
+                    irA_s = A_s;  // 2. Copy matrix by just exchanging the internal binary file name
+                    A_s.resize();
+
+                    IsEmpty.irA_s = false;
+                }
+                else
+                {
+                    map_to_matr(r_ainv, traced_pedID, A); // converting r_ainv map to A(-1) matrix
+                    A.fwrite(); // 1. Wrire to binary
+                    irA = A;    // 2. Copy matrix by just exchanging the internal binary file name
+                    A.clear();  // 3. Clears the memory and gets new name for internal binary file
+
+                    IsEmpty.irA = false;
+                }
+
+                r_ainv.clear();
+
+                id_irA = traced_pedID;
+
+                // -----------------------------------------------------
+                // The pathway depends on the sparsity of calculated irA_s or irA
+                // -------------------- A22(-1) ------------------------
+
+                if ( !IsEmpty.irA_s ) // irA_s is not empty (was processed through a sparse pathway)
+                {
+                    irA_s.fread();
+
+                    get_iA22(irA_s, id_irA, genotypedID);
+
+                    irA_s.fwrite();
+
+                    A_s.fwrite(); // 1. Wrire to binary
+                    iA22_s = A_s; // 2. Copy matrix by just exchanging the internal binary file name
+                    A_s.resize(); // 3. Clears the memory and gets new name for internal binary file
+
+                    IsEmpty.iA22_s = false;
+                }
+                else
+                {
+                    irA.fread();
+                    get_iA22(irA, id_irA, genotypedID);
+                    irA.fwrite();
+
+                    A.fwrite(); // 1. Wrire to binary
+                    iA22 = A;   // 2. Copy matrix by just exchanging the internal binary file name
+                    A.clear();  // 3. Clears the memory and gets new name for internal binary file
+
+                    IsEmpty.iA22 = false;
+                }
+
+                id_A22 = genotypedID;
+            }
+            else
+            {
+                // -----------------------------------------------------
+                // This matrix assumed as always dense !
+                // -------------------- A22 ----------------------------
+                
+                get_A22(r_pedigree, genotypedID);
+                
+                id_A22 = genotypedID;
+
+                r_pedigree.clear();
+                birth_id_map.clear();
+
+                // Here we expect A22 is always dense, hense, the used matrix
+                A.fwrite(); // 1. Wrire to binary
+                A22 = A;    // 2. Copy matrix by just exchanging the internal binary file name
+                A.clear();  // 3. Clears the memory and gets new name for internal binary file
+
+                IsEmpty.A22 = false;
+            }
+
+            genotypedID.clear();
+            genotypedID.shrink_to_fit();
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Amat<T>::make_matrix_forgenotyped(std::string &, std::vector<std::int64_t> &, bool)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Amat<T>::make_matrix_forgenotyped(std::string &, std::vector<std::int64_t> &, bool)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Amat<T>::make_matrix_forgenotyped(std::string &, std::vector<std::int64_t> &, bool)" << '\n';
+            throw;
+        }
+    }
+
+    template void Amat<float>::make_matrix_forgenotyped(const std::string &ped_file, std::vector<std::int64_t> &genotyped_ids, bool use_ainv);
+    template void Amat<double>::make_matrix_forgenotyped(const std::string &ped_file, std::vector<std::int64_t> &genotyped_ids, bool use_ainv);
 
     //===============================================================================================================
 
@@ -741,9 +1298,6 @@ namespace evoped
             if (selected_ids.size() > matr_ids.size())
                 throw std::string("The number of elements in the passed selected IDs array is greater then the number of IDs in the passed matrix!");
 
-            if (!u.is_value_in_vect(matr_ids, selected_ids))
-                throw std::string("There are IDs in the selected IDs array which are not part of the passed matrix!");
-
             // --------------------------------
             if (!A.empty())
             {
@@ -761,6 +1315,9 @@ namespace evoped
                 if (res == -1)
                     not_selected_ids.push_back(matr_ids[i]);
             }
+
+            if ( not_selected_ids.empty() )
+                throw std::string("The vector of individuals which are in pedigree but not in genotyped IDs list is empty!");
 
             if ((selected_ids.size() + not_selected_ids.size()) != matr_ids.size())
                 throw std::string("The sum of IDs from from two vectors is not equal to number of IDs in the matrix!");
@@ -807,6 +1364,7 @@ namespace evoped
             A11.invert();
 
             A11.fwrite();
+
             // ------------------------------------------------
             //
             // -------------------- A21 -----------------------
@@ -948,6 +1506,9 @@ namespace evoped
             size_t n_rows = full_matr.nrows();
             size_t n_cols = full_matr.ncols();
 
+            if ( matr_ids.size() == selected_ids.size() )
+                throw std::string("The genotyped individuals have no ancestors in pedigree => the list of population IDs is equal to the list of genotyped IDs!");
+
             if (n_rows != n_cols)
                 throw std::string("The passed matrix has wrong dimension: number of raws is not the same as number of columns!");
 
@@ -977,6 +1538,9 @@ namespace evoped
                 if (res == -1)
                     not_selected_ids.push_back(matr_ids[i]);
             }
+
+            if ( not_selected_ids.empty() )
+                throw std::string("The list of individuals which are in pedigree but not in genotyped IDs list is empty!");
 
             if ((selected_ids.size() + not_selected_ids.size()) != matr_ids.size())
                 throw std::string("The sum of IDs from from two vectors is not equal to number of IDs in the matrix!");
@@ -2197,86 +2761,6 @@ namespace evoped
     //===============================================================================================================
 
     template <typename T>
-    void Amat<T>::dense_to_sparse(evolm::matrix<T> &from, evolm::smatrix<T> &to)
-    {
-        try
-        {
-            evolm::matrix<size_t> shp;
-            shp = from.shape();
-
-            T zerro_value = (T)0;
-
-            for (size_t i = 0; i < shp[0]; i++)
-            {
-                for (size_t j = 0; j <= i; j++)
-                {
-                    if ( from(i,j) != zerro_value )
-                        to(i,j) = from(i,j);
-                }
-            }
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Exception in Amat<T>::dense_to_sparse(evolm::matrix<T> &, evolm::smatrix<T> &)" << '\n';
-            std::cerr << e.what() << '\n';
-            throw;
-        }
-        catch (const std::string &e)
-        {
-            std::cerr << "Exception in Amat<T>::dense_to_sparse(evolm::matrix<T> &, evolm::smatrix<T> &)" << '\n';
-            std::cerr << "Reason: " << e << '\n';
-            throw;
-        }
-        catch (...)
-        {
-            std::cerr << "Exception in Amat<T>::dense_to_sparse(evolm::matrix<T> &, evolm::smatrix<T> &)" << '\n';
-            throw;
-        }
-    }
-
-    template void Amat<float>::dense_to_sparse(evolm::matrix<float> &from, evolm::smatrix<float> &to);
-    template void Amat<double>::dense_to_sparse(evolm::matrix<double> &from, evolm::smatrix<double> &to);
-
-    //===============================================================================================================
-
-    template <typename T>
-    void Amat<T>::sparse_to_dense(evolm::smatrix<T> &from, evolm::matrix<T> &to)
-    {
-        try
-        {
-            size_t key = 0;
-            
-            for ( size_t i = 0; i < from.size(); i++ )
-            {
-                key = from.get_key(i);
-                to[key] = from[key];
-            }
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Exception in Amat<T>::sparse_to_dense(evolm::smatrix<T> &, evolm::matrix<T> &)" << '\n';
-            std::cerr << e.what() << '\n';
-            throw;
-        }
-        catch (const std::string &e)
-        {
-            std::cerr << "Exception in Amat<T>::sparse_to_dense(evolm::smatrix<T> &, evolm::matrix<T> &)" << '\n';
-            std::cerr << "Reason: " << e << '\n';
-            throw;
-        }
-        catch (...)
-        {
-            std::cerr << "Exception in Amat<T>::sparse_to_dense(evolm::smatrix<T> &, evolm::matrix<T> &)" << '\n';
-            throw;
-        }
-    }
-
-    template void Amat<float>::sparse_to_dense(evolm::smatrix<float> &from, evolm::matrix<float> &to);
-    template void Amat<double>::sparse_to_dense(evolm::smatrix<double> &from, evolm::matrix<double> &to);
-
-    //===============================================================================================================
-
-    template <typename T>
     void Amat<T>::clear()
     {
         try
@@ -2349,13 +2833,15 @@ namespace evoped
 
         try
         {
+            Utilities2 u;
+
             if (name == "A") // we use iA as a container for A as well
             {
                 if ( IsEmpty.iA ) // was used sparse pipeline
                 {
                     iA.resize( id_iA.size() );
                     iA_s.fread();                    
-                    sparse_to_dense( iA_s, iA );
+                    u.sparse_to_dense( iA_s, iA );
                     iA_s.fwrite();
                     iA.fwrite();
                 }
@@ -2370,7 +2856,7 @@ namespace evoped
                 {
                     irA.resize( id_irA.size() );
                     irA_s.fread();                    
-                    sparse_to_dense( irA_s, irA );
+                    u.sparse_to_dense( irA_s, irA );
                     irA_s.fwrite();
                     irA.fwrite();
                 }
@@ -2385,7 +2871,7 @@ namespace evoped
                 {
                     iA.resize( id_iA.size() );
                     iA_s.fread();                    
-                    sparse_to_dense( iA_s, iA );
+                    u.sparse_to_dense( iA_s, iA );
                     iA_s.fwrite();
                     iA.fwrite();
                 }
@@ -2400,7 +2886,7 @@ namespace evoped
                 {
                     irA.resize( id_irA.size() );
                     irA_s.fread();                    
-                    sparse_to_dense( irA_s, irA );
+                    u.sparse_to_dense( irA_s, irA );
                     irA_s.fwrite();
                     irA.fwrite();
                 }
@@ -2415,7 +2901,7 @@ namespace evoped
                 {
                     iA22.resize( id_A22.size() );
                     iA22_s.fread();                    
-                    sparse_to_dense( iA22_s, iA22 );
+                    u.sparse_to_dense( iA22_s, iA22 );
                     iA22_s.fwrite();
                     iA22.fwrite();
                 }
@@ -2430,7 +2916,7 @@ namespace evoped
                 {
                     A22.resize( id_A22.size() );
                     A22_s.fread();                    
-                    sparse_to_dense( A22_s, A22 );
+                    u.sparse_to_dense( A22_s, A22 );
                     A22_s.fwrite();
                     A22.fwrite();
                 }
@@ -2477,13 +2963,15 @@ namespace evoped
         */
         try
         {
+            Utilities2 u;
+
             if (name == "A") // we use iA as a container for A as well
             {
                 if ( IsEmpty.iA_s ) // was used dense pipeline
                 {
                     iA_s.resize( id_iA.size() );
                     iA.fread();                    
-                    dense_to_sparse( iA, iA_s );
+                    u.dense_to_sparse( iA, iA_s );
                     iA_s.fwrite();
                     iA.fwrite();
                 }
@@ -2498,7 +2986,7 @@ namespace evoped
                 {
                     irA_s.resize( id_irA.size() );
                     irA.fread();                    
-                    dense_to_sparse( irA, irA_s );
+                    u.dense_to_sparse( irA, irA_s );
                     irA_s.fwrite();
                     irA.fwrite();
                 }
@@ -2513,7 +3001,7 @@ namespace evoped
                 {
                     iA_s.resize( id_iA.size() );
                     iA.fread();                    
-                    dense_to_sparse( iA, iA_s );
+                    u.dense_to_sparse( iA, iA_s );
                     iA_s.fwrite();
                     iA.fwrite();
                 }
@@ -2528,7 +3016,7 @@ namespace evoped
                 {
                     irA_s.resize( id_irA.size() );
                     irA.fread();                    
-                    dense_to_sparse( irA, irA_s );
+                    u.dense_to_sparse( irA, irA_s );
                     irA_s.fwrite();
                     irA.fwrite();
                 }
@@ -2543,7 +3031,7 @@ namespace evoped
                 {
                     iA22_s.resize( id_A22.size() );
                     iA22.fread();                    
-                    dense_to_sparse( iA22, iA22_s );
+                    u.dense_to_sparse( iA22, iA22_s );
                     iA22_s.fwrite();
                     iA22.fwrite();
                 }
@@ -2558,7 +3046,7 @@ namespace evoped
                 {
                     A22_s.resize( id_A22.size() );
                     A22.fread();
-                    dense_to_sparse( A22, A22_s );
+                    u.dense_to_sparse( A22, A22_s );
                     A22_s.fwrite();
                     A22.fwrite();
                 }

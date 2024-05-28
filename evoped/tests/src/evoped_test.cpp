@@ -1391,7 +1391,7 @@ TEST_CASE( "Testing Gmat class" )
             gmat.make_matrix("tests/data/allele.dat");
             gmat.get_matrix(G,g_id);
 
-            G.fread();
+            //G.fread();
 
             std::vector<double> Gvect;
             for (size_t i = 0; i < g_id.size(); i++)
@@ -1440,7 +1440,7 @@ TEST_CASE( "Testing Gmat class" )
             gmat.read_matrix("tests/data/g_mat");
             gmat.get_matrix(G,g_id);
 
-            G.fread();
+            //G.fread();
 
             std::vector<double> Gvect;
             for (size_t i = 0; i < g_id.size(); i++)
@@ -1499,7 +1499,7 @@ TEST_CASE( "Testing Gmat class" )
             gmat.scale_matrix(A22, 0.25);
             gmat.get_matrix(G,g_id);
 
-            G.fread();
+            //G.fread();
 
 #ifdef UTEST
             double a, b, a_diag, a_ofd, g_diag, g_ofd;
@@ -1522,7 +1522,7 @@ TEST_CASE( "Testing Gmat class" )
             gmat.invert_matrix(true);
             gmat.get_matrix(G,g_id);
 
-            G.fread();
+            //G.fread();
 
             CHECK( iG_true.size() == G.size() );
 
@@ -1573,7 +1573,7 @@ TEST_CASE( "Testing Gmat class" )
             gmat.invert_matrix(core_id);
             gmat.get_matrix(G,g_id);
 
-            G.fread();
+            //G.fread();
 
             CHECK( iG_sparse_true.size() == G.size() );
 
@@ -1624,7 +1624,7 @@ TEST_CASE( "Testing Gmat class" )
             gmat.invert_matrix(core_id);
             gmat.get_matrix(G,g_id);
 
-            G.fread();
+            //G.fread();
 
             CHECK( iG_sparse_true.size() == G.size() );
 
@@ -1675,7 +1675,7 @@ TEST_CASE( "Testing Gmat class" )
             gmat.invert_matrix(core_id);
             gmat.get_matrix(G,g_id);
 
-            G.fread();
+            //G.fread();
 
             CHECK( iG_sparse_true.size() == G.size() );
 
@@ -1700,7 +1700,7 @@ TEST_CASE( "Testing Gmat class" )
         }                
     }
 
-    SECTION( "Sparse inverse of H" )
+    SECTION( "20. Sparse inverse of H, all matrices are dense" )
     {
         try
         {
@@ -1736,14 +1736,14 @@ TEST_CASE( "Testing Gmat class" )
             gmat.invert_matrix(core_id);
             gmat.get_matrix(G,g_id);
 
-            G.fread();
+            //G.fread();
 
-            evoped::Hmat h;
+            evoped::Hmat<double> h;
             evolm::matrix<double> H;
             std::vector<std::int64_t> h_id;
             h.make_matrix(iA, a_id, iA22, ai22_id, G, g_id);
             
-            h.get_matrix(H,h_id,false);
+            h.get_matrix(H,h_id);
 
             std::vector<double> Hvect;
             for (size_t i = 0; i < h_id.size(); i++)
@@ -1783,6 +1783,211 @@ TEST_CASE( "Testing Gmat class" )
             H.fclear();
             H.clear();
 
+            std::cout<<"H: passed 20"<<"\n";
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << e.what() << '\n';
+        }
+        catch(const std::string& e)
+        {
+            std::cerr << e << '\n';
+        }                
+    }
+
+    SECTION( "21. Sparse inverse of H, all A matrices are sparse" )
+    {
+        try
+        {
+            evoped::Amat<double> ap;
+
+            evolm::smatrix<double> iA;
+            std::vector<std::int64_t> a_id;
+
+            evolm::smatrix<double> iA22;
+            std::vector<std::int64_t> ai22_id;
+
+            evolm::matrix<double> A22;
+            std::vector<std::int64_t> a22_id;
+
+            ap.set_sparsiity_threshold(0.0); // ensure sparse format
+
+            ap.make_all("tests/data/ped_bkg.dat", "tests/data/typed2");
+            
+            ap.get_matrix("iA", iA, a_id);
+            ap.get_matrix("iA22", iA22, ai22_id);
+            ap.get_matrix("A22", A22, a22_id);
+
+            iA.fread();
+            iA22.fread();
+            A22.fread();
+
+            evoped::Gmat<double> gmat;
+
+            evolm::matrix<double> G;
+            std::vector<std::int64_t> g_id;
+
+            //gmat.make_matrix("tests/data/allele.dat");
+            gmat.read_matrix("tests/data/g_mat");
+            gmat.scale_matrix(A22, 0.25);
+
+            std::vector<std::int64_t> core_id{ 18, 20, 22, 25 };
+
+            gmat.invert_matrix(core_id);
+            gmat.get_matrix(G,g_id);
+
+            //G.fread();
+
+            evoped::Hmat<double> h;
+
+            evolm::smatrix<double> H;
+            std::vector<std::int64_t> h_id;
+
+            h.make_matrix(iA, a_id, iA22, ai22_id, G, g_id);
+
+            h.get_matrix(H,h_id);
+
+            std::vector<double> Hvect;
+            for (size_t i = 0; i < h_id.size(); i++)
+            {
+                for (size_t j = 0; j <= i; j++)
+                {
+                    if ( H(i,j) != 0.0 )
+                    {
+                        Hvect.push_back( h_id[i] );
+                        Hvect.push_back( h_id[j] );
+                        Hvect.push_back( H(i,j) );
+                    }
+                }
+            }
+
+            CHECK( iH_sparse_true.size() == Hvect.size() );
+
+            for (size_t i = 0; i < Hvect.size();)
+            {
+                CHECK(iH_sparse_true[i] == Hvect[i] );
+                CHECK(iH_sparse_true[i+1] == Hvect[i+1] );
+                CHECK(iH_sparse_true[i+2] == Catch::Approx(Hvect[i+2]) );
+                i = i + 3;
+            }
+
+            ap.clear();
+
+            iA.fclear();
+            iA22.fclear();
+            A22.fclear();
+
+            iA.clear();
+            iA22.clear();
+            A22.clear();
+            G.fclear();
+            G.clear();
+            H.fclear();
+            H.clear();
+
+            std::cout<<"H: passed 21"<<"\n";
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << e.what() << '\n';
+        }
+        catch(const std::string& e)
+        {
+            std::cerr << e << '\n';
+        }                
+    }
+
+    SECTION( "22. Sparse inverse of H, only A(-1) is sparse" )
+    {
+        try
+        {
+            evoped::Amat<double> ap;
+
+            evolm::smatrix<double> iA;
+            std::vector<std::int64_t> a_id;
+
+            evolm::matrix<double> iA22;
+            std::vector<std::int64_t> ai22_id;
+
+            evolm::matrix<double> A22;
+            std::vector<std::int64_t> a22_id;
+
+            ap.set_sparsiity_threshold(0.0); // ensure sparse format
+
+            ap.make_all("tests/data/ped_bkg.dat", "tests/data/typed2");
+            
+            ap.get_matrix("iA", iA, a_id);
+            ap.get_matrix("iA22", iA22, ai22_id);
+            ap.get_matrix("A22", A22, a22_id);
+
+            iA.fread();
+            iA22.fread();
+            A22.fread();
+
+            evoped::Gmat<double> gmat;
+
+            evolm::matrix<double> G;
+            std::vector<std::int64_t> g_id;
+
+            //gmat.make_matrix("tests/data/allele.dat");
+            gmat.read_matrix("tests/data/g_mat");
+            gmat.scale_matrix(A22, 0.25);
+
+            std::vector<std::int64_t> core_id{ 18, 20, 22, 25 };
+
+            gmat.invert_matrix(core_id);
+            gmat.get_matrix(G,g_id);
+
+            //G.fread();
+
+            evoped::Hmat<double> h;
+
+            evolm::smatrix<double> H;
+            std::vector<std::int64_t> h_id;
+
+            h.make_matrix(iA, a_id, iA22, ai22_id, G, g_id);
+
+            h.get_matrix(H,h_id);
+
+            std::vector<double> Hvect;
+            for (size_t i = 0; i < h_id.size(); i++)
+            {
+                for (size_t j = 0; j <= i; j++)
+                {
+                    if ( H(i,j) != 0.0 )
+                    {
+                        Hvect.push_back( h_id[i] );
+                        Hvect.push_back( h_id[j] );
+                        Hvect.push_back( H(i,j) );
+                    }
+                }
+            }
+
+            CHECK( iH_sparse_true.size() == Hvect.size() );
+
+            for (size_t i = 0; i < Hvect.size();)
+            {
+                CHECK(iH_sparse_true[i] == Hvect[i] );
+                CHECK(iH_sparse_true[i+1] == Hvect[i+1] );
+                CHECK(iH_sparse_true[i+2] == Catch::Approx(Hvect[i+2]) );
+                i = i + 3;
+            }
+
+            ap.clear();
+
+            iA.fclear();
+            iA22.fclear();
+            A22.fclear();
+
+            iA.clear();
+            iA22.clear();
+            A22.clear();
+            G.fclear();
+            G.clear();
+            H.fclear();
+            H.clear();
+
+            std::cout<<"H: passed 22"<<"\n";
         }
         catch(const std::exception& e)
         {

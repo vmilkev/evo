@@ -37,14 +37,20 @@ namespace evoped
         void scale_genotypes(const std::string &fname);
         void scale_genotypes(const std::string &fname, const std::string &fname_ids);        
         
-        void scale_matrix(T scale_coef);        
+        void scale_diag(T scale_coef);        
         void scale_matrix(evolm::matrix<T>& scale_matr, T scaling_weight);
         
         void invert_matrix();
         void invert_matrix(bool full_store);        
         void invert_matrix(std::vector<std::int64_t>& core_id); // sparse inverse (APY)        
         
-        void get_matrix(evolm::matrix<T>& arr, std::vector<std::int64_t>& ids);        
+        void get_matrix(evolm::matrix<T> &arr, std::vector<std::int64_t> &ids);
+        void get_matrix(evolm::matrix<T> &arr);
+        void get_matrix(std::vector<std::int64_t> &ids);
+
+        void save_matrix(const std::string &arr, const std::string &ids);
+        void save_matrix(const std::string &arr);
+        void save_ids(const std::string &ids);
         
         void clear();
 

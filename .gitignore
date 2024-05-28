@@ -11,5 +11,10 @@ evogen/trait_pop_reduced.dat
 evoped/tests/data/.DS_Store
 evoped/tests/data/core.dat
 evoped/tests/data/sstep_050/
+evoped/subm_test/
+evoped/tests/data/big/
+evoped/release2/
+evolm/release/
 evolm/tests/data/large_data/
 libplinkio/test_data
+libplinkio/release_lib/

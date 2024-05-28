@@ -523,6 +523,46 @@ TEST_CASE("Testing overloaded operator = , type = double"){
         }
     }
 
+    SECTION("Checking an uninitialised square matrix: combined with fread()/fwrite()"){
+        
+        evolm::matrix <mytype> M1(3,3);
+        evolm::matrix <mytype> M2;
+        evolm::matrix <mytype> M3;
+
+        REQUIRE_FALSE(M1.failbit);
+        REQUIRE_FALSE(M2.failbit);
+
+        for(size_t i = 0; i < M1.size(); i++){
+            M1[i] = 1;
+        }
+        M1.scale(5.0);
+
+        M2 = M1;
+
+        REQUIRE_FALSE(M1.failbit);
+        REQUIRE_FALSE(M2.failbit);
+
+        for (size_t i = 0; i < M1.size(); i++){
+            CHECK(M1[i] == M2[i]);
+        }
+
+        M1.fwrite();
+
+        CHECK( M1.empty() == true );
+
+        M3 = M1;
+
+        CHECK( M3.empty() == true );
+
+        M3.fread();
+
+        CHECK( M3.empty() == false );
+        
+        for (size_t i = 0; i < M1.size(); i++){
+            CHECK(M3[i] == M2[i]);
+        }
+    }
+
     SECTION("Checking an initialised rectangular matrix (3,5)"){
         
         evolm::matrix <mytype> M1(3,5);
@@ -1090,6 +1130,52 @@ TEST_CASE("Chacking fread()/fwrite() methods, type = double"){
 
         for(size_t i = 0; i < M.size(); i++){
             CHECK(M[i] == Catch::Approx(m[i]));
+        }
+
+    }
+}
+
+TEST_CASE("Chacking fread(const std::string &)/fwrite(const std::string &) methods, type = double"){
+    
+    SECTION("Rectangular matrix (5,3)"){
+        
+        size_t dim1 = 5;
+        size_t dim2 = 3;
+        evolm::matrix <mytype> M(dim1,dim2);
+        evolm::matrix <mytype> N;
+
+        REQUIRE_FALSE(M.failbit);
+
+        mytype m[] = {-0.0, -0.3, -0.6, -0.9, -1.2, -0.1, -0.4, -0.7, -1.0, -1.3, -0.2, -0.5, -0.8, -1.1, -1.4};
+
+        for(size_t i = 0; i < M.size(); i++){
+            M[i] = i * static_cast <mytype> (-0.1);
+        }
+
+        M.transpose();
+
+        REQUIRE_FALSE(M.failbit);
+
+        for(size_t i = 0; i < M.size(); i++){
+            CHECK(M[i] == Catch::Approx(m[i]));
+        }
+
+        M.fwrite("M.dmat");
+
+        REQUIRE_FALSE(M.failbit);
+        CHECK(M.failbit == false);
+        REQUIRE(M.empty() == false);
+
+        N.fread("M.dmat");
+        N.fclear("M.dmat");
+
+        REQUIRE_FALSE(N.failbit);
+        CHECK(N.failbit == false);
+        CHECK(N.size() == 15);
+        CHECK(N.capacity() == 15);
+
+        for(size_t i = 0; i < N.size(); i++){
+            CHECK(N[i] == Catch::Approx(m[i]));
         }
 
     }
