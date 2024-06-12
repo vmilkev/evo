@@ -1,11 +1,11 @@
 /*
-    cs_matrix.cpp
+    dense_matrix.cpp
 
     Explicit instantiation declaration of matrix class.
 
 */
 
-#include "cs_matrix.hpp"
+#include "dense_matrix.hpp"
 
 namespace evolm
 {

@@ -755,7 +755,7 @@ namespace evolm
 
             while (iterations < max_iterations && delta_new > delta_zero * tolerance * tolerance)
             {
-                matrix<double> q(unknowns, 1);
+                matrix<double> q(unknowns, 1); // !!! can be declared outside the loop ?
 
                 update_vect(cov_offsets, num_levels, ordered_levels, q, d); // here we casting vector from float to double every time by calling this function
 
@@ -782,7 +782,7 @@ namespace evolm
                     r_vect = r_vect - alpha * q;
                 }
 
-                matrix<double> s(unknowns, 1);
+                matrix<double> s(unknowns, 1); // !!! should be declared outside the loop ?
 
                 for (size_t i = 0; i < unknowns; i++)
                     s[i] = Mi[i] * r_vect[i];
@@ -1119,7 +1119,8 @@ namespace evolm
 
     matrix<float> Pcg::z_dot_y(size_t vect_size, size_t i_trait, size_t j_trait, size_t r_index)
     {
-        // giving a column vector
+        // Returns a column vector which will be inserted into a specific location of the RHS vector
+        //
         // Here we do matrix-by-vector multiplication:
         // get_vect_z_uni(i_trait, i) return a row of a specific effect matrix which then
         // multiplied by the observation vector v2 and then by the corresponding component
@@ -1131,7 +1132,7 @@ namespace evolm
 
             matrix<float> v2 = y[j_trait].fget(); // observations for a specific trait
 
-            for (size_t i = 0; i < v2.size(); i++) // here multiply each v2 by relevant R(-1), correct for missing observations
+            for (size_t i = 0; i < v2.size(); i++) // multiply each v2 by relevant R(-1), corrected for missing observations
                 v2(i,0) = v2(i,0) * r_map[ R_hash[i] ][r_index];
 
             for (size_t i = 0; i < vect_size; i++)

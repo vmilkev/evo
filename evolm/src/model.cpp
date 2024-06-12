@@ -90,7 +90,7 @@ namespace evolm
         catch (const std::string &e)
         {
             std::cerr << "Exception in Model::append_residual(pybind11::array_t<float>, size_t)." << '\n';
-            std::cerr <<"Reason: "<< e << '\n';
+            std::cerr << "Reason: " << e << '\n';
             throw e;
         }
         catch (...)
@@ -221,7 +221,7 @@ namespace evolm
             variance.resize(lda1, lda1);
             correlation.resize(lda2, lda2);
 
-            if ( lda1 != (size_t)buf3.shape[0] )
+            if (lda1 != (size_t)buf3.shape[0])
                 throw std::string("The number of provided correlated effects does not correspond to the dimension of variance-covariance matrix!");
 
             for (pybind11::ssize_t i = 0; i < buf3.shape[0]; i++)
@@ -295,7 +295,7 @@ namespace evolm
             variance.resize(lda1, lda1);
             correlation.resize(1, 1);
 
-            if ( lda1 != (size_t)buf3.shape[0] )
+            if (lda1 != (size_t)buf3.shape[0])
                 throw std::string("The number of provided correlated effects does not correspond to the dimension of variance-covariance matrix!");
 
             for (pybind11::ssize_t i = 0; i < buf3.shape[0]; i++)
@@ -386,7 +386,7 @@ namespace evolm
 
             correlation.resize(1, 1);
 
-            if ( lda1 != (size_t)buf3.shape[0] )
+            if (lda1 != (size_t)buf3.shape[0])
                 throw std::string("The number of provided correlated effects does not correspond to the dimension of variance-covariance matrix!");
 
             for (pybind11::ssize_t i = 0; i < buf3.shape[0]; i++)
@@ -477,7 +477,7 @@ namespace evolm
             variance.resize(lda1, lda1);
             correlation.resize(lda2, lda2);
 
-            if ( lda1 != (size_t)buf3.shape[0] )
+            if (lda1 != (size_t)buf3.shape[0])
                 throw std::string("The number of provided correlated effects does not correspond to the dimension of variance-covariance matrix!");
 
             for (pybind11::ssize_t i = 0; i < buf3.shape[0]; i++)
@@ -583,7 +583,7 @@ namespace evolm
             variance.resize(lda1, lda1);
             correlation.resize(lda2, lda2);
 
-            if ( lda1 != (size_t)buf3.shape[0] )
+            if (lda1 != (size_t)buf3.shape[0])
                 throw std::string("The number of provided correlated effects does not correspond to the dimension of variance-covariance matrix!");
 
             for (pybind11::ssize_t i = 0; i < buf3.shape[0]; i++)
@@ -692,8 +692,8 @@ namespace evolm
             matrix<float> residual;
 
             residual.resize(lda, lda);
-            
-            for (size_t i = 0; i < lda*lda; i++)
+
+            for (size_t i = 0; i < lda * lda; i++)
                 residual[i] = arr[i];
 
             residual.fwrite();
@@ -724,7 +724,7 @@ namespace evolm
     {
         try
         {
-            if ( arr.size() != lda  )
+            if (arr.size() != lda)
                 throw std::string("Provided vector size does not correspond to the number of elements in the observations vector!");
 
             matrix<float> observation;
@@ -784,7 +784,6 @@ namespace evolm
             observations.push_back(observation);
 
             miss_observations.push_back(miss_arr);
-
         }
         catch (const std::exception &e)
         {
@@ -864,7 +863,7 @@ namespace evolm
             variance.resize(lda1, lda1);
             correlation.resize(lda2, lda2);
 
-            if ( lda1 != which_effects.size() )
+            if (lda1 != which_effects.size())
                 throw std::string("The number of provided correlated effects does not correspond to the dimension of variance-covariance matrix!");
 
             for (size_t i = 0; i < which_effects.size(); i++)
@@ -929,7 +928,7 @@ namespace evolm
 
             correlation.resize(1, 1);
 
-            if ( lda1 != which_effects.size() )
+            if (lda1 != which_effects.size())
                 throw std::string("The number of provided correlated effects does not correspond to the dimension of variance-covariance matrix!");
 
             for (size_t i = 0; i < which_effects.size(); i++)
@@ -1013,7 +1012,7 @@ namespace evolm
 
             correlation.resize(1, 1);
 
-            if ( lda1 != which_effects.size() )
+            if (lda1 != which_effects.size())
                 throw std::string("The number of provided correlated effects does not correspond to the dimension of variance-covariance matrix!");
 
             for (size_t i = 0; i < which_effects.size(); i++)
@@ -1095,7 +1094,7 @@ namespace evolm
             variance.resize(lda1, lda1);
             correlation.resize(lda2, lda2);
 
-            if ( lda1 != which_effects.size() )
+            if (lda1 != which_effects.size())
                 throw std::string("The number of provided correlated effects does not correspond to the dimension of variance-covariance matrix!");
 
             for (size_t i = 0; i < which_effects.size(); i++)
@@ -1190,7 +1189,7 @@ namespace evolm
             variance.resize(lda1, lda1);
             correlation.resize(lda2, lda2);
 
-            if ( lda1 != which_effects.size() )
+            if (lda1 != which_effects.size())
                 throw std::string("The number of provided correlated effects does not correspond to the dimension of variance-covariance matrix!");
 
             for (size_t i = 0; i < which_effects.size(); i++)
@@ -1865,7 +1864,7 @@ namespace evolm
                     }
                     shape.clear();
                 }
-                //return shapes;
+                // return shapes;
             }
 
             if (type.compare("obs") == 0)
@@ -1881,7 +1880,7 @@ namespace evolm
                     }
                     shape.clear();
                 }
-                //return shapes;
+                // return shapes;
             }
 
             if (type.compare("eff") == 0)
@@ -1900,7 +1899,7 @@ namespace evolm
                     }
                     shape.clear();
                 }
-                //return shapes;
+                // return shapes;
             }
 
             if (type.compare("var") == 0)
@@ -1916,7 +1915,7 @@ namespace evolm
                     }
                     shape.clear();
                 }
-                //return shapes;
+                // return shapes;
             }
 
             if (type.compare("cor") == 0)
@@ -1932,7 +1931,7 @@ namespace evolm
                     }
                     shape.clear();
                 }
-                //return shapes;
+                // return shapes;
             }
 
             if (type.compare("cor_eff") == 0)
@@ -1948,7 +1947,7 @@ namespace evolm
                     }
                     shape.clear();
                 }
-                //return shapes;
+                // return shapes;
             }
 
             if (type.compare("obs_trt") == 0)
@@ -1964,7 +1963,7 @@ namespace evolm
                     }
                     shape.clear();
                 }
-                //return shapes;
+                // return shapes;
             }
 
             if (type.compare("eff_trt") == 0)
@@ -1980,7 +1979,7 @@ namespace evolm
                     }
                     shape.clear();
                 }
-                //return shapes;
+                // return shapes;
             }
 
             return shapes;

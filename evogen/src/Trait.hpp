@@ -2,7 +2,7 @@
 #define trait_hpp__
 
 #include "Population.hpp"
-#include "cs_matrix.hpp"
+#include "dense_matrix.hpp"
 #include "Utilites.hpp"
 
 #include <iostream>

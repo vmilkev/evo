@@ -1,7 +1,7 @@
 #ifndef breeding_value_hpp__
 #define breeding_value_hpp__
 
-#include "cs_matrix.hpp"
+#include "dense_matrix.hpp"
 
 namespace evogen
 {

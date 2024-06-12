@@ -5,7 +5,7 @@
 */
 
 #include "catch_amalgamated.hpp"
-#include "cs_matrix.hpp"
+#include "dense_matrix.hpp"
 
 typedef float mytype;
 

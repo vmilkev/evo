@@ -1,7 +1,7 @@
 #ifndef effects_hpp__
 #define effects_hpp__
 
-#include "cs_matrix.hpp"
+#include "dense_matrix.hpp"
 
 namespace evolm
 {

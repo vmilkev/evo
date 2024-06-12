@@ -1881,8 +1881,8 @@ namespace evolm
            B[2] = numCol;
            B[3] = (size_t)compact;
            B[4] = max_elements;
-           B[5] = A.size();;
-           B[6] = (size_t)sizeof(T);          
+           B[5] = A.size();
+           B[6] = (size_t)sizeof(T);
 
             fA.exceptions(std::ifstream::failbit | std::ifstream::badbit);
             fA.open(fname, fA.binary | fA.trunc | fA.out);
@@ -1963,7 +1963,7 @@ namespace evolm
                 size_t key;
                 T val;
                 fA.read(reinterpret_cast<char *>(&key), sizeof(size_t));
-                fA.read(reinterpret_cast<char *>(&val), sizeof(T));
+                fA.read(reinterpret_cast<char *>(&val), var_inbytes); // here we changed sizeof(T) to var_inbytes
                 A[key] = val;
             }
 
@@ -2064,6 +2064,8 @@ namespace evolm
             }
             
             A.swap( tmpObj.A );
+
+            return *this;
         }
         catch(const std::exception& e)
         {

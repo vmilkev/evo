@@ -31,9 +31,9 @@ namespace evolm
 
                         std::random_device rd;
                         srand(rd());
-                        
+
                         int iNum = std::rand() % 100000;
-                        
+
                         binFilename = "amatrix_" + std::to_string(iNum);
                 }
 
@@ -44,20 +44,20 @@ namespace evolm
                 }
 
                 void solve();
-                void solve( int pipeline_index );
+                void solve(int pipeline_index);
 
                 void set_tolerance(double tol);
                 void set_maxiter(size_t iter);
 
-#ifdef PYBIND
+        #ifdef PYBIND
                 pybind11::array_t<float> get_solution();
-#else
+        #else
                 std::vector<float> get_solution();
-#endif
+        #endif
 
                 int get_solution(const std::string &fname);
 
-#ifdef UTEST
+        #ifdef UTEST
                 matrix<float> test_z_dot_y(size_t vect_size, size_t i_trait, size_t j_trait, size_t r_index);
                 matrix<float> test_rhs();
 
@@ -67,7 +67,7 @@ namespace evolm
                 std::vector<float> test_dval();
                 std::vector<std::vector<float>> test_A(); // coefficient matrix
                 std::vector<std::vector<float>> construct_A(std::vector<std::vector<size_t>> &cov_offsets, size_t num_levels, std::vector<size_t> &ordered_levels);
-#endif
+        #endif
 
         private:
                 void construct_rhs();
@@ -76,17 +76,17 @@ namespace evolm
 
                 matrix<float> z_dot_y(size_t vect_size, size_t i_trait, size_t j_trait, float r_val);
                 matrix<float> z_dot_z(size_t row, size_t vect_size, size_t i_matr, size_t j_matr, float r_val);
-                
+
                 template <typename T>
                 T v_dot_v(const matrix<T> &v1, const matrix<T> &v2);
 
                 matrix<float> get_row_cmatr(size_t rhs_size,
-                                            size_t i_trate,
-                                            size_t i_eff,
-                                            std::vector<std::vector<size_t>> &cov_offsets,
-                                            size_t num_levels,
-                                            std::vector<size_t> &ordered_levels,
-                                            size_t i_row);
+                                                size_t i_trate,
+                                                size_t i_eff,
+                                                std::vector<std::vector<size_t>> &cov_offsets,
+                                                size_t num_levels,
+                                                std::vector<size_t> &ordered_levels,
+                                                size_t i_row);
 
                 size_t get_levels(size_t which_trait);
                 size_t get_all_levels();
@@ -100,22 +100,22 @@ namespace evolm
                                 std::vector<size_t> &ordered_levels);
 
                 matrix<float> construct_dval(std::vector<std::vector<size_t>> &cov_offsets,
-                                             size_t num_levels,
-                                             std::vector<size_t> &ordered_levels);
+                                                size_t num_levels,
+                                                std::vector<size_t> &ordered_levels);
 
                 void set_amatr(std::vector<std::vector<size_t>> &cov_offsets,
-                               size_t num_levels,
-                               std::vector<size_t> &ordered_levels);
+                                size_t num_levels,
+                                std::vector<size_t> &ordered_levels);
 
                 void set_amatr(std::vector<std::vector<size_t>> &cov_offsets,
-                               size_t num_levels,
-                               std::vector<size_t> &ordered_levels, bool on_mem);
+                                size_t num_levels,
+                                std::vector<size_t> &ordered_levels, bool on_mem);
 
                 void update_vect(std::vector<std::vector<size_t>> &cov_offsets,
-                                 size_t num_levels,
-                                 std::vector<size_t> &ordered_levels,
-                                 matrix<double> &out_vect,
-                                 matrix<double> &in_vect);
+                                        size_t num_levels,
+                                        std::vector<size_t> &ordered_levels,
+                                        matrix<double> &out_vect,
+                                        matrix<double> &in_vect);
 
                 matrix<float> fget_vect(size_t all_tr_levels, size_t row);
 

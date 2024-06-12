@@ -7,7 +7,7 @@
 #include <fstream>
 #include <algorithm>
 
-#include "cs_matrix.hpp"
+#include "dense_matrix.hpp"
 #include "sparse_matrix.hpp"
 
 namespace evoped

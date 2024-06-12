@@ -7,7 +7,7 @@
 #include "Group.hpp"
 #include "Utilites.hpp"
 #include "Trait.hpp"
-#include "cs_matrix.hpp"
+#include "dense_matrix.hpp"
 
 int main(int argc, char *argv[])
 {

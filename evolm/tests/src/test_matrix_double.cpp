@@ -5,7 +5,7 @@
 */
 
 #include "catch_amalgamated.hpp"
-#include "cs_matrix.hpp"
+#include "dense_matrix.hpp"
 #include <chrono>
 
 typedef double mytype;
@@ -561,6 +561,8 @@ TEST_CASE("Testing overloaded operator = , type = double"){
         for (size_t i = 0; i < M1.size(); i++){
             CHECK(M3[i] == M2[i]);
         }
+
+        M3.fclear();
     }
 
     SECTION("Checking an initialised rectangular matrix (3,5)"){
@@ -729,7 +731,6 @@ TEST_CASE("Testing overloaded operator = , type = double"){
     }
 
 }
-
 
 TEST_CASE("Testing symtorec() method, type = double"){
 

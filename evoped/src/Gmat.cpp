@@ -257,7 +257,7 @@ namespace evoped
      * 
      */
     template <typename T> void Gmat<T>::
-    get_matrix(std::vector<std::int64_t> &ids)
+    get_ids(std::vector<std::int64_t> &ids)
     {        
         try
         {
@@ -268,13 +268,13 @@ namespace evoped
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Gmat<T>::get_matrix(std::vector<std::int64_t>&)" << '\n';
+            std::cerr << "Exception in Gmat<T>::get_ids(std::vector<std::int64_t>&)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Gmat<T>::get_matrix(std::vector<std::int64_t>&)" << '\n';
+            std::cerr << "Exception in Gmat<T>::get_ids(std::vector<std::int64_t>&)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
@@ -284,8 +284,8 @@ namespace evoped
             throw;
         }
     }
-    template void Gmat<float>::get_matrix(std::vector<std::int64_t> &ids);
-    template void Gmat<double>::get_matrix(std::vector<std::int64_t> &ids);
+    template void Gmat<float>::get_ids(std::vector<std::int64_t> &ids);
+    template void Gmat<double>::get_ids(std::vector<std::int64_t> &ids);
     //===============================================================================================================
     /**
      * @brief I/O interface for accessing the internal container storing the results.
@@ -328,7 +328,6 @@ namespace evoped
     }
     template void Gmat<float>::get_matrix(std::vector<float> &arr, std::vector<std::int64_t> &ids);
     template void Gmat<double>::get_matrix(std::vector<double> &arr, std::vector<std::int64_t> &ids);
-
     //===============================================================================================================
     /**
      * @brief Constructs G matrix by reading a text file consisting of samples and snp variants.
@@ -381,7 +380,6 @@ namespace evoped
     }
     template void Gmat<float>::make_matrix(const std::string &fname);
     template void Gmat<double>::make_matrix(const std::string &fname);
-
     //===============================================================================================================
     /**
      * @brief Constructs G matrix by reading two text files,
@@ -427,7 +425,6 @@ namespace evoped
 
     template void Gmat<float>::make_matrix(const std::string &fname, const std::string &fname_ids);
     template void Gmat<double>::make_matrix(const std::string &fname, const std::string &fname_ids);
-
     //===============================================================================================================
     /**
      * @brief Check if provided file is a family of plink files (.bed, .bim, .fam).
@@ -473,7 +470,6 @@ namespace evoped
     }
     template bool Gmat<float>::is_plink_file(const std::string &fname);
     template bool Gmat<double>::is_plink_file(const std::string &fname);
-
     //===============================================================================================================
     /**
      * @brief Extract variants and samples from plink files (.bed, .bim, .fam).
@@ -560,7 +556,6 @@ namespace evoped
     }
     template void Gmat<float>::get_m_matrix(const std::string &fname, evolm::matrix<int> &M);
     template void Gmat<double>::get_m_matrix(const std::string &fname, evolm::matrix<int> &M);
-
     //===============================================================================================================
     /**
      * @brief Scales SNPs from the text file.
@@ -604,7 +599,6 @@ namespace evoped
     }
     template void Gmat<float>::scale_genotypes(const std::string &fname);
     template void Gmat<double>::scale_genotypes(const std::string &fname);
-
     //===============================================================================================================
     /**
      * @brief Scales SNPs from the text file.
@@ -649,7 +643,6 @@ namespace evoped
     }
     template void Gmat<float>::scale_genotypes(const std::string &fname, const std::string &fname_ids);
     template void Gmat<double>::scale_genotypes(const std::string &fname, const std::string &fname_ids);
-
     //===============================================================================================================
     /**
      * @brief Inverting G matrix regardless of whether it is in compact or full storage format.
@@ -666,12 +659,7 @@ namespace evoped
     {
         try
         {
-            //if ( G.is_ondisk() )
-            //    G.fread();
-            
             G.invert();
-
-            //G.fwrite();
         }
         catch (const std::exception &e)
         {
@@ -693,7 +681,6 @@ namespace evoped
     }
     template void Gmat<float>::invert_matrix();
     template void Gmat<double>::invert_matrix();
-
     //===============================================================================================================
     /**
      * @brief Invert G matrix as in full storage format.
@@ -713,9 +700,6 @@ namespace evoped
     {
         try
         {
-            //if ( G.is_ondisk() )
-            //    G.fread();
-
             if (full_store)
             {
                 G.symtorec();
@@ -728,8 +712,6 @@ namespace evoped
             }
             else
                 G.invert();
-
-            //G.fwrite();
         }
         catch (const std::exception &e)
         {
@@ -751,7 +733,6 @@ namespace evoped
     }
     template void Gmat<float>::invert_matrix(bool full_store);
     template void Gmat<double>::invert_matrix(bool full_store);
-
     //===============================================================================================================
     /**
      * @brief Invert G matrix through its sparse approximation, the APY method
@@ -768,9 +749,6 @@ namespace evoped
         try
         {
             Utilities2 u;
-
-            //if ( G.is_ondisk() )
-            //    G.fread();
 
             if (G.empty())
                 throw std::string("There is no G matrix which needs to be inverted!");
@@ -1137,7 +1115,6 @@ namespace evoped
     }
     template void Gmat<float>::invert_matrix(std::vector<std::int64_t> &core_id);
     template void Gmat<double>::invert_matrix(std::vector<std::int64_t> &core_id);
-
     //===============================================================================================================
     /**
      * @brief Add scalar value to the diagonal elements of matrix
@@ -1153,9 +1130,6 @@ namespace evoped
     {
         try
         {
-            //if ( G.is_ondisk() )
-            //    G.fread();
-
             evolm::matrix<size_t> shapeofg;
             shapeofg = G.shape();
 
@@ -1182,7 +1156,6 @@ namespace evoped
     }
     template void Gmat<float>::scale_diag(float scale_coef);
     template void Gmat<double>::scale_diag(double scale_coef);
-
     //===============================================================================================================
     /**
      * @brief Scaling G matrix by the A matrix:
@@ -1204,9 +1177,6 @@ namespace evoped
     {
         try
         {
-            //if ( G.is_ondisk() )
-            //    G.fread();
-
             // It is required the scaling matrix is the same dimension as the inverting G
 
             evolm::matrix<size_t> shapeofg;
@@ -1248,7 +1218,6 @@ namespace evoped
     }
     template void Gmat<float>::scale_matrix(std::vector<float> &scale_matr, float scaling_weight);
     template void Gmat<double>::scale_matrix(std::vector<double> &scale_matr, double scaling_weight);
-
     //===============================================================================================================
     /**
      * @brief Scaling G matrix by the A matrix:
@@ -1270,9 +1239,6 @@ namespace evoped
     {
         try
         {
-            //if ( G.is_ondisk() )
-            //    G.fread();
-
             evolm::matrix<size_t> shapeofa;
             shapeofa = scale_matr.shape();
 
@@ -1389,7 +1355,6 @@ namespace evoped
     }
     template void Gmat<float>::scale_matrix(evolm::matrix<float> &scale_matr, float scaling_weight);
     template void Gmat<double>::scale_matrix(evolm::matrix<double> &scale_matr, double scaling_weight);
-
     //===============================================================================================================
     /**
      * @brief Destroy the Gmat< T>:: Gmat object
@@ -1424,7 +1389,6 @@ namespace evoped
     }
     template Gmat<float>::~Gmat();
     template Gmat<double>::~Gmat();
-
     //===============================================================================================================
     /**
      * @brief Clears the internal storage containers
@@ -1469,7 +1433,6 @@ namespace evoped
     }
     template void Gmat<float>::clear();
     template void Gmat<double>::clear();
-
     //===============================================================================================================
     /**
      * @brief Reads G matrix from a text file into std::vector containers
@@ -1556,7 +1519,6 @@ namespace evoped
     }
     template void Gmat<float>::read_matrix(const std::string &fname, std::vector<std::int64_t> &g_row, std::vector<std::int64_t> &g_col, std::vector<float> &g_val);
     template void Gmat<double>::read_matrix(const std::string &fname, std::vector<std::int64_t> &g_row, std::vector<std::int64_t> &g_col, std::vector<double> &g_val);
-
     //===============================================================================================================
     /**
      * @brief Reads G mmatrix in compact format (upper/lower triangular part) from a text file.
@@ -1635,7 +1597,6 @@ namespace evoped
     }
     template void Gmat<float>::read_matrix(const std::string &gmat_file);
     template void Gmat<double>::read_matrix(const std::string &gmat_file);
-
     //===============================================================================================================
     /**
      * @brief Reads variants and samples data from a text file
@@ -1743,7 +1704,6 @@ namespace evoped
     }
     template void Gmat<float>::read_snp(const std::string &snp_file);
     template void Gmat<double>::read_snp(const std::string &snp_file);
-
     //===============================================================================================================
     /**
      * @brief Reads variants and samples data from a text file
@@ -1860,7 +1820,6 @@ namespace evoped
     }
     template void Gmat<float>::read_snp(const std::string &snp_file, const std::string &ids_file);
     template void Gmat<double>::read_snp(const std::string &snp_file, const std::string &ids_file);
-
     //===============================================================================================================
     /**
      * @brief Parse std string of snp variants to integers
@@ -1908,7 +1867,6 @@ namespace evoped
     }
     template void Gmat<float>::parse_string(std::string &snp_str, std::vector<int> &markers);
     template void Gmat<double>::parse_string(std::string &snp_str, std::vector<int> &markers);
-
     //===============================================================================================================
     /**
      * @brief Construct scaled variants (snps) matrix
@@ -2063,7 +2021,6 @@ namespace evoped
     }
     template void Gmat<float>::make_zmatrix();
     template void Gmat<double>::make_zmatrix();
-
     //===============================================================================================================
     /**
      * @brief Construct scaled variants (snps) matrix
@@ -2200,7 +2157,6 @@ namespace evoped
     }
     template void Gmat<float>::make_zmatrix(evolm::matrix<int> &M);
     template void Gmat<double>::make_zmatrix(evolm::matrix<int> &M);
-
     //===============================================================================================================
     /**
      * @brief Constructs G matrix: G = (Z ^ 2) * (1 / freq)
@@ -2247,7 +2203,6 @@ namespace evoped
     }
     template void Gmat<float>::make_matrix();
     template void Gmat<double>::make_matrix();
-
     //===============================================================================================================
 #ifdef UTEST
     /**
@@ -2294,6 +2249,5 @@ namespace evoped
     template void Gmat<float>::get_alpha_beta(float &alpha, float &beta, float &a_diag, float &a_ofd, float &g_diag, float &g_ofd);
     template void Gmat<double>::get_alpha_beta(double &alpha, double &beta, double &a_diag, double &a_ofd, double &g_diag, double &g_ofd);
 #endif
-
     //===============================================================================================================
 } // end of namespace evoped

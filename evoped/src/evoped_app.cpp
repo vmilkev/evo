@@ -3,6 +3,8 @@
 #include <chrono>
 #include<thread>
 
+#include <memory>
+
 #include "Amat.hpp"
 #include "Gmat.hpp"
 #include "Hmat.hpp"
@@ -71,9 +73,9 @@ std::cout<<"Start testing:"<<"\n";
 
         std::cout<<"num ids: "<<a_id.size()<<" "<<ra_id.size()<<"\n";
 
-        return;
-
-    std::cout<<"making all:"<<"\n";
+        // ------------------------------------------------------------
+        
+        std::cout<<"making all:"<<"\n";
 
         start = std::chrono::high_resolution_clock::now();
 
@@ -109,7 +111,7 @@ std::cout<<"Start testing:"<<"\n";
         
         std::cout<<"Completed making big G"<<"\n";
         
-        gmat.get_matrix(g_id);        
+        gmat.get_ids(g_id);        
         std::cout<<"num of ids in G: "<<g_id.size()<<"\n";
         std::cout<<"expected size of G: "<<(double)g_id.size()*g_id.size()*sizeof(float)<<"\n";
 
@@ -175,21 +177,59 @@ std::cout<<"Start testing:"<<"\n";
 
     if ( test_H )
     {
-        /*std::unordered_map<size_t, float> tmap;
+        double dim = 50000.0;
+        //std::unordered_map<size_t, float> tmap;
+        std::vector< std::vector<size_t> >keys;
+        std::vector< std::vector<float> >vals;
         size_t key = 0;
-        size_t max_key = (63000.0*63000.0-63000.0)/2.0;
-        for(size_t i = 0; i < 63000; i++)
+        size_t max_key = (dim*dim-dim)/2.0;
+        std::cout<<"dimension: "<<dim/1000.0<<" e3, max key: "<<(double)max_key/1000000.0<<" e6, expected size, GB: "<<(double)max_key*(sizeof(float)+sizeof(size_t)) / (1024.0*1024.0*1024.0)<<"\n";
+        std::cout<<"sizeof(unsigned int): "<<sizeof(unsigned int)<<" UINT_MAX: "<<UINT_MAX<<"\n";
+        std::cout<<"sizeof(size_t): "<<sizeof(size_t)<<" SIZE_MAX: "<<SIZE_MAX<<"\n";
+        
+        /*size_t **v11 = new size_t *[dim];
+        float **v22 = new float *[dim];
+
+        for (size_t i = 0; i < dim; i++)
         {
+            v11[i] = new size_t[i+1];
+            v22[i] = new float[i+1];
+        }*/
+
+        for(size_t i = 0; i < (size_t)dim; i++)
+        {
+            std::vector<size_t> vect_keys;
+            std::vector<float> vect_vals;
             for (size_t j = 0; j <=i; j++)
             {
                 ++key;
-                tmap[key] = tmap[key] + (float)i;
+                vect_keys.push_back(key);
+                vect_vals.push_back((float)i);
+                //tmap[key] = tmap[key] + (float)i;
+                //v11[i][j] = key;
+                //v22[i][j] = (float)i;
 
                 if ( !(key%500) )
                     std::cout<<"completed, %: "<<((double)key/(double)max_key)*100.0<<"\r";
             }
+            keys.push_back(vect_keys);
+            vals.push_back(vect_vals);
         }
-        return;*/
+
+        for (size_t i = 0; i < (size_t)dim; i++)
+        {
+            for (size_t j = 0; j <=i; j++)
+            {
+                //v22[i][j] = v22[i][j] + 1.0f;
+                vals[i][j] = vals[i][j] + 1.0f;
+            }
+        }
+
+        //while( 1 < 2 ){ std::cout<<"waiting ..."<<"\r"; }
+        return 1;
+        /**/
+
+
         std::cout<<"Making G: "<<"\n";
 
         auto start = std::chrono::high_resolution_clock::now();
@@ -208,7 +248,7 @@ std::cout<<"Start testing:"<<"\n";
 
         std::cout<<"Done."<<"\n";
         
-        gmat.get_matrix(g_id); // here we need just IDs
+        gmat.get_ids(g_id); // here we need just IDs
 
         std::cout<<"num of IDs in iG: "<<g_id.size()<<"\n";
 
@@ -370,7 +410,7 @@ std::cout<<"Start testing:"<<"\n";
 
         std::cout<<"Done."<<"\n";
 
-        gmat.get_matrix(g_id); // here we need just IDs
+        gmat.get_ids(g_id); // here we need just IDs
         std::cout<<"num of ids in G: "<<g_id.size()<<"\n";
         std::cout<<"expected size of G (GB): "<<( 0.5*g_id.size()*g_id.size()-0.5*g_id.size() )/1000000000.0<<"\n";
         //------------------------------------------------------

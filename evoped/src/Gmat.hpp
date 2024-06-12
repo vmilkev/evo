@@ -14,7 +14,7 @@
 #include <fstream>
 #include <unordered_map>
 
-#include "cs_matrix.hpp"
+#include "dense_matrix.hpp"
 #include "Utilities2.hpp"
 #include <plinkio/plinkio.h>
 
@@ -46,7 +46,7 @@ namespace evoped
         
         void get_matrix(evolm::matrix<T> &arr, std::vector<std::int64_t> &ids);
         void get_matrix(evolm::matrix<T> &arr);
-        void get_matrix(std::vector<std::int64_t> &ids);
+        void get_ids(std::vector<std::int64_t> &ids);
 
         void save_matrix(const std::string &arr, const std::string &ids);
         void save_matrix(const std::string &arr);

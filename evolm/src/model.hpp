@@ -5,7 +5,7 @@
 #include <vector>
 #include <typeinfo>
 
-#include "cs_matrix.hpp"
+#include "dense_matrix.hpp"
 #include "effects.hpp"
 #include "iointerface.hpp"
 
@@ -17,7 +17,6 @@
 
 namespace evolm
 {
-
         class Model
         {
 
@@ -89,8 +88,8 @@ namespace evolm
 
         private:
                 // Data
-                std::vector<matrix<float>> residuals;    // assumed to full matrix
-                std::vector<matrix<float>> observations; // assumed to be (nx1) vectors
+                std::vector<matrix<float>> residuals;             // assumed to full matrix
+                std::vector<matrix<float>> observations;          // assumed to be (nx1) vectors
                 std::vector<std::vector<bool>> miss_observations; // assumed to be (nx1) vectors
                 std::vector<Effects> effects;
 

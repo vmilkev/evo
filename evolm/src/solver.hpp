@@ -56,11 +56,11 @@ namespace evolm
         std::vector<matrix<float>> y;            // Observations for each trait.
         std::vector<std::vector<Effects>> z_uni; // Combines a consecutive sets of incidense matrices.
 
-        std::vector<std::vector<bool>> s;             // boolean container indicating which data on which trait is missing (false), which is not (true)
-        std::vector<size_t> R_hash;                   // the hash keys corresponding each observation pattern, the size of n_obs; the size and values are the same for all traits
-        std::map< size_t, std::vector<float> > r_map; // hash values are keys, and specific (according to the observation pattern) covar matrices are values of the map
-                                                      // the usage: r_map[ R_hash[i] ][j], where i is observation, j is indexing j = r*(r+1)/2 +c pointing to an element of R(-1)
-        
+        std::vector<std::vector<bool>> s;           // boolean container indicating which data on which trait is missing (false), which is not (true)
+        std::vector<size_t> R_hash;                 // the hash keys corresponding each observation pattern, the size of n_obs; the size and values are the same for all traits
+        std::map<size_t, std::vector<float>> r_map; // hash values are keys, and specific (according to the observation pattern) covar matrices are values of the map
+                                                    // the usage: r_map[ R_hash[i] ][j], where i is observation, j is indexing j = r*(r+1)/2 +c pointing to an element of R(-1)
+
         // matrix<float> r; // uncoment this if use the mode where not correcting for missing observations, assumung constant Rij(-1) for all observations
 
         bool z_on_memory;

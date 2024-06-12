@@ -114,13 +114,13 @@ namespace evolm
             {
                 int trait_obs_id = model.observation_trait[i]; // index of submitted observations vector in the observations std::vector
 
-                if ( ( (size_t)trait_obs_id > model.observations.size() - 1 ) || ( trait_obs_id < 0 ) )
+                if (((size_t)trait_obs_id > model.observations.size() - 1) || (trait_obs_id < 0))
                     throw std::string("Wrong index of observations vector associated to a trait!");
 
                 matrix<int> trait_eff_ids = model.effects_trait[i]; // ids for the submitted effects associated with a trait
 
                 size_t n_trait_effects = trait_eff_ids.size();
-                
+
                 size_t n_obs_trait = model.observations[trait_obs_id].size(); // number of observations for a specific trait
 
                 n_obs.push_back(model.observations[trait_obs_id].size()); // get the number of observations for the specific trait
@@ -133,7 +133,7 @@ namespace evolm
 
                     trait_levels.push_back(shape[0]); // on transposed effects
 
-                    if ( shape[1] != n_obs_trait )
+                    if (shape[1] != n_obs_trait)
                         throw std::string("The dimension of provided effect matrix corresponding to observations is not correct!");
 
                     adj_effects_order[trait_eff_ids[j]] = i_adj_effects; // map between the submitted effects ids and their recoded (consecutive) order
@@ -142,9 +142,9 @@ namespace evolm
                 }
 
                 n_lev.push_back(trait_levels); // get the effects' levels for each trait
-                                                
-                                                  // Combines a consecutive sets of incidense matrices (stack of effects matrices)
-                                                  // of different (original & unchanged) types for a specific trait
+
+                // Combines a consecutive sets of incidense matrices (stack of effects matrices)
+                // of different (original & unchanged) types for a specific trait
                 construct_union_z(trait_eff_ids); // build std::vector<std::vector<Effects>> z_uni;
                                                   // <- everything on disk !
 
@@ -159,20 +159,20 @@ namespace evolm
             {
                 matrix<int> cor_effects = model.correlated_effects[i]; // list of correlated effects IDs
                 cor_effects.fread();
-                size_t n_effects = cor_effects.size(); // number of correlated effects 
+                size_t n_effects = cor_effects.size();                 // number of correlated effects
                 matrix<size_t> shape1 = model.correlations[i].shape(); // get shape of correlation matrix
 
-                if ( model.identity_correlations[i] ) // in case of correlation matrix is identity matrix
+                if (model.identity_correlations[i]) // in case of correlation matrix is identity matrix
                     shape1[0] = model.identity_dimension[i];
 
                 for (size_t j = 0; j < n_effects; j++) // loop over correlated effects
                 {
-                    size_t which_effect = cor_effects(j,0); // effect ID
-                    matrix<size_t> shape2 = model.effects[ which_effect ].shape(); // shape of effect matrix, it is transposed, so n_lev-by-n_obs
+                    size_t which_effect = cor_effects(j, 0);                     // effect ID
+                    matrix<size_t> shape2 = model.effects[which_effect].shape(); // shape of effect matrix, it is transposed, so n_lev-by-n_obs
 
-                    if ( shape2[0] != shape1[0] ) // size of n_levels should be equal to a size of correlation matrix (symmetric)
+                    if (shape2[0] != shape1[0]) // size of n_levels should be equal to a size of correlation matrix (symmetric)
                         throw std::string("The provided correlation structure missmatch! Dimensions of a correlation matrix and correlated effects should match!");
-                }             
+                }
             }
         }
         catch (const std::exception &e)
@@ -424,11 +424,10 @@ namespace evolm
 
     matrix<float> Solver::get_vect_z_uni(const size_t &which_trait, const size_t &which_row)
     {
-        /* Assumes z_uni consists of not-transposed matrices.
-           Therefore, which_row is supposed to address in combined and transposed
-           incidence (effects) matrix.
+        /* Vector z_uni consists of transposed incidense (effects) matrices.
+           Therefore, which_row is supposed to address in combined incidence (effects) matrix.
 
-           CHANGED to transposed! => when setting up effects to a model (input still uses not-transposed matrices).
+           NOTE: effects are transposed when inserting them into a model (though, input still uses not-transposed matrices).
         */
         try
         {
@@ -441,10 +440,10 @@ namespace evolm
 
             z_row_to_uni_col(which_trait, which_row, icol, which_eff_matr);
 
-                                                                        // Note: z_uni is the composition of effect matrices
+            // Note: z_uni is the composition of effect matrices
             vect = z_uni[which_trait][which_eff_matr].fget(icol, irow); // here is row vector extracted, assumed transposed matrices
                                                                         // in the case of not-transposed matrices, we use .fget(irow, icol), then apply transpose()
-            
+
             return vect;
         }
         catch (const std::exception &e)
@@ -457,7 +456,7 @@ namespace evolm
         {
             std::cerr << "Exception in Solver::get_vect_z_uni(const size_t &, const size_t &)." << '\n';
             throw;
-        }        
+        }
     }
 
     void Solver::get_vect_z_uni2(const size_t &which_trait, const size_t &which_row, std::vector<std::vector<float>> &vect)
@@ -517,9 +516,7 @@ namespace evolm
 
     void Solver::z_row_to_uni_col(const size_t &which_trait, const size_t &in_z_row, size_t *out_uni_col, size_t &out_uni_matr)
     {
-        /* Here it is assumed the set of incidence matrices in z_uni are not transposed.
-
-           NOTE: changed to transposed from the input. Though, this info is not important in here.
+        /* Returns the specific column and the index of an incidense (effects) matrix.
         */
 
         try
@@ -570,10 +567,10 @@ namespace evolm
 
             for (size_t i = 0; i < shp[0]; i++)
             {
-                if ( yi(i,0) == model.missing_constant )
+                if (yi(i, 0) == model.missing_constant)
                 {
                     s_miss.push_back(false);
-                    yi(i,0) = 0.0; // is this OK? Otherwise we'll have -999.0 in this place!
+                    yi(i, 0) = 0.0; // is this OK? Otherwise we'll have -999.0 in this place!
                 }
                 else
                     s_miss.push_back(true);
@@ -604,36 +601,36 @@ namespace evolm
     {
         try
         {
-            size_t k = ( n_trait * n_trait + n_trait ) / 2.0; // elements in lower triangular part
+            size_t k = (n_trait * n_trait + n_trait) / 2.0; // elements in lower triangular part
 
             matrix<float> R = model.residuals[0].fget(); // Note! This is only for the very first submitted residual matrix.
 
-            if ( R.size() < k )
+            if (R.size() < k)
                 throw std::string("The number of elements in the provided residual covariance matrix is not correspond to the number of traitsin the model!");
 
-            std::vector<float> r_init(k,0.0); // inverse of residual covariance for the  trivial case when all traits are unrelated
+            std::vector<float> r_init(k, 0.0); // inverse of residual covariance for the  trivial case when all traits are unrelated
             for (size_t i = 0; i < n_trait; i++)
                 for (size_t j = 0; j <= i; j++)
-                    r_init[ i*(i+1)/2 + j ] = 1.0 / R(i,j); // using lower triangular part
+                    r_init[i * (i + 1) / 2 + j] = 1.0 / R(i, j); // using lower triangular part
 
             for (size_t i = 0; i < n_obs[0]; i++) // create hash list for each row of observations
             {
                 std::vector<bool> vec_bool;
                 for (size_t j = 0; j < n_trait; j++) // loop over all trait for the specific observation i
-                    vec_bool.push_back( s[j][i] );
-                
-                std::hash<std::vector<bool> > hash_vector_bool;
-                
+                    vec_bool.push_back(s[j][i]);
+
+                std::hash<std::vector<bool>> hash_vector_bool;
+
                 R_hash.push_back(hash_vector_bool(vec_bool));
             }
 
-            std::vector<size_t> hash_keys; // unique list of hash keys            
+            std::vector<size_t> hash_keys; // unique list of hash keys
             hash_keys = R_hash;
 
-            sort( hash_keys.begin(),hash_keys.end() ); //sort and getting unique hesh keys
-            hash_keys.erase( unique( hash_keys.begin(),hash_keys.end() ), hash_keys.end() );
+            sort(hash_keys.begin(), hash_keys.end()); // sort and getting unique hesh keys
+            hash_keys.erase(unique(hash_keys.begin(), hash_keys.end()), hash_keys.end());
 
-            for (auto const &v: hash_keys) // initializing r_map, and modify its value's specific elements based on unique patterns
+            for (auto const &v : hash_keys) // initializing r_map, and modify its value's specific elements based on unique patterns
             {
                 r_map[v] = r_init; // initialize by the trivial case covariance (all unrelated)
 
@@ -641,7 +638,7 @@ namespace evolm
                 // find the details of the pattern by using its hash key
                 size_t index_in_obs = 0;
 
-                std::vector<size_t>::iterator it = find (R_hash.begin(), R_hash.end(), v);
+                std::vector<size_t>::iterator it = find(R_hash.begin(), R_hash.end(), v);
 
                 if (it != R_hash.end())
                     index_in_obs = it - R_hash.begin();
@@ -651,29 +648,29 @@ namespace evolm
                 std::vector<size_t> pattern; // holds indexes needed to construct the reduced covariance matrix
 
                 for (size_t i3 = 0; i3 < n_trait; i3++)
-                    if ( s[i3][index_in_obs] ) // select only those indexes which have observations (true values)
-                        pattern.push_back( i3 ); // which index should be used to construct and invert matrix
+                    if (s[i3][index_in_obs])   // select only those indexes which have observations (true values)
+                        pattern.push_back(i3); // which index should be used to construct and invert matrix
 
-                if ( pattern.size() < 2 ) // if the pattern is 0 everywhere or only 1 is non-missing -> is trivial case
-                    continue; // do nothing, switch to the next key
-                
-                evolm::matrix<float> iR(pattern.size(),pattern.size()); // creating reduced covariance matrix
+                if (pattern.size() < 2) // if the pattern is 0 everywhere or only 1 is non-missing -> is trivial case
+                    continue;           // do nothing, switch to the next key
+
+                evolm::matrix<float> iR(pattern.size(), pattern.size()); // creating reduced covariance matrix
 
                 for (size_t i3 = 0; i3 < pattern.size(); i3++)
                     for (size_t j3 = 0; j3 <= i3; j3++)
-                        iR(i3,j3) = iR(j3,i3) = R( pattern[i3], pattern[j3] ); // build matrix
+                        iR(i3, j3) = iR(j3, i3) = R(pattern[i3], pattern[j3]); // build matrix
 
                 iR.invert();
 
                 for (size_t i3 = 0; i3 < pattern.size(); i3++)
                     for (size_t j3 = 0; j3 <= i3; j3++)
-                        r_map[v][ pattern[i3]*(pattern[i3]+1)/2.0 + pattern[j3] ] = iR(i3,j3); // using lower triangulaar indexation
+                        r_map[v][pattern[i3] * (pattern[i3] + 1) / 2.0 + pattern[j3]] = iR(i3, j3); // using lower triangulaar indexation
             }
-            
+
             // NOTE: uncoment this in case of accepting constant Rij(-1)
             //       for all observations (not correcting for missing observations)
-            //r = R;
-            //r.invert();
+            // r = R;
+            // r.invert();
             // End of the NOTE.
 
             R.clear();
@@ -687,7 +684,7 @@ namespace evolm
         catch (const std::string &e)
         {
             std::cerr << "Exception in Solver::set_r()" << '\n';
-            std::cerr <<"Reason => "<< e << '\n';
+            std::cerr << "Reason => " << e << '\n';
             throw e;
         }
         catch (...)
@@ -712,7 +709,7 @@ namespace evolm
                 var.invert();
                 var.fwrite();
                 model.variances[i] = var;
-                
+
                 var.clear();
             }
         }

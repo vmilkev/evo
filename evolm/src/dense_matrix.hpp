@@ -1,5 +1,5 @@
 /*
-    cs_matrix.hpp
+    dense_matrix.hpp
 
     General matrix class intended to work with
     (i) Intel® Math Kernel Library
@@ -795,7 +795,7 @@ namespace evolm
     void matrix<T>::resize()
     {
         /*
-            Private member. Reallocates memmorey for the container A.
+            Private member. Reallocates memory for the container A.
             Note: row and column of a matrix have to be modified before calling the resize() method.
 
             Return value: none.
