@@ -40,7 +40,7 @@ TEST_CASE("Small data test: model 1")
                         0, 1,
                         1, 0,
                         1, 0};
-
+    
     std::vector<int> x2{1, 0,
                         0, 1, 
                         0, 1,
@@ -2019,8 +2019,8 @@ TEST_CASE("Small data test: model 2")
     model.append_corrstruct(iG2, 2, iA, 14, corr_eff_1);
 
     std::string identity("I");
-    // model.append_corrstruct(iG3, 1, corS, 4, corr_eff_2);
-    model.append_corrstruct(iG3, 1, identity, 4, corr_eff_2);
+    model.append_corrstruct(iG3, 1, corS, 4, corr_eff_2);
+    //model.append_corrstruct(iG3, 1, identity, 4, corr_eff_2);
 
     model.append_traitstruct(obs_trate, eff_trate);
 

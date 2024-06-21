@@ -20,6 +20,7 @@ namespace evolm
 
         std::vector<T> vals;
         std::vector<size_t> keys;
+        std::vector<std::int64_t> row_first_key; // optional container (on demand) holding indexes of a first kay in each row
         
         size_t nRows;
         size_t nCols;
@@ -48,6 +49,8 @@ namespace evolm
         void convert_to_sparse(smatrix<T> &out);
         void convert_to_dense(matrix<T> &out);
 
+        void sort_vectors();
+
     public:
 
         compact_storage(); /* default empty storage */
@@ -65,6 +68,7 @@ namespace evolm
         bool is_sparse();
         bool empty();
         void clear();
+        void remove_data();
         void fclear();
         void fclear(const std::string &fname);
         size_t size();
@@ -77,13 +81,17 @@ namespace evolm
         void append(T value, size_t irow, size_t icol); /* append single value */
         void append(std::vector<T> &value, std::vector<size_t> &row, std::vector<size_t> &col); /* append (sparse data), even if the storage is not empty */
         void append(std::vector<T> &value); /* append (dense data), even if the storage is not empty */
+        void append_with_keys(std::vector<T> &value, std::vector<size_t> &key); /* append values and keys (without rows & cols), even if the storage is not empty */
         
         void fwrite();
         void fread();
         void fwrite(const std::string &fname);
-        void fread(const std::string &fname);        
+        void fread(const std::string &fname);
+        void fwrite(std::fstream &external_fA);
+        void fread(std::fstream &external_fA);
         
         void optimize();
+        void transpose();
 
         void resize();
         void resize(size_t row);
@@ -94,12 +102,32 @@ namespace evolm
         void to_sparse(std::vector<T> &vals_out, std::vector<size_t> &keys_out);
         void to_dense(matrix<T> &out);
         void to_dense(std::vector<T> &vals_out);
-        void to_vector(std::vector<T> &vals_out, std::vector<size_t> &keys_out);
         
         // Methods for getting a sub-set of data ...
         void to_sparse(smatrix<T> &out, size_t *row_range, size_t *col_range);
         void to_dense(matrix<T> &out, size_t *row_range, size_t *col_range);
-        void to_vector(std::vector<T> &vals_out, std::vector<size_t> &keys_out, size_t *row_range, size_t *col_range);
+        void to_dense(T **out, size_t *row_range, size_t *col_range);
+        void cast_to_fsparse(smatrix<float> &out, size_t *row_range, size_t *col_range);
+        void cast_to_fdense(matrix<float> &out, size_t *row_range, size_t *col_range);
+        void cast_to_fdense(float **out, size_t *row_range, size_t *col_range);
+
+        void to_sparse(std::vector<T> &vals_out, std::vector<size_t> &keys_out, size_t *row_range, size_t *col_range);
+        void cast_to_fsparse(std::vector<float> &vals_out, std::vector<size_t> &keys_out, size_t *row_range, size_t *col_range);
+
+        void row_dot_float_vect(float **in_vect, size_t irow, size_t icol, float &out_res);
+        void row_dot_vect(T **in_vect, size_t irow, size_t icol, T &out_res);
+        void add_row_to_vector(std::vector<T> &vect_to_add, size_t vect_first_index, float variance, size_t irow, size_t *icol);
+
+        T value_at(size_t irow, size_t icol);
+        void vect_dot_vect(std::vector<double> &in_vect, double &out_res);
+
+        // Type converters
+        void to_int(compact_storage<int> &out);
+        void to_float(compact_storage<float> &out);
+        void to_double(compact_storage<double> &out);
+
+        void make_rows_list();
+        void clear_rows_list();
     };
 
     //===========================================================================================    
@@ -367,6 +395,15 @@ namespace evolm
     }
     //===========================================================================================
     template <typename T>
+    void compact_storage<T>::remove_data()
+    {
+        vals.clear();
+        vals.shrink_to_fit();
+        keys.clear();
+        keys.shrink_to_fit();
+    }
+    //===========================================================================================
+    template <typename T>
     void compact_storage<T>::append(T value, size_t irow, size_t icol)
     {
         if ( (irow > nRows-1) || (icol > nCols-1) )
@@ -463,6 +500,35 @@ namespace evolm
     }
     //===========================================================================================
     template <typename T>
+    void compact_storage<T>::append_with_keys(std::vector<T> &value, std::vector<size_t> &key)
+    {
+        if ( !empty() && is_sparse() )
+            throw std::string("compact_storage<T>::append(std::vector<T> &): Trying to append a dense data to a sparse storage!");
+        
+        if ( (max_key() + 1) < ( value.size() + vals.size() ) )
+            throw std::string("compact_storage<T>::append(std::vector<T> &): Too many elements in the provided array for a givem storage size!");
+        
+        if ( !key.empty() && value.size() != key.size() )
+            throw std::string("The sizes of vectors (value and key) are not equal!");
+        
+        if (empty())
+        {
+            vals = value;
+            keys = key;
+        }
+        else
+        {
+            for ( size_t i = 0; i < value.size(); i++ )
+            {
+                vals.push_back( value[i] );
+                keys.push_back( key[i] );
+            }
+        }
+
+        optimize();
+    }
+    //===========================================================================================
+    template <typename T>
     size_t compact_storage<T>::key_insym(size_t row, size_t col)
     {
         return (size_t)( col + row * (row + 1) * 0.5 );
@@ -537,8 +603,29 @@ namespace evolm
     }
     //===========================================================================================
     template <typename T>
+    void compact_storage<T>::fwrite(std::fstream &external_fA)
+    {
+        size_t vals_size = vals.size();
+        size_t keys_size = keys.size();
+
+        external_fA.write( reinterpret_cast<const char *>( &vals_size ), sizeof(vals_size) ); // 1. writing size of values
+        external_fA.write( reinterpret_cast<const char *>( vals.data() ), vals_size * sizeof(T) ); // 2. writing all values
+
+        external_fA.write( reinterpret_cast<const char *>( &keys_size ), sizeof(keys_size) ); // 3. writing size of keys
+        external_fA.write( reinterpret_cast<const char *>( keys.data() ), keys_size * sizeof(keys_size) ); // 4. writing all keys
+
+        /*ondisk = true;
+
+        vals.clear();
+        keys.clear();*/
+    }
+    //===========================================================================================
+    template <typename T>
     void compact_storage<T>::fread()
     {
+        if (!ondisk)
+            throw std::string("The storage status is not ondisk!");
+        
         fA.exceptions(std::ifstream::failbit | std::ifstream::badbit);
         fA.open(binFilename, fA.binary | fA.in);
 
@@ -549,7 +636,10 @@ namespace evolm
         size_t keys_size = 0;
 
         if ( !empty() )
-            clear();
+        {
+            vals.clear();
+            keys.clear();
+        }
 
         fA.read( reinterpret_cast<char *>( &vals_size ), sizeof(vals_size) ); // 1. reading size of values        
         vals.resize(vals_size);
@@ -565,26 +655,73 @@ namespace evolm
     }
     //===========================================================================================
     template <typename T>
+    void compact_storage<T>::fread(std::fstream &external_fA)
+    {
+        /*if (!ondisk)
+            throw std::string("The storage status is not ondisk!");*/
+        
+        size_t vals_size = 0;
+        size_t keys_size = 0;
+
+        if ( !empty() )
+        {
+            vals.clear();
+            keys.clear();
+        }
+
+        external_fA.read( reinterpret_cast<char *>( &vals_size ), sizeof(vals_size) ); // 1. reading size of values        
+        vals.resize(vals_size);
+        external_fA.read( reinterpret_cast<char *>( vals.data() ), vals_size * sizeof(T) ); // 2. reading all values
+
+        external_fA.read( reinterpret_cast<char *>( &keys_size ), sizeof(keys_size) ); // 3. reading size of keys
+        keys.resize(keys_size);
+        external_fA.read( reinterpret_cast<char *>( keys.data() ), keys_size * sizeof(keys_size) ); // 4. reading all keys
+
+        //ondisk = false;
+    }
+    //===========================================================================================
+    template <typename T>
     void compact_storage<T>::fwrite(const std::string &fname)
     {
+        int integer_var;
+        float float_var;
+        double double_var;
+
+        const std::type_info &type_1 = typeid(integer_var);
+        const std::type_info &type_2 = typeid(float_var);
+        const std::type_info &type_3 = typeid(double_var);
+        const std::type_info &type_T = typeid(vals[0]);
+        
+        size_t var_type = 0;
+
+        if (type_T == type_1)
+            var_type = 1;
+        else if (type_T == type_2)
+            var_type = 2;
+        else if (type_T == type_3)
+            var_type = 3;
+        else
+            throw std::string("Cannot determine the type of values vector.");
+
         fA.exceptions(std::ifstream::failbit | std::ifstream::badbit);
         fA.open(fname, fA.binary | fA.trunc | fA.out);
 
         if (!fA.is_open())
             throw std::string("compact_storage<T>::fwrite(const std::string &): Error while opening a binary file.");
 
-        size_t B[5];
+        size_t B[6];
 
         B[0] = data_type;
         B[1] = nRows;
         B[2] = nCols;
         B[3] = (size_t)symmetric;
         B[4] = (size_t)sizeof(T);
+        B[5] = var_type;
 
         size_t vals_size = vals.size();
         size_t keys_size = keys.size();
 
-        fA.write( reinterpret_cast<const char *>(&B), 5 * sizeof(size_t) ); // 0. writing a storage data
+        fA.write( reinterpret_cast<const char *>(&B), 6 * sizeof(size_t) ); // 0. writing a storage data
 
         fA.write( reinterpret_cast<const char *>( &vals_size ), sizeof(vals_size) ); // 1. writing size of values
         fA.write( reinterpret_cast<const char *>( vals.data() ), vals_size * sizeof(T) ); // 2. writing all values
@@ -604,12 +741,12 @@ namespace evolm
         if (!fA.is_open())
             throw std::string("compact_storage<T>::fread(const std::string &): Error while opening a binary file.");
 
-        size_t B[5];
+        size_t B[6];
 
-        fA.read( reinterpret_cast<char *>(&B), 5 * sizeof(size_t) ); // 0. reading a storage data
+        fA.read( reinterpret_cast<char *>(&B), 6 * sizeof(size_t) ); // 0. reading a storage data
 
         if ( data_type != B[0] )
-            throw std::string("compact_storage<T>::fread(const std::string &): The wrong kind of storage trying to read the data from file!");
+            throw std::string("compact_storage<T>::fread(const std::string &): Trying to read a wrong kind of storage from file into the compact_storage format!");
 
         nRows = B[1];
         nCols = B[2];
@@ -617,7 +754,10 @@ namespace evolm
         size_t var_inbytes = B[4];
 
         if ( !empty() )
-            clear();
+        {
+            vals.clear();
+            keys.clear();
+        }
 
         size_t vals_size;
         size_t keys_size;
@@ -726,6 +866,58 @@ namespace evolm
         nRows = row;
         nCols = col;
         symmetric = false;
+    }
+    //===========================================================================================
+    template <typename T>
+    void compact_storage<T>::transpose()
+    {
+        if (symmetric)
+        {
+            return;
+        }
+
+        if (is_sparse())
+        {
+            std::vector<size_t> tmp_keys(keys);
+
+            size_t i_row = 0;
+            size_t i_col = 0;
+
+            for (size_t i = 0; i < vals.size(); i++)
+            {
+                i_row = row_inrec( tmp_keys[i] );
+                i_col = col_inrec( tmp_keys[i], i_row );
+                keys[i] = i_col * nRows + i_row;
+            }
+
+            tmp_keys.clear();
+
+            size_t t_row = nRows;
+            nRows = nCols;
+            nCols = t_row;
+
+            sort_vectors();
+        }
+        else
+        {
+            std::vector<T> tmp_vals(vals);
+
+            size_t i_row = 0;
+            size_t i_col = 0;
+
+            for (size_t i = 0; i < vals.size(); i++)
+            {
+                i_row = row_inrec(i);
+                i_col = col_inrec(i, i_row);
+                vals[i_col * nRows + i_row] = tmp_vals[i];
+            }
+
+            tmp_vals.clear();
+
+            size_t t_row = nRows;
+            nRows = nCols;
+            nCols = t_row;
+        }
     }
     //===========================================================================================
     template <typename T>
@@ -882,81 +1074,136 @@ namespace evolm
         size_t n_cols = col_range[1] - col_range[0] + 1;
 
         if ( symmetric )
+            throw std::string("to_dense(smatrix<T> &, size_t *, size_t *): The method isnot allowed on symmetric storage!");
+
+        out.resize(n_rows, n_cols);
+
+        first_key = key_inrec(row_range[0], col_range[0]);
+        last_key = key_inrec(row_range[1], col_range[1]);
+        
+        if ( is_sparse() )
         {
-            out.resize(n_rows);
+            std::int64_t first_index = 0;
+            size_t last_index = keys.size();
 
-            first_key = key_insym(row_range[0], col_range[0]);
-            last_key = key_insym(row_range[1], col_range[1]);
-
-            if ( is_sparse() )
+            if ( !row_first_key.empty() )
             {
-                for (size_t i = 0; i < keys.size(); i++)
+                std::int64_t index = row_first_key[ row_range[0] ];
+                size_t next_index = row_range[0];
+                while (index == -1 && next_index <= row_range[1])
                 {
-                    if (keys[i] > last_key)
-                        return;
-                    
-                    if ( keys[i] >= first_key ) // assume sorted!
-                    {
-                        i_row = row_insym(keys[i]);
-                        i_col = col_insym(keys[i], i_row);
-
-                        if ( i_col >= col_range[0] && i_col <= col_range[1] )
-                            out( i_row - row_range[0], i_col - col_range[0] ) = vals[i];
-                    }
+                    next_index++;
+                    index = row_first_key[ next_index ];
                 }
+                first_index = index; // very first key in the row row_range[0]
             }
-            else
+
+            if (first_index == -1) // empty data
+                return;
+
+            for (size_t i = (size_t)first_index; i < last_index; i++)
             {
-                for (size_t i = first_key; i <= last_key; i++) // assume sorted!
-                {   
-                    if ( vals[i] == (T)0 )
-                        continue;
-                    
-                    i_row = row_insym(i);
-                    i_col = col_insym(i, i_row);
+                if (keys[i] > last_key)
+                    return;
+                
+                if ( keys[i] >= first_key ) // assume sorted!
+                {
+                    i_row = row_inrec(keys[i]);
+                    i_col = col_inrec(keys[i], i_row);
 
                     if ( i_col >= col_range[0] && i_col <= col_range[1] )
-                        out(i_row - row_range[0], i_col - col_range[0]) = vals[i];
+                        out( i_row - row_range[0], i_col - col_range[0] ) = vals[i];
                 }
             }
         }
         else
         {
-            out.resize(n_rows, n_cols);
+            for (size_t i = first_key; i <= last_key; i++) // assume sorted!
+            {   
+                if ( vals[i] == (T)0 )
+                    continue;
+                
+                i_row = row_inrec(i);
+                i_col = col_inrec(i, i_row);
 
-            first_key = key_inrec(row_range[0], col_range[0]);
-            last_key = key_inrec(row_range[1], col_range[1]);
-            
-            if ( is_sparse() )
-            {
-                for (size_t i = 0; i < keys.size(); i++)
-                {
-                    if (keys[i] > last_key)
-                        return;
-                    
-                    if ( keys[i] >= first_key ) // assume sorted!
-                    {
-                        i_row = row_inrec(keys[i]);
-                        i_col = col_inrec(keys[i], i_row);
-
-                        if ( i_col >= col_range[0] && i_col <= col_range[1] )
-                            out( i_row - row_range[0], i_col - col_range[0] ) = vals[i];
-                    }
-                }
+                if ( i_col >= col_range[0] && i_col <= col_range[1] )
+                    out( i_row - row_range[0], i_col - col_range[0] ) = vals[i];
             }
-            else
+        }
+    }
+    //===========================================================================================
+    template <typename T>
+    void compact_storage<T>::cast_to_fsparse(smatrix<float> &out, size_t *row_range, size_t *col_range)
+    {
+        // row_range[0] - first row
+        // row_range[1] - last row
+        // col_range[0] - first col
+        // col_range[1] - last col
+
+        size_t first_key = 0;
+        size_t last_key = 0;
+
+        size_t i_col = 0;
+        size_t i_row = 0;
+
+        size_t n_rows = row_range[1] - row_range[0] + 1;
+        size_t n_cols = col_range[1] - col_range[0] + 1;
+
+        if ( symmetric )
+            throw std::string("to_dense(smatrix<float> &, size_t *, size_t *): The method isnot allowed on symmetric storage!");
+
+        out.resize(n_rows, n_cols);
+
+        first_key = key_inrec(row_range[0], col_range[0]);
+        last_key = key_inrec(row_range[1], col_range[1]);
+        
+        if ( is_sparse() )
+        {
+            std::int64_t first_index = 0;
+            size_t last_index = keys.size();
+
+            if ( !row_first_key.empty() )
             {
-                for (size_t i = first_key; i <= last_key; i++) // assume sorted!
-                {   
-                    if ( vals[i] == (T)0 )
-                        continue;
-                    
-                    i_row = row_inrec(i);
-                    i_col = col_inrec(i, i_row);
+                std::int64_t index = row_first_key[ row_range[0] ];
+                size_t next_index = row_range[0];
+                while (index == -1 && next_index <= row_range[1])
+                {
+                    next_index++;
+                    index = row_first_key[ next_index ];
+                }
+                first_index = index; // very first key in the row row_range[0]
+            }
+
+            if (first_index == -1) // empty data
+                return;
+
+            for (size_t i = (size_t)first_index; i < last_index; i++)
+            {
+                if (keys[i] > last_key)
+                    return;
+                
+                if ( keys[i] >= first_key ) // assume sorted!
+                {
+                    i_row = row_inrec(keys[i]);
+                    i_col = col_inrec(keys[i], i_row);
 
                     if ( i_col >= col_range[0] && i_col <= col_range[1] )
-                        out( i_row - row_range[0], i_col - col_range[0] ) = vals[i];
+                        out( i_row - row_range[0], i_col - col_range[0] ) = static_cast<float>(vals[i]);
                 }
+            }
+        }
+        else
+        {
+            for (size_t i = first_key; i <= last_key; i++) // assume sorted!
+            {   
+                if ( vals[i] == (T)0 )
+                    continue;
+                
+                i_row = row_inrec(i);
+                i_col = col_inrec(i, i_row);
+
+                if ( i_col >= col_range[0] && i_col <= col_range[1] )
+                    out( i_row - row_range[0], i_col - col_range[0] ) = static_cast<float>(vals[i]);
             }
         }
     }
@@ -979,38 +1226,42 @@ namespace evolm
         size_t n_cols = col_range[1] - col_range[0] + 1;
 
         if ( symmetric )
+            throw std::string("to_dense(matrix<T> &, size_t *, size_t *): The method isnot allowed on symmetric storage!");
+
+        out.resize(n_rows, n_cols);
+
+        first_key = key_inrec(row_range[0], col_range[0]);
+        last_key = key_inrec(row_range[1], col_range[1]);
+        
+        if ( is_sparse() )
         {
-            out.resize(n_rows);
+            std::int64_t first_index = 0;
+            size_t last_index = keys.size();
 
-            first_key = key_insym(row_range[0], col_range[0]);
-            last_key = key_insym(row_range[1], col_range[1]);
-
-            if ( is_sparse() )
+            if ( !row_first_key.empty() )
             {
-                for (size_t i = 0; i < keys.size(); i++)
+                std::int64_t index = row_first_key[ row_range[0] ];
+                size_t next_index = row_range[0];
+                while (index == -1 && next_index <= row_range[1])
                 {
-                    if (keys[i] > last_key)
-                        return;
-                    
-                    if ( keys[i] >= first_key ) // assume sorted!
-                    {
-                        i_row = row_insym(keys[i]);
-                        i_col = col_insym(keys[i], i_row);
-
-                        if ( i_col >= col_range[0] && i_col <= col_range[1] )
-                            out( i_row - row_range[0], i_col - col_range[0] ) = vals[i];
-                    }
+                    next_index++;
+                    index = row_first_key[ next_index ];
                 }
+                first_index = index; // very first key in the row row_range[0]
             }
-            else
+
+            if (first_index == -1) // empty data
+                return;
+
+            for (size_t i = (size_t)first_index; i < last_index; i++)
             {
-                for (size_t i = first_key; i <= last_key; i++) // assume sorted!
-                {   
-                    if ( vals[i] == (T)0 )
-                        continue;
-                    
-                    i_row = row_insym(i);
-                    i_col = col_insym(i, i_row);
+                if (keys[i] > last_key)
+                    return;
+                
+                if ( keys[i] >= first_key ) // assume sorted!
+                {
+                    i_row = row_inrec(keys[i]);
+                    i_col = col_inrec(keys[i], i_row);
 
                     if ( i_col >= col_range[0] && i_col <= col_range[1] )
                         out( i_row - row_range[0], i_col - col_range[0] ) = vals[i];
@@ -1019,47 +1270,252 @@ namespace evolm
         }
         else
         {
-            out.resize(n_rows, n_cols);
+            for (size_t i = first_key; i <= last_key; i++) // assume sorted!
+            {   
+                if ( vals[i] == (T)0 )
+                    continue;
+                
+                i_row = row_inrec(i);
+                i_col = col_inrec(i, i_row);
 
-            first_key = key_inrec(row_range[0], col_range[0]);
-            last_key = key_inrec(row_range[1], col_range[1]);
-            
-            if ( is_sparse() )
-            {
-                for (size_t i = 0; i < keys.size(); i++)
-                {
-                    if (keys[i] > last_key)
-                        return;
-                    
-                    if ( keys[i] >= first_key ) // assume sorted!
-                    {
-                        i_row = row_inrec(keys[i]);
-                        i_col = col_inrec(keys[i], i_row);
-
-                        if ( i_col >= col_range[0] && i_col <= col_range[1] )
-                            out( i_row - row_range[0], i_col - col_range[0] ) = vals[i];
-                    }
-                }
+                if ( i_col >= col_range[0] && i_col <= col_range[1] )
+                    out( i_row - row_range[0], i_col - col_range[0] ) = vals[i];
             }
-            else
+        }
+    }
+        //===========================================================================================
+    template <typename T>
+    void compact_storage<T>::cast_to_fdense(matrix<float> &out, size_t *row_range, size_t *col_range)
+    {
+        // row_range[0] - first row
+        // row_range[1] - last row
+        // col_range[0] - first col
+        // col_range[1] - last col
+
+        size_t first_key = 0;
+        size_t last_key = 0;
+
+        size_t i_col = 0;
+        size_t i_row = 0;
+
+        size_t n_rows = row_range[1] - row_range[0] + 1;
+        size_t n_cols = col_range[1] - col_range[0] + 1;
+
+        if ( symmetric )
+            throw std::string("fcast_to_dense(matrix<float> &, size_t *, size_t *): The method isnot allowed on symmetric storage!");
+
+        out.resize(n_rows, n_cols);
+
+        first_key = key_inrec(row_range[0], col_range[0]);
+        last_key = key_inrec(row_range[1], col_range[1]);
+        
+        if ( is_sparse() )
+        {
+            std::int64_t first_index = 0;
+            size_t last_index = keys.size();
+
+            if ( !row_first_key.empty() )
             {
-                for (size_t i = first_key; i <= last_key; i++) // assume sorted!
-                {   
-                    if ( vals[i] == (T)0 )
-                        continue;
-                    
-                    i_row = row_inrec(i);
-                    i_col = col_inrec(i, i_row);
+                std::int64_t index = row_first_key[ row_range[0] ];
+                size_t next_index = row_range[0];
+                while (index == -1 && next_index <= row_range[1])
+                {
+                    next_index++;
+                    index = row_first_key[ next_index ];
+                }
+                first_index = index; // very first key in the row row_range[0]
+            }
+
+            if (first_index == -1) // empty data
+                return;
+
+            for (size_t i = (size_t)first_index; i < last_index; i++)
+            {
+                if (keys[i] > last_key)
+                    return;
+                
+                if ( keys[i] >= first_key ) // assume sorted!
+                {
+                    i_row = row_inrec(keys[i]);
+                    i_col = col_inrec(keys[i], i_row);
 
                     if ( i_col >= col_range[0] && i_col <= col_range[1] )
-                        out( i_row - row_range[0], i_col - col_range[0] ) = vals[i];
+                        out( i_row - row_range[0], i_col - col_range[0] ) = static_cast<float>(vals[i]);
                 }
+            }
+        }
+        else
+        {
+            for (size_t i = first_key; i <= last_key; i++) // assume sorted!
+            {   
+                if ( vals[i] == (T)0 )
+                    continue;
+                
+                i_row = row_inrec(i);
+                i_col = col_inrec(i, i_row);
+
+                if ( i_col >= col_range[0] && i_col <= col_range[1] )
+                    out( i_row - row_range[0], i_col - col_range[0] ) = static_cast<float>(vals[i]);
             }
         }
     }
     //===========================================================================================
     template <typename T>
-    void compact_storage<T>::to_vector(std::vector<T> &vals_out, std::vector<size_t> &keys_out, size_t *row_range, size_t *col_range)
+    void compact_storage<T>::to_dense(T **out, size_t *row_range, size_t *col_range)
+    {
+        // row_range[0] - first row
+        // row_range[1] - last row
+        // col_range[0] - first col
+        // col_range[1] - last col
+
+        size_t first_key = 0;
+        size_t last_key = 0;
+
+        size_t i_col = 0;
+        size_t i_row = 0;
+
+        //size_t n_rows = row_range[1] - row_range[0] + 1;
+        //size_t n_cols = col_range[1] - col_range[0] + 1;
+
+        if ( symmetric )
+            throw std::string("to_dense(T **, size_t *, size_t *): The method isnot allowed on symmetric storage!");
+
+        first_key = key_inrec(row_range[0], col_range[0]);
+        last_key = key_inrec(row_range[1], col_range[1]);
+        
+        if ( is_sparse() )
+        {
+            for (size_t i = row_range[0]; i <= row_range[1]; i++)
+            {
+                for (size_t j = col_range[0]; j <= col_range[1]; j++)
+                    out[i - row_range[0]][j - col_range[0]] = (T)0;
+            }
+
+            std::int64_t first_index = 0;
+            size_t last_index = keys.size();
+
+            if ( !row_first_key.empty() )
+            {
+                std::int64_t index = row_first_key[ row_range[0] ];
+                size_t next_index = row_range[0];
+                while (index == -1 && next_index <= row_range[1])
+                {
+                    next_index++;
+                    index = row_first_key[ next_index ];
+                }
+                first_index = index; // very first key in the row row_range[0]
+            }
+
+            if (first_index == -1) // empty data
+                return;
+
+            for (size_t i = (size_t)first_index; i < last_index; i++)
+            {
+                if (keys[i] > last_key)
+                    return;
+                
+                if ( keys[i] >= first_key ) // assume sorted!
+                {
+                    i_row = row_inrec(keys[i]);
+                    i_col = col_inrec(keys[i], i_row);
+
+                    if ( i_col >= col_range[0] && i_col <= col_range[1] )
+                        out[ i_row - row_range[0] ][ i_col - col_range[0] ] = vals[i];
+                }
+            }
+        }
+        else
+        {
+            for (size_t i = first_key; i <= last_key; i++) // assume sorted!
+            {                       
+                i_row = row_inrec(i);
+                i_col = col_inrec(i, i_row);
+
+                if ( i_col >= col_range[0] && i_col <= col_range[1] )
+                    out[ i_row - row_range[0] ][ i_col - col_range[0] ] = vals[i];
+            }
+        }
+    }
+    //===========================================================================================
+    template <typename T>
+    void compact_storage<T>::cast_to_fdense(float **out, size_t *row_range, size_t *col_range)
+    {
+        // row_range[0] - first row
+        // row_range[1] - last row
+        // col_range[0] - first col
+        // col_range[1] - last col
+
+        size_t first_key = 0;
+        size_t last_key = 0;
+
+        size_t i_col = 0;
+        size_t i_row = 0;
+
+        //size_t n_rows = row_range[1] - row_range[0] + 1;
+        //size_t n_cols = col_range[1] - col_range[0] + 1;
+
+        if ( symmetric )
+            throw std::string("fcast_to_dense(float **, size_t *, size_t *): The method isnot allowed on symmetric storage!");
+
+        first_key = key_inrec(row_range[0], col_range[0]);
+        last_key = key_inrec(row_range[1], col_range[1]);
+        
+        if ( is_sparse() )
+        {
+            for (size_t i = row_range[0]; i <= row_range[1]; i++)
+            {
+                for (size_t j = col_range[0]; j <= col_range[1]; j++)
+                    out[i - row_range[0]][j - col_range[0]] = (float)0;
+            }
+
+            std::int64_t first_index = 0;
+            size_t last_index = keys.size();
+
+            if ( !row_first_key.empty() )
+            {
+                std::int64_t index = row_first_key[ row_range[0] ];
+                size_t next_index = row_range[0];
+                while (index == -1 && next_index <= row_range[1])
+                {
+                    next_index++;
+                    index = row_first_key[ next_index ];
+                }
+                first_index = index; // very first key in the row row_range[0]
+            }
+
+            if (first_index == -1) // empty data
+                return;
+
+            for (size_t i = (size_t)first_index; i < last_index; i++)
+            {
+                if (keys[i] > last_key)
+                    return;
+                
+                if ( keys[i] >= first_key ) // assume sorted!
+                {
+                    i_row = row_inrec(keys[i]);
+                    i_col = col_inrec(keys[i], i_row);
+
+                    if ( i_col >= col_range[0] && i_col <= col_range[1] )
+                        out[ i_row - row_range[0] ][ i_col - col_range[0] ] = static_cast<float>(vals[i]);
+                }
+            }
+        }
+        else
+        {
+            for (size_t i = first_key; i <= last_key; i++) // assume sorted!
+            {                       
+                i_row = row_inrec(i);
+                i_col = col_inrec(i, i_row);
+
+                if ( i_col >= col_range[0] && i_col <= col_range[1] )
+                    out[ i_row - row_range[0] ][ i_col - col_range[0] ] = static_cast<float>(vals[i]);
+            }
+        }
+    }
+    //===========================================================================================
+    template <typename T>
+    void compact_storage<T>::to_sparse(std::vector<T> &vals_out, std::vector<size_t> &keys_out, size_t *row_range, size_t *col_range)
     {
         // row_range[0] - first row
         // row_range[1] - last row
@@ -1078,42 +1534,44 @@ namespace evolm
         size_t new_key = 0;
 
         if ( symmetric )
-        {
-            first_key = key_insym(row_range[0], col_range[0]);
-            last_key = key_insym(row_range[1], col_range[1]);
-//std::cout<<"first_key: "<<first_key<<" last_key: "<<last_key<<"\n";
-            if ( is_sparse() )
-            {
-                for (size_t i = 0; i < keys.size(); i++)
-                {
-                    if (keys[i] > last_key)
-                        return;
-                    
-                    if ( keys[i] >= first_key ) // assume sorted!
-                    {
-                        i_row = row_insym(keys[i]);
-                        i_col = col_insym(keys[i], i_row);
+            throw std::string("to_sparse(std::vector<T> &, std::vector<size_t> &, size_t *, size_t *): The method isnot allowed on symmetric storage!");
 
-                        if ( i_col >= col_range[0] && i_col <= col_range[1] )
-                        {
-                            new_key = 0.5 * (i_row - row_range[0])*( (i_row - row_range[0]) + 1 ) + (i_col - col_range[0]);
-//std::cout<<"i_row: "<<i_row<<" i_col: "<<i_col<<" vals[i]: "<<vals[i]<<" new_key: "<<new_key<<"\n";
-                            vals_out.push_back(vals[i]);
-                            keys_out.push_back( new_key );
-                        }
-                    }
-                }
-            }
-            else
+        first_key = key_inrec(row_range[0], col_range[0]);
+        last_key = key_inrec(row_range[1], col_range[1]);
+        
+        if ( is_sparse() )
+        {
+            std::int64_t first_index = 0;
+            size_t last_index = keys.size();
+
+            if ( !row_first_key.empty() )
             {
-                for (size_t i = first_key; i <= last_key; i++) // assume sorted!
-                {   
-                    i_row = row_insym(i);
-                    i_col = col_insym(i, i_row);
+                std::int64_t index = row_first_key[ row_range[0] ];
+                size_t next_index = row_range[0];
+                while (index == -1 && next_index <= row_range[1])
+                {
+                    next_index++;
+                    index = row_first_key[ next_index ];
+                }
+                first_index = index; // very first key in the row row_range[0]
+            }
+
+            if (first_index == -1) // empty data
+                return;
+
+            for (size_t i = (size_t)first_index; i < last_index; i++)
+            {
+                if (keys[i] > last_key)
+                    return;
+                
+                if ( keys[i] >= first_key ) // assume sorted!
+                {
+                    i_row = row_inrec(keys[i]);
+                    i_col = col_inrec(keys[i], i_row);
 
                     if ( i_col >= col_range[0] && i_col <= col_range[1] )
                     {
-                        new_key = 0.5 * (i_row - row_range[0])*( (i_row - row_range[0]) + 1 ) + (i_col - col_range[0]);
+                        new_key = (i_row - row_range[0]) * n_cols + (i_col - col_range[0]);
                         vals_out.push_back(vals[i]);
                         keys_out.push_back( new_key );
                     }
@@ -1122,43 +1580,103 @@ namespace evolm
         }
         else
         {
-            first_key = key_inrec(row_range[0], col_range[0]);
-            last_key = key_inrec(row_range[1], col_range[1]);
-            
-            if ( is_sparse() )
+            for (size_t i = first_key; i <= last_key; i++) // assume sorted!
             {
-                for (size_t i = 0; i < keys.size(); i++)
-                {
-                    if (keys[i] > last_key)
-                        return;
-                    
-                    if ( keys[i] >= first_key ) // assume sorted!
-                    {
-                        i_row = row_inrec(keys[i]);
-                        i_col = col_inrec(keys[i], i_row);
+                if ( vals[i] == (T)0 )
+                    continue;
 
-                        if ( i_col >= col_range[0] && i_col <= col_range[1] )
-                        {
-                            new_key = (i_row - row_range[0]) * n_cols + (i_col - col_range[0]);
-                            vals_out.push_back(vals[i]);
-                            keys_out.push_back( new_key );
-                        }
-                    }
+                i_row = row_inrec(i);
+                i_col = col_inrec(i, i_row);
+
+                if ( i_col >= col_range[0] && i_col <= col_range[1] )
+                {
+                    new_key = (i_row - row_range[0]) * n_cols + (i_col - col_range[0]);
+                    vals_out.push_back(vals[i]);
+                    keys_out.push_back( new_key );
                 }
             }
-            else
+        }
+    }
+    //===========================================================================================
+    template <typename T>
+    void compact_storage<T>::cast_to_fsparse(std::vector<float> &vals_out, std::vector<size_t> &keys_out, size_t *row_range, size_t *col_range)
+    {
+        // row_range[0] - first row
+        // row_range[1] - last row
+        // col_range[0] - first col
+        // col_range[1] - last col
+
+        size_t first_key = 0;
+        size_t last_key = 0;
+
+        size_t i_col = 0;
+        size_t i_row = 0;
+
+        //size_t n_rows = row_range[1] - row_range[0] + 1;
+        size_t n_cols = col_range[1] - col_range[0] + 1;
+
+        size_t new_key = 0;
+
+        if ( symmetric )
+            throw std::string("cast_to_fsparse(std::vector<T> &, std::vector<size_t> &, size_t *, size_t *): The method isnot allowed on symmetric storage!");
+
+        first_key = key_inrec(row_range[0], col_range[0]);
+        last_key = key_inrec(row_range[1], col_range[1]);
+        
+        if ( is_sparse() )
+        {
+            std::int64_t first_index = 0;
+            size_t last_index = keys.size();
+
+            if ( !row_first_key.empty() )
             {
-                for (size_t i = first_key; i <= last_key; i++) // assume sorted!
-                {   
-                    i_row = row_inrec(i);
-                    i_col = col_inrec(i, i_row);
+                std::int64_t index = row_first_key[ row_range[0] ];
+                size_t next_index = row_range[0];
+                while (index == -1 && next_index <= row_range[1])
+                {
+                    next_index++;
+                    index = row_first_key[ next_index ];
+                }
+                first_index = index; // very first key in the row row_range[0]
+            }
+
+            if (first_index == -1) // empty data
+                return;
+
+            for (size_t i = (size_t)first_index; i < last_index; i++)
+            {
+                if (keys[i] > last_key)
+                    return;
+                
+                if ( keys[i] >= first_key ) // assume sorted!
+                {
+                    i_row = row_inrec(keys[i]);
+                    i_col = col_inrec(keys[i], i_row);
 
                     if ( i_col >= col_range[0] && i_col <= col_range[1] )
                     {
                         new_key = (i_row - row_range[0]) * n_cols + (i_col - col_range[0]);
-                        vals_out.push_back(vals[i]);
+                        vals_out.push_back( static_cast<float>(vals[i]) );
                         keys_out.push_back( new_key );
                     }
+                }
+            }
+        }
+        else
+        {
+            for (size_t i = first_key; i <= last_key; i++) // assume sorted!
+            {
+                if ( vals[i] == (float)0 )
+                    continue;
+
+                i_row = row_inrec(i);
+                i_col = col_inrec(i, i_row);
+
+                if ( i_col >= col_range[0] && i_col <= col_range[1] )
+                {
+                    new_key = (i_row - row_range[0]) * n_cols + (i_col - col_range[0]);
+                    vals_out.push_back( static_cast<float>(vals[i]) );
+                    keys_out.push_back( new_key );
                 }
             }
         }
@@ -1195,16 +1713,286 @@ namespace evolm
     }
     //===========================================================================================
     template <typename T>
-    void compact_storage<T>::to_vector(std::vector<T> &vals_out, std::vector<size_t > &keys_out)
-    {
-        vals_out = vals;
-        keys_out = keys;
-    }
-    //===========================================================================================
-    template <typename T>
     void compact_storage<T>::set_sparsity_threshold(double threshold)
     {
         sparsity_threshold = threshold;
+    }
+    //===========================================================================================
+    template <typename T>
+    void compact_storage<T>::sort_vectors()
+    {
+        std::vector< std::pair <size_t, T> > pair_vect;
+
+        if ( !is_sparse() )
+            return;
+        
+        for (size_t i = 0; i < vals.size(); i++)
+        {
+            pair_vect.push_back( std::make_pair(keys[i],vals[i]) );
+        }
+
+        std::sort(pair_vect.begin(), pair_vect.end());
+
+        vals.clear();
+        keys.clear();
+        for (size_t i = 0; i < pair_vect.size(); i++)
+        {
+            keys.push_back(pair_vect[i].first);
+            vals.push_back(pair_vect[i].second);    
+        }
+
+        pair_vect.clear();
+    }
+    //===========================================================================================
+    template <typename T>
+    void compact_storage<T>::to_int(compact_storage<int> &out)
+    {
+        std::vector<int> t_vect;
+
+        for (size_t i = 0; i < vals.size(); i++)
+            t_vect.push_back( static_cast<int>(vals[i]) );
+
+        if (symmetric)
+            out.resize(nRows);
+        else
+            out.resize(nRows,nCols);
+        
+        out.append_with_keys(t_vect, keys);
+    }
+    //===========================================================================================
+    template <typename T>
+    void compact_storage<T>::to_float(compact_storage<float> &out)
+    {
+        std::vector<float> t_vect;
+        
+        for (size_t i = 0; i < vals.size(); i++)
+            t_vect.push_back( static_cast<float>(vals[i]) );
+
+        if (symmetric)
+            out.resize(nRows);
+        else
+            out.resize(nRows,nCols);
+        
+        out.append_with_keys(t_vect, keys);
+    }
+    //===========================================================================================
+    template <typename T>
+    void compact_storage<T>::to_double(compact_storage<double> &out)
+    {
+        std::vector<double> t_vect;
+        
+        for (size_t i = 0; i < vals.size(); i++)
+            t_vect.push_back( static_cast<double>(vals[i]) );
+
+        if (symmetric)
+            out.resize(nRows);
+        else
+            out.resize(nRows,nCols);
+        
+        out.append_with_keys(t_vect, keys);
+    }
+    //===========================================================================================
+    template <typename T>
+    void compact_storage<T>::row_dot_float_vect(float **in_vect, size_t irow, size_t icol, float &out_res)
+    {
+        out_res = 0.0f;
+
+        size_t first_key = key_inrec(irow, 0);
+        size_t last_key = key_inrec(irow, icol);
+        
+        if( is_sparse() )
+        {
+            std::int64_t first_index = 0;
+            size_t last_index = keys.size();
+
+            if ( !row_first_key.empty() )
+            {
+                std::int64_t index = row_first_key[ irow ];
+                if (index == -1) // empty row
+                    return;
+                first_index = index; // very first key in the row row_range[0]
+            }
+
+            for (size_t i = (size_t)first_index; i < last_index; i++)
+            {
+                if (keys[i] > last_key)
+                    break;
+                if ( keys[i] >= first_key )
+                    out_res = out_res + in_vect[0][ keys[i]-first_key ] * static_cast<float>(vals[i]);
+            }
+        }
+        else
+        {
+            for (size_t i = first_key; i <= last_key; i++)
+            {
+                if ( vals[i] == 0 )
+                    continue;
+                out_res = out_res + in_vect[0][ i-first_key ] * static_cast<float>(vals[i]);
+            }
+        }
+    }
+    //===========================================================================================
+    template <typename T>
+    void compact_storage<T>::row_dot_vect(T **in_vect, size_t irow, size_t icol, T &out_res)
+    {
+        out_res = (T)0;
+
+        size_t first_key = key_inrec(irow, 0);
+        size_t last_key = key_inrec(irow, icol);
+        
+        if( is_sparse() )
+        {
+            std::int64_t first_index = 0;
+            size_t last_index = keys.size();
+
+            if ( !row_first_key.empty() )
+            {
+                std::int64_t index = row_first_key[ irow ];
+                if (index == -1) // empty row
+                    return;
+                first_index = index; // very first key in the row row_range[0]
+            }
+
+            for (size_t i = (size_t)first_index; i < last_index; i++)
+            {
+                if (keys[i] > last_key)
+                    break;
+                if ( keys[i] >= first_key )
+                    out_res = out_res + in_vect[0][ keys[i]-first_key ] * vals[i];
+            }
+        }
+        else
+        {
+            for (size_t i = first_key; i <= last_key; i++)
+            {
+                if ( vals[i] == 0 )
+                    continue;
+                out_res = out_res + in_vect[0][ i-first_key ] * vals[i];
+            }
+        }
+    }
+    //===========================================================================================
+    template <typename T>
+    void compact_storage<T>::vect_dot_vect(std::vector<double> &in_vect, double &out_res)
+    {
+        out_res = 0.0;
+
+        if( is_sparse() )
+        {
+            for (size_t i = 0; i < keys.size(); i++)
+                out_res = out_res + in_vect[ keys[i] ] * static_cast<double>(vals[i]);
+        }
+        else
+        {
+            for (size_t i = 0; i < vals.size(); i++)
+                out_res = out_res + in_vect[i] * static_cast<double>(vals[i]);
+        }
+    }
+    //===========================================================================================
+    template <typename T>
+    void compact_storage<T>::add_row_to_vector(std::vector<T> &vect_to_add, size_t vect_first_index, float variance, size_t irow, size_t *icol)
+    {
+        size_t first_key = key_inrec(irow, icol[0]);
+        size_t last_key = key_inrec(irow, icol[1]);
+
+        if( is_sparse() )
+        {
+            std::int64_t first_index = 0;
+            size_t last_index = keys.size();
+
+            if ( !row_first_key.empty() )
+            {
+                std::int64_t index = row_first_key[ irow ];
+                if (index == -1) // empty row
+                    return;
+                first_index = index; // very first key in the row row_range[0]
+            }
+
+            for (size_t i = (size_t)first_index; i < last_index; i++)
+            {
+                if (keys[i] > last_key)
+                    break;
+                if ( keys[i] >= first_key )
+                    vect_to_add[ vect_first_index+(keys[i]-first_key) ] = vect_to_add[ vect_first_index+(keys[i]-first_key) ] + vals[i] * variance;
+            }
+        }
+        else
+        {
+            for (size_t i = first_key; i <= last_key; i++)
+            {
+                if ( vals[i] == 0 )
+                    continue;
+                vect_to_add[ vect_first_index+(i-first_key) ] = vect_to_add[ vect_first_index+(i-first_key) ] + vals[i] * variance;
+            }
+        }
+    }
+    //===========================================================================================
+    template <typename T>
+    T compact_storage<T>::value_at(size_t irow, size_t icol)
+    {
+        size_t first_key = key_inrec(irow, icol);
+        T out_value = (T)0;
+
+        if( is_sparse() )
+        {
+            std::int64_t first_index = 0;
+            size_t last_index = keys.size();
+
+            if ( !row_first_key.empty() )
+            {
+                std::int64_t index = row_first_key[ irow ];
+                if (index == -1) // empty row
+                    return (T)0;
+                first_index = index; // very first key in the row row_range[0]
+            }
+
+            for (size_t i = (size_t)first_index; i < last_index; i++)
+                if (keys[i] == first_key)
+                    out_value = vals[i];
+        }
+        else
+            out_value = vals[first_key];
+        
+        return out_value;
+    }
+    //===========================================================================================
+    template <typename T>
+    void compact_storage<T>::make_rows_list()
+    {
+        if( !row_first_key.empty() )
+            row_first_key.clear();
+        
+        if ( !is_sparse() )
+            return;
+        
+        row_first_key.resize(nRows, -1);
+
+        size_t i_key = 0;
+        size_t next_row = 0;
+
+        size_t i_row = row_inrec( keys[i_key] ); // get the row number associated with a very first key
+        row_first_key[i_row] = i_key; // key with index 0 associated with row number irow
+
+        while ( i_key < keys.size() )
+        {
+            next_row = i_row;
+
+            while ( next_row == i_row )
+            {
+                i_key++;
+                i_row = row_inrec( keys[i_key] );
+            }
+
+            if( i_key < keys.size() )
+                row_first_key[i_row] = i_key;
+        }
+    }
+    //===========================================================================================
+    template <typename T>
+    void compact_storage<T>::clear_rows_list()
+    {
+        row_first_key.clear();
+        row_first_key.shrink_to_fit();
     }
     //===========================================================================================
     

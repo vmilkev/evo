@@ -38,6 +38,7 @@ namespace evolm
 
     template smatrix<float>::smatrix(size_t row, size_t col);
     template smatrix<double>::smatrix(size_t row, size_t col);
+    template smatrix<int>::smatrix(size_t row, size_t col);
 
     //===============================================================================================================
 
@@ -72,6 +73,7 @@ namespace evolm
 
     template smatrix<float>::smatrix(size_t lda);
     template smatrix<double>::smatrix(size_t lda);
+    template smatrix<int>::smatrix(size_t lda);
     
     //===============================================================================================================
 
@@ -116,6 +118,7 @@ namespace evolm
 
     template void smatrix<float>::resize(size_t row, size_t col);
     template void smatrix<double>::resize(size_t row, size_t col);
+    template void smatrix<int>::resize(size_t row, size_t col);
 
     //===============================================================================================================
 
@@ -159,6 +162,7 @@ namespace evolm
 
     template void smatrix<float>::resize(size_t rlda);
     template void smatrix<double>::resize(size_t lda);
+    template void smatrix<int>::resize(size_t lda);
 
     //===============================================================================================================
 
@@ -202,6 +206,7 @@ namespace evolm
 
     template void smatrix<float>::resize();
     template void smatrix<double>::resize();
+    template void smatrix<int>::resize();
 
     //===============================================================================================================
 
@@ -235,6 +240,7 @@ namespace evolm
 
     template smatrix<float>::smatrix();
     template smatrix<double>::smatrix();
+    template smatrix<int>::smatrix();
 
     //===============================================================================================================
 
@@ -250,6 +256,7 @@ namespace evolm
 
     template smatrix<float>::~smatrix();
     template smatrix<double>::~smatrix();
+    template smatrix<int>::~smatrix();
 
     //===============================================================================================================
 
@@ -289,6 +296,7 @@ namespace evolm
 
     template smatrix<float>::smatrix(const smatrix<float> &obj);
     template smatrix<double>::smatrix(const smatrix<double> &obj);
+    template smatrix<int>::smatrix(const smatrix<int> &obj);
 
     //===============================================================================================================
 
@@ -313,6 +321,7 @@ namespace evolm
 
     template void smatrix<float>::set_thread_load( size_t load );
     template void smatrix<double>::set_thread_load( size_t load );
+    template void smatrix<int>::set_thread_load( size_t load );
 
     //===============================================================================================================
 
@@ -340,6 +349,7 @@ namespace evolm
 
     template size_t smatrix<float>::nrows();
     template size_t smatrix<double>::nrows();
+    template size_t smatrix<int>::nrows();
 
     //===============================================================================================================
 
@@ -367,6 +377,7 @@ namespace evolm
 
     template size_t smatrix<float>::ncols();
     template size_t smatrix<double>::ncols();
+    template size_t smatrix<int>::ncols();
 
     //===============================================================================================================
 
@@ -394,6 +405,7 @@ namespace evolm
 
     template size_t smatrix<float>::size();
     template size_t smatrix<double>::size();
+    template size_t smatrix<int>::size();
 
     //===============================================================================================================
 
@@ -421,6 +433,7 @@ namespace evolm
 
     template size_t smatrix<float>::max_key();
     template size_t smatrix<double>::max_key();
+    template size_t smatrix<int>::max_key();
 
     //===============================================================================================================
 
@@ -444,6 +457,7 @@ namespace evolm
 
     template void smatrix<float>::clear();
     template void smatrix<double>::clear();
+    template void smatrix<int>::clear();
 
     //===============================================================================================================
 
@@ -468,6 +482,7 @@ namespace evolm
 
     template void smatrix<float>::clean();
     template void smatrix<double>::clean();
+    template void smatrix<int>::clean();
 
     //===============================================================================================================
 
@@ -493,6 +508,7 @@ namespace evolm
 
     template void smatrix<float>::fclear();
     template void smatrix<double>::fclear();
+    template void smatrix<int>::fclear();
 
     //===============================================================================================================
 
@@ -518,6 +534,7 @@ namespace evolm
 
     template void smatrix<float>::fclear(const std::string &fname);
     template void smatrix<double>::fclear(const std::string &fname);
+    template void smatrix<int>::fclear(const std::string &fname);
 
     //===============================================================================================================
 
@@ -543,6 +560,7 @@ namespace evolm
 
     template bool smatrix<float>::empty();
     template bool smatrix<double>::empty();
+    template bool smatrix<int>::empty();
 
     //===============================================================================================================
 
@@ -574,6 +592,7 @@ namespace evolm
 
     template size_t smatrix<float>::get_memory_usage();
     template size_t smatrix<double>::get_memory_usage();
+    template size_t smatrix<int>::get_memory_usage();
 
     //===============================================================================================================
 
@@ -605,6 +624,7 @@ namespace evolm
 
     template size_t smatrix<float>::get_memory_usage(size_t n_values);
     template size_t smatrix<double>::get_memory_usage(size_t n_values);
+    template size_t smatrix<int>::get_memory_usage(size_t n_values);
 
     //===============================================================================================================
 
@@ -640,6 +660,7 @@ namespace evolm
 
     template float &smatrix<float>::operator()(size_t atRow, size_t atCol);
     template double &smatrix<double>::operator()(size_t atRow, size_t atCol);
+    template int &smatrix<int>::operator()(size_t atRow, size_t atCol);
 
     //===============================================================================================================
 
@@ -658,6 +679,7 @@ namespace evolm
 
     template float &smatrix<float>::operator[](size_t atIndex);
     template double &smatrix<double>::operator[](size_t atIndex);
+    template int &smatrix<int>::operator[](size_t atIndex);
 
     //===============================================================================================================
 
@@ -708,6 +730,7 @@ namespace evolm
 
     template void smatrix<float>::thread_loads_unord(smatrix &in, std::vector<size_t> &out);
     template void smatrix<double>::thread_loads_unord(smatrix &in, std::vector<size_t> &out);
+    template void smatrix<int>::thread_loads_unord(smatrix &in, std::vector<size_t> &out);
 
     //===============================================================================================================
 
@@ -775,6 +798,7 @@ namespace evolm
 
     template void smatrix<float>::thread_loads_ord(ordstorage &in, std::vector<size_t> &out);
     template void smatrix<double>::thread_loads_ord(ordstorage &in, std::vector<size_t> &out);
+    template void smatrix<int>::thread_loads_ord(ordstorage &in, std::vector<size_t> &out);
 
     //===============================================================================================================
 
@@ -824,6 +848,7 @@ namespace evolm
 
     template void smatrix<float>::values_inrow(ordstorage &in, std::vector<size_t> &out_elements);
     template void smatrix<double>::values_inrow(ordstorage &in, std::vector<size_t> &out_elements);
+    template void smatrix<int>::values_inrow(ordstorage &in, std::vector<size_t> &out_elements);
 
     //===============================================================================================================
 
@@ -927,6 +952,7 @@ namespace evolm
 
     template smatrix<float> smatrix<float>::operator*(smatrix<float> &rhs);
     template smatrix<double> smatrix<double>::operator*(smatrix<double> &rhs);
+    template smatrix<int> smatrix<int>::operator*(smatrix<int> &rhs);
 
     //===============================================================================================================
 
@@ -1070,6 +1096,7 @@ namespace evolm
 
     template void smatrix<double>::dot_operation(smatrix &lhs, ordstorage &rhs, smatrix &out, std::vector<size_t> &range_vect, size_t thr_id);
     template void smatrix<float>::dot_operation(smatrix &lhs, ordstorage &rhs, smatrix &out, std::vector<size_t> &range_vect, size_t thr_id);
+    template void smatrix<int>::dot_operation(smatrix &lhs, ordstorage &rhs, smatrix &out, std::vector<size_t> &range_vect, size_t thr_id);
 
     //===============================================================================================================
 
@@ -1157,6 +1184,7 @@ namespace evolm
 
     template smatrix<float> smatrix<float>::operator+(smatrix<float> &rhs);
     template smatrix<double> smatrix<double>::operator+(smatrix<double> &rhs);
+    template smatrix<int> smatrix<int>::operator+(smatrix<int> &rhs);
 
     //===============================================================================================================
 
@@ -1256,6 +1284,7 @@ namespace evolm
 
     template void smatrix<double>::plus_operation(smatrix &in, smatrix &res, std::vector<size_t> &zero_keys, smatrix &out, std::vector<size_t> &loads_vect, size_t thr_id);
     template void smatrix<float>::plus_operation(smatrix &in, smatrix &res, std::vector<size_t> &zero_keys, smatrix &out, std::vector<size_t> &loads_vect, size_t thr_id);
+    template void smatrix<int>::plus_operation(smatrix &in, smatrix &res, std::vector<size_t> &zero_keys, smatrix &out, std::vector<size_t> &loads_vect, size_t thr_id);
 
     //===============================================================================================================
 
@@ -1341,6 +1370,7 @@ namespace evolm
 
     template smatrix<float> smatrix<float>::operator-(smatrix<float> &rhs);
     template smatrix<double> smatrix<double>::operator-(smatrix<double> &rhs);
+    template smatrix<int> smatrix<int>::operator-(smatrix<int> &rhs);
 
     //===============================================================================================================
 
@@ -1440,6 +1470,7 @@ namespace evolm
 
     template void smatrix<double>::minus_operation(smatrix &in, smatrix &res, std::vector<size_t> &zero_keys, smatrix &out, std::vector<size_t> &loads_vect, size_t thr_id);
     template void smatrix<float>::minus_operation(smatrix &in, smatrix &res, std::vector<size_t> &zero_keys, smatrix &out, std::vector<size_t> &loads_vect, size_t thr_id);
+    template void smatrix<int>::minus_operation(smatrix &in, smatrix &res, std::vector<size_t> &zero_keys, smatrix &out, std::vector<size_t> &loads_vect, size_t thr_id);
 
     //===============================================================================================================
 
@@ -1499,6 +1530,7 @@ namespace evolm
 
     template bool smatrix<float>::nonzero(size_t atRow, size_t atCol);
     template bool smatrix<double>::nonzero(size_t atRow, size_t atCol);
+    template bool smatrix<int>::nonzero(size_t atRow, size_t atCol);
 
     //===============================================================================================================
 
@@ -1558,6 +1590,7 @@ namespace evolm
 
     template float smatrix<float>::get_nonzero(size_t atRow, size_t atCol);
     template double smatrix<double>::get_nonzero(size_t atRow, size_t atCol);
+    template int smatrix<int>::get_nonzero(size_t atRow, size_t atCol);
 
     //===============================================================================================================
 
@@ -1603,6 +1636,7 @@ namespace evolm
 
     template bool smatrix<float>::nonzero(size_t atRow);
     template bool smatrix<double>::nonzero(size_t atRow);
+    template bool smatrix<int>::nonzero(size_t atRow);
 
     //===============================================================================================================
 
@@ -1649,6 +1683,7 @@ namespace evolm
 
     template float smatrix<float>::get_nonzero(size_t atRow);
     template double smatrix<double>::get_nonzero(size_t atRow);
+    template int smatrix<int>::get_nonzero(size_t atRow);
 
     //===============================================================================================================
 
@@ -1681,6 +1716,7 @@ namespace evolm
 
     template void smatrix<float>::get_keyslist( std::vector<size_t> &key_list );
     template void smatrix<double>::get_keyslist( std::vector<size_t> &key_list );
+    template void smatrix<int>::get_keyslist( std::vector<size_t> &key_list );
 
     //===============================================================================================================
 
@@ -1713,6 +1749,7 @@ namespace evolm
 
     template void smatrix<float>::get_keyslist( std::vector<std::int64_t> &key_list );
     template void smatrix<double>::get_keyslist( std::vector<std::int64_t> &key_list );
+    template void smatrix<int>::get_keyslist( std::vector<std::int64_t> &key_list );
 
     //===============================================================================================================
 
@@ -1779,6 +1816,7 @@ namespace evolm
 
     template size_t smatrix<float>::get_key( size_t element );
     template size_t smatrix<double>::get_key( size_t element );
+    template size_t smatrix<int>::get_key( size_t element );
 
     //===============================================================================================================
 
@@ -1798,6 +1836,7 @@ namespace evolm
     }
     template bool smatrix<float>::is_ondisk();
     template bool smatrix<double>::is_ondisk();
+    template bool smatrix<int>::is_ondisk();
 
     //===============================================================================================================
 
@@ -1814,6 +1853,7 @@ namespace evolm
     }
     template double smatrix<float>::get_sparsity();
     template double smatrix<double>::get_sparsity();
+    template double smatrix<int>::get_sparsity();
 
     //===============================================================================================================
 
@@ -1860,6 +1900,7 @@ namespace evolm
 
     template void smatrix<float>::fwrite();
     template void smatrix<double>::fwrite();
+    template void smatrix<int>::fwrite();
 
     //===============================================================================================================
 
@@ -1915,6 +1956,7 @@ namespace evolm
 
     template void smatrix<float>::fwrite(const std::string &fname);
     template void smatrix<double>::fwrite(const std::string &fname);
+    template void smatrix<int>::fwrite(const std::string &fname);
 
     //===============================================================================================================
 
@@ -1985,6 +2027,7 @@ namespace evolm
 
     template void smatrix<float>::fread(const std::string &fname);
     template void smatrix<double>::fread(const std::string &fname);
+    template void smatrix<int>::fread(const std::string &fname);
 
     //===============================================================================================================
 
@@ -2032,6 +2075,7 @@ namespace evolm
 
     template void smatrix<float>::fread();
     template void smatrix<double>::fread();
+    template void smatrix<int>::fread();
 
     //===============================================================================================================
 
@@ -2082,6 +2126,7 @@ namespace evolm
 
     template smatrix<float> &smatrix<float>::operator=(const smatrix<float> &rhs);
     template smatrix<double> &smatrix<double>::operator=(const smatrix<double> &rhs);
+    template smatrix<int> &smatrix<int>::operator=(const smatrix<int> &rhs);
 
     //===============================================================================================================
 
@@ -2146,6 +2191,7 @@ namespace evolm
 
     template void smatrix<float>::transpose();
     template void smatrix<double>::transpose();
+    template void smatrix<int>::transpose();
 
     //===============================================================================================================
 
@@ -2189,6 +2235,7 @@ namespace evolm
 
     template void smatrix<double>::transpose_operation(smatrix &in, smatrix &out, std::vector<size_t> &loads_vect, size_t thr_id);
     template void smatrix<float>::transpose_operation(smatrix &in, smatrix &out, std::vector<size_t> &loads_vect, size_t thr_id);
+    template void smatrix<int>::transpose_operation(smatrix &in, smatrix &out, std::vector<size_t> &loads_vect, size_t thr_id);
 
     //===============================================================================================================
 
@@ -2239,6 +2286,7 @@ namespace evolm
 
     template void smatrix<float>::rectosym();
     template void smatrix<double>::rectosym();
+    template void smatrix<int>::rectosym();
 
     //===============================================================================================================
 
@@ -2283,6 +2331,7 @@ namespace evolm
 
     template void smatrix<double>::rectosym_operation(smatrix &in, smatrix &out, std::vector<size_t> &loads_vect, size_t thr_id);
     template void smatrix<float>::rectosym_operation(smatrix &in, smatrix &out, std::vector<size_t> &loads_vect, size_t thr_id);
+    template void smatrix<int>::rectosym_operation(smatrix &in, smatrix &out, std::vector<size_t> &loads_vect, size_t thr_id);
 
     //===============================================================================================================
 
@@ -2334,6 +2383,7 @@ namespace evolm
 
     template void smatrix<float>::symtorec();
     template void smatrix<double>::symtorec();
+    template void smatrix<int>::symtorec();
 
     //===============================================================================================================
 
@@ -2378,6 +2428,7 @@ namespace evolm
 
     template void smatrix<double>::symtorec_operation(smatrix &in, smatrix &out, std::vector<size_t> &loads_vect, size_t thr_id);
     template void smatrix<float>::symtorec_operation(smatrix &in, smatrix &out, std::vector<size_t> &loads_vect, size_t thr_id);
+    template void smatrix<int>::symtorec_operation(smatrix &in, smatrix &out, std::vector<size_t> &loads_vect, size_t thr_id);
 
     //===============================================================================================================
 
@@ -2398,6 +2449,7 @@ namespace evolm
 
     template size_t smatrix<float>::find_inrange(std::vector<size_t> &where, size_t what);
     template size_t smatrix<double>::find_inrange(std::vector<size_t> &where, size_t what);
+    template size_t smatrix<int>::find_inrange(std::vector<size_t> &where, size_t what);
 
     //===============================================================================================================
 
@@ -2416,6 +2468,7 @@ namespace evolm
 
     template size_t smatrix<float>::find_invect(std::vector<size_t> &where, size_t what);
     template size_t smatrix<double>::find_invect(std::vector<size_t> &where, size_t what);
+    template size_t smatrix<int>::find_invect(std::vector<size_t> &where, size_t what);
 
     //===============================================================================================================
 
@@ -2434,6 +2487,7 @@ namespace evolm
 
     template size_t smatrix<float>::key_insym(size_t key, size_t row);
     template size_t smatrix<double>::key_insym(size_t key, size_t row);
+    template size_t smatrix<int>::key_insym(size_t key, size_t row);
 
     //===============================================================================================================
 
@@ -2452,6 +2506,7 @@ namespace evolm
 
     template size_t smatrix<float>::key_inrec(size_t key, size_t row);
     template size_t smatrix<double>::key_inrec(size_t key, size_t row);
+    template size_t smatrix<int>::key_inrec(size_t key, size_t row);
 
     //===============================================================================================================
 
@@ -2470,6 +2525,7 @@ namespace evolm
 
     template size_t smatrix<float>::col_insym(size_t key, size_t row);
     template size_t smatrix<double>::col_insym(size_t key, size_t row);
+    template size_t smatrix<int>::col_insym(size_t key, size_t row);
 
     //===============================================================================================================
 
@@ -2488,6 +2544,7 @@ namespace evolm
 
     template size_t smatrix<float>::row_insym(size_t key, size_t col);
     template size_t smatrix<double>::row_insym(size_t key, size_t col);
+    template size_t smatrix<int>::row_insym(size_t key, size_t col);
 
     //===============================================================================================================
 
@@ -2506,6 +2563,7 @@ namespace evolm
 
     template size_t smatrix<float>::row_insym(size_t key);
     template size_t smatrix<double>::row_insym(size_t key);
+    template size_t smatrix<int>::row_insym(size_t key);
 
     //===============================================================================================================
 
@@ -2524,6 +2582,7 @@ namespace evolm
 
     template size_t smatrix<float>::col_inrec(size_t key, size_t row);
     template size_t smatrix<double>::col_inrec(size_t key, size_t row);
+    template size_t smatrix<int>::col_inrec(size_t key, size_t row);
 
     //===============================================================================================================
 
@@ -2542,6 +2601,7 @@ namespace evolm
 
     template size_t smatrix<float>::row_inrec(size_t key, size_t col);
     template size_t smatrix<double>::row_inrec(size_t key, size_t col);
+    template size_t smatrix<int>::row_inrec(size_t key, size_t col);
 
     //===============================================================================================================
 
@@ -2560,6 +2620,7 @@ namespace evolm
 
     template size_t smatrix<float>::row_inrec(size_t key);
     template size_t smatrix<double>::row_inrec(size_t key);
+    template size_t smatrix<int>::row_inrec(size_t key);
 
     //===============================================================================================================
 
@@ -2666,6 +2727,7 @@ namespace evolm
 
     template void smatrix<float>::print(std::string whiichMatrix);
     template void smatrix<double>::print(std::string whiichMatrix);
+    template void smatrix<int>::print(std::string whiichMatrix);
 
     //===============================================================================================================
 
@@ -2767,6 +2829,7 @@ namespace evolm
 
     template void smatrix<float>::printf(std::string whiichMatrix, bool append);
     template void smatrix<double>::printf(std::string whiichMatrix, bool append);
+    template void smatrix<int>::printf(std::string whiichMatrix, bool append);
 
     //===============================================================================================================
 }
