@@ -41,6 +41,9 @@ namespace evolm
                 {
                         if (fA.is_open())
                                 fA.close();
+                        
+                        amatr.fclear();
+                        amatr.clear();
                 }
 
                 void solve();
@@ -99,7 +102,7 @@ namespace evolm
                                 size_t num_levels,
                                 std::vector<size_t> &ordered_levels);
 
-                matrix<float> construct_dval(std::vector<std::vector<size_t>> &cov_offsets,
+                matrix<double> construct_dval(std::vector<std::vector<size_t>> &cov_offsets,
                                                 size_t num_levels,
                                                 std::vector<size_t> &ordered_levels);
 

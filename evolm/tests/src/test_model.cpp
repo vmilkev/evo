@@ -4,7 +4,9 @@
 #include "sparse_pcg.hpp"
 #include "iointerface.hpp"
 #include <string>
+#include <float.h>
 
+/**/
 TEST_CASE("Testing model set-up")
 {
     bool is_ok = true;
@@ -1685,15 +1687,7 @@ TEST_CASE("Testing on model 4")
     {
         try
         {
-            evolm::sparse_pcg solver;
-            evolm::model_sparse model;
-
-            std::vector<float> iR{0.041};
-
-            std::vector<float> iG1{0.1};
-
-            model.append_residual(iR, 1);
-
+            // Prepare effects
             //---------------------------------
             std::vector<std::vector<int>> in;
             std::vector<std::vector<float>> in2;
@@ -1720,6 +1714,15 @@ TEST_CASE("Testing on model 4")
                     eff_fixed.push_back(in2[i][j]);
             }
             //---------------------------------
+
+            evolm::sparse_pcg solver;
+            evolm::model_sparse model;
+
+            std::vector<float> iR{0.041};
+
+            std::vector<float> iG1{0.1};
+
+            model.append_residual(iR, 1);
 
             model.append_observation("tests/data/model_4/obs_1.dat"); // obs := 0
 
@@ -1749,8 +1752,6 @@ TEST_CASE("Testing on model 4")
 
             solver.get_solution("sparse_solution_model_4.dat");
 
-            solver.remove_model();
-
             model.clear();
         }
         catch (const std::exception &e)
@@ -1766,6 +1767,297 @@ TEST_CASE("Testing on model 4")
         catch (...)
         {
             std::cerr << "18. Testing full SNP blup." << '\n';
+        }
+    }
+}
+
+TEST_CASE("Testing multivariate model with missing values")
+{
+    // ---------------------------
+    // model 5.2 pp. 78:
+    // effect: 1       2
+    // y1 = b1*X1 + a1*Z1 + e1;
+    // effect: 3       4
+    // y2 = b2*X2 + a2*Z2 + e2;
+    // ---------------------------
+
+    // DATA
+
+    std::vector<float> R{40, 11,
+                         11, 30}; // full matrix
+
+    std::vector<float> y1{4.5, 2.9, 3.9, 3.5, 5.0, 4.0};
+
+    std::vector<float> y2_miss{-999.0, 5.0, 6.8, 6.0, 7.5, -999.0};
+    std::vector<float> y2{10.0, 5.0, 6.8, 6.0, 7.5, 10.0};
+
+    std::vector<int> x1{1, 0,
+                        0, 1,
+                        0, 1,
+                        1, 0,
+                        1, 0,
+                        0, 1};
+
+    std::vector<int> x2_miss{
+                        0, 0,
+                        0, 1,
+                        0, 1,
+                        1, 0,
+                        1, 0,
+                        0, 0};
+
+    std::vector<int> z1{0, 0, 0, 1, 0, 0, 0, 0, 0,
+                           0, 0, 0, 0, 1, 0, 0, 0, 0,
+                           0, 0, 0, 0, 0, 1, 0, 0, 0,
+                           0, 0, 0, 0, 0, 0, 1, 0, 0,
+                           0, 0, 0, 0, 0, 0, 0, 1, 0,
+                           0, 0, 0, 0, 0, 0, 0, 0, 1};
+
+    std::vector<int> z2_miss{0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                0, 0, 0, 0, 1, 0, 0, 0, 0,
+                                0, 0, 0, 0, 0, 1, 0, 0, 0,
+                                0, 0, 0, 0, 0, 0, 1, 0, 0,
+                                0, 0, 0, 0, 0, 0, 0, 1, 0,
+                                0, 0, 0, 0, 0, 0, 0, 0, 0};
+
+    std::vector<float> iA{1.8333, 0.5, 0, -0.66667, 0, -1, 0, 0, 0,
+                          0.5, 2, 0.5, 0, -1, -1, 0, 0, 0,
+                          0, 0.5, 2, 0, -1, 0.5, 0, -1, 0,
+                          -0.66667, 0, 0, 1.8333, 0.5, 0, -1, 0, 0,
+                          0, -1, -1, 0.5, 2.5, 0, -1, 0, 0,
+                          -1, -1, 0.5, 0, 0, 2.5, 0, -1, 0,
+                          0, 0, 0, -1, -1, 0, 2.3333, 0, -0.66667,
+                          0, 0, -1, 0, 0, -1, 0, 2, 0,
+                          0, 0, 0, 0, 0, 0, -0.66667, 0, 1.3333};
+
+    std::vector<float> G{20, 18,
+                         18, 40};
+
+    std::vector<std::vector<float>> true_z{
+        {1, 0, 0, 1, 1},
+        {0, 1, 1, 0, 0},
+        {0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0},
+        {1, 0, 0, 0, 0},
+        {0, 1, 0, 0, 0},
+        {0, 0, 1, 0, 0},
+        {0, 0, 0, 1, 0},
+        {0, 0, 0, 0, 1}};
+
+    std::vector<float> _rhs{
+        0.1543399,
+        0.068767377,
+        0,
+        0,
+        0,
+        0.0557924,
+        0.0296570,
+        0.03911028,
+        0.036144578,
+        0.062557,
+        0.620018,
+        0.36811862,
+        0,
+        0,
+        0,
+        0.20620945,
+        0.1557924,
+        0.212326227,
+        0.18674698,
+        0.22706209};
+
+    std::vector<float> _sol{
+        4.367,
+        3.657,
+        0.1298,
+        -0.0836,
+        -0.098,
+        0.007,
+        -0.343,
+        0.1915,
+        -0.308,
+        0.2006,
+        -0.0184,
+        6.834,
+        6.007,
+        0.266,
+        -0.0752,
+        -0.194,
+        0.01557,
+        -0.555,
+        0.440,
+        -0.483,
+        0.349,
+        -0.11937};
+
+    // ========================================================================================
+    SECTION("19. Testing model using different fixed and raandom matrices (some with a missing records) for all traits (observations)")
+    {
+        try
+        {
+            evolm::sparse_pcg solver;
+            evolm::model_sparse model;
+
+            // define the model
+            model.append_residual(R, 2);
+
+            model.append_observation(y1, 6);      // obs := 0
+            model.append_observation(y2_miss, 6); // obs := 1
+
+            model.append_effect(x1, 6, 2);      // eff := 0
+
+            model.append_effect(z1, 6, 9);      // eff := 1
+
+            model.append_effect(x2_miss, 6, 2); // eff := 2
+            model.append_effect(z2_miss, 6, 9); // eff := 3
+
+            std::vector<int> eff_trate_1{0, 1};
+            int obs_trate_1 = 0;
+
+            std::vector<int> eff_trate_2{2, 3};
+            int obs_trate_2 = 1;
+
+            std::vector<int> corr_eff{1, 3};
+
+            model.append_corrstruct(G, 2, iA, 9, corr_eff);
+            model.append_traitstruct(obs_trate_1, eff_trate_1);
+            model.append_traitstruct(obs_trate_2, eff_trate_2);
+
+            solver.append_model(model);
+
+            solver.solve();
+
+            std::vector<float> sol = solver.get_solution();
+
+            solver.get_solution("sparse_solution_model_mv_2.dat");
+
+            for (size_t i = 0; i < sol.size(); i++)
+                CHECK((_sol[i]) == Catch::Approx(sol[i]).margin(0.0001).epsilon(1e-3));
+
+            solver.remove_model();
+
+            model.clear();
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "19. Testing model using different fixed and raandom matrices (some with a missing records)." << '\n';
+            std::cerr << e.what() << '\n';
+        }
+        catch (const std::string &err)
+        {
+            std::cerr << "19. Testing model using different fixed and raandom matrices (some with a missing records)." << '\n';
+            std::cerr << err << '\n';
+        }
+        catch (...)
+        {
+            std::cerr << "19. Testing model using different fixed and raandom matrices (some with a missing records)." << '\n';
+        }
+    }
+    // ========================================================================================
+}
+/**/
+
+TEST_CASE("Testing on big model 4")
+{
+    SECTION("20. Testing big full SNP blup")
+    {
+        try
+        {
+            // Prepare effects
+            //---------------------------------
+            std::vector<std::vector<int>> in;
+            std::vector<std::vector<float>> in2;
+
+            evolm::IOInterface datstream;
+            datstream.set_fname("tests/data/model_4/obs_500_snp_1000.txt");
+            datstream.fgetdata(in);
+            datstream.set_fname("tests/data/model_4/fixed_500.dat");
+            datstream.fgetdata(in2);
+
+            std::vector<float> eff_snp;
+            for (size_t i = 0; i < in.size(); i++)
+            {
+                for (size_t j = 0; j < in[0].size(); j++)
+                    eff_snp.push_back(in[i][j]);
+            }
+            std::vector<float> eff_fixed;
+            for (size_t i = 0; i < in2.size(); i++)
+            {
+                for (size_t j = 0; j < in2[0].size(); j++)
+                    eff_fixed.push_back(in2[i][j]);
+            }
+            //---------------------------------
+
+            evolm::sparse_pcg solver;
+            evolm::model_sparse model;
+
+std::cout<<"        Testing model 4 on sparse solver..."<<"\n";
+auto start = std::chrono::high_resolution_clock::now();
+
+            std::vector<float> iR{10.41};
+
+            std::vector<float> iG1{20.93};
+
+            model.append_residual(iR, 1);
+
+            model.append_observation("tests/data/model_4/obs_500.dat"); // obs := 0
+
+            model.append_effect(eff_snp, in.size(), in[0].size()); // eff := 0
+            model.append_effect(eff_fixed, in2.size(), in2[0].size());         // eff := 1
+
+            std::vector<int> corr_eff{0};
+
+            std::vector<int> eff_trate{1, 0};
+            //std::vector<int> eff_trate{0, 1};
+            int obs_trate = 0;
+
+            std::string identity("I");
+
+            model.append_corrstruct(iG1, 1, identity, 1000, corr_eff);
+
+            model.append_traitstruct(obs_trate, eff_trate);
+
+            solver.append_model(model);
+
+            solver.set_memory_limit(15);
+
+            //std::vector<std::vector<float>> A = solver.test_A();
+            //std::ofstream out_a("sparse_a.txt");
+            //for (size_t i = 0; i < A.size(); i++)
+            //{
+            //    for (size_t j = 0; j < A[0].size(); j++)
+            //        out_a << std::setprecision(16) << A[i][j]<<" ";
+            //    out_a <<"\n";
+            //}
+            //out_a.close();
+
+            solver.solve();
+
+auto stop = std::chrono::high_resolution_clock::now();
+auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+std::cout <<"model 4 on sparse solver (milliseconds): "<< duration.count() << std::endl;
+
+            // std::vector<float> sol = solver.get_solution();
+
+            solver.get_solution("sparse_solution_model_4.dat");
+std::cout<<"DBL_MANT_DIG: "<<DBL_MANT_DIG<<"\n";
+std::cout<<"LDBL_MANT_DIG: "<<LDBL_MANT_DIG<<"\n";
+            model.clear();
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "20. Testing full SNP blup." << '\n';
+            std::cerr << e.what() << '\n';
+        }
+        catch (const std::string &err)
+        {
+            std::cerr << "20. Testing full SNP blup." << '\n';
+            std::cerr << err << '\n';
+        }
+        catch (...)
+        {
+            std::cerr << "20. Testing full SNP blup." << '\n';
         }
     }
 }

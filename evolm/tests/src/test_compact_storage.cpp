@@ -1915,7 +1915,7 @@ TEST_CASE("Compact storage, checking class constructors, type = double")
 
         auto stop = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-        std::cout <<"make_rows_list() (milliseconds): "<< duration.count() << std::endl;
+        //std::cout <<"make_rows_list() (milliseconds): "<< duration.count() << std::endl;
 
         CHECK(s.is_sparse() == true);
 
@@ -1937,7 +1937,7 @@ TEST_CASE("Compact storage, checking class constructors, type = double")
 
         stop = std::chrono::high_resolution_clock::now();
         duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-        std::cout <<"to_sparse(...) (milliseconds): "<< duration.count() << std::endl;
+        //std::cout <<"to_sparse(...) (milliseconds): "<< duration.count() << std::endl;
 
         //s.to_dense(m);
         //m.print("testing rows_list");

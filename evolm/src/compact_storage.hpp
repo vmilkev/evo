@@ -120,6 +120,7 @@ namespace evolm
 
         T value_at(size_t irow, size_t icol);
         void vect_dot_vect(std::vector<double> &in_vect, double &out_res);
+        void vect_dot_vect(std::vector<long double> &in_vect, long double &out_res);
 
         // Type converters
         void to_int(compact_storage<int> &out);
@@ -1825,8 +1826,8 @@ namespace evolm
         {
             for (size_t i = first_key; i <= last_key; i++)
             {
-                if ( vals[i] == 0 )
-                    continue;
+                //if ( vals[i] == 0 )
+                //    continue;
                 out_res = out_res + in_vect[0][ i-first_key ] * static_cast<float>(vals[i]);
             }
         }
@@ -1865,8 +1866,8 @@ namespace evolm
         {
             for (size_t i = first_key; i <= last_key; i++)
             {
-                if ( vals[i] == 0 )
-                    continue;
+                //if ( vals[i] == (T)0 )
+                //    continue;
                 out_res = out_res + in_vect[0][ i-first_key ] * vals[i];
             }
         }
@@ -1886,6 +1887,23 @@ namespace evolm
         {
             for (size_t i = 0; i < vals.size(); i++)
                 out_res = out_res + in_vect[i] * static_cast<double>(vals[i]);
+        }
+    }
+    //===========================================================================================
+    template <typename T>
+    void compact_storage<T>::vect_dot_vect(std::vector<long double> &in_vect, long double &out_res)
+    {
+        out_res = 0.0;
+
+        if( is_sparse() )
+        {
+            for (size_t i = 0; i < keys.size(); i++)
+                out_res = out_res + in_vect[ keys[i] ] * static_cast<long double>(vals[i]);
+        }
+        else
+        {
+            for (size_t i = 0; i < vals.size(); i++)
+                out_res = out_res + in_vect[i] * static_cast<long double>(vals[i]);
         }
     }
     //===========================================================================================
@@ -1920,8 +1938,8 @@ namespace evolm
         {
             for (size_t i = first_key; i <= last_key; i++)
             {
-                if ( vals[i] == 0 )
-                    continue;
+                //if ( vals[i] == 0 )
+                //    continue;
                 vect_to_add[ vect_first_index+(i-first_key) ] = vect_to_add[ vect_first_index+(i-first_key) ] + vals[i] * variance;
             }
         }

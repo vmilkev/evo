@@ -16,13 +16,11 @@ namespace evolm
         sparse_solver();
         ~sparse_solver();
 
-        //virtual void solve() = 0;
-        //virtual ~sparse_solver();
-
         size_t get_num_of_mem_blocks();
         void load_model_matrix(size_t mem_blok);
         void get_mem_block_range(size_t mem_blok, size_t &first, size_t &second);
         void unload_model_matrix(size_t mem_blok);
+        void clear_model_matrix();
 
 #ifdef UTEST
         void test_vect_z_uni(const size_t &which_trait, matrix<float> &out);
@@ -31,7 +29,7 @@ namespace evolm
         size_t test_num_all_levels();
         std::vector<size_t> test_ordered_levels();
         std::vector<std::vector<size_t>> test_cov_offsets();
-        std::vector<std::vector<float>> test_A(); // model matrix
+        std::vector<std::vector<float>> test_A(); // test model matrix
 #endif
 
     private:
@@ -50,6 +48,7 @@ namespace evolm
         std::string create_fname();
         void fwrite(const std::string &fname, size_t first_row, size_t last_row);
         void fread(const std::string &fname, size_t first_row, size_t last_row);
+        void fclear();
 
         double available_memory = 100; // default available memory in GB
         const double gb_constant = 1073741824; // num of bytes in 1 GB
@@ -71,8 +70,8 @@ namespace evolm
         std::vector<size_t> R_hash;                 // the hash keys corresponding each observation pattern, the size of n_obs; the size and values are the same for all traits
         std::map<size_t, std::vector<float>> r_map; // hash values are keys, and specific (according to the observation pattern) covar matrices are values of the map
                                                     // the usage: r_map[ R_hash[i] ][j], where i is observation, j is indexing j = r*(r+1)/2 +c pointing to an element of R(-1)
+        std::vector<compact_storage<float>> model_matrix;
 
-        //---------------------------------------------
         matrix<float> rhs;
 
         size_t get_levels(size_t which_trait);
@@ -83,13 +82,7 @@ namespace evolm
         std::vector<std::vector<size_t>> get_cov_offsets(const std::vector<size_t> &ordered_levels);
         void construct_rhs();
         void z_dot_y(matrix<float> &out_vect, size_t vect_size, size_t i_trait, size_t j_trait, size_t r_index);
-
-        void z_dot_z(matrix<float> &out_vect, size_t row, size_t vect_size, size_t i_matr, size_t j_matr, size_t r_index);
         void z_dot_z2(std::vector<float> &out_values, std::vector<size_t> &out_keys, size_t row, size_t vect_size, size_t i_matr, size_t j_matr, size_t r_index);
-        //---------------------------------------------
-        std::vector<compact_storage<float>> model_matrix;
-
-        matrix<float> amatr; // temporal !
 
         void make_model_matrix(std::vector<std::vector<size_t>> &cov_offsets, size_t num_levels, std::vector<size_t> &ordered_levels);
         void set_model_matrix();
@@ -103,17 +96,6 @@ namespace evolm
                             size_t num_levels,
                             std::vector<size_t> &ordered_levels,
                             size_t i_row);
-
-        matrix<float> get_row_cmatr(
-                            size_t rhs_size,
-                            size_t i_trate,
-                            size_t i_eff,
-                            std::vector<std::vector<size_t>> &cov_offsets,
-                            size_t num_levels,
-                            std::vector<size_t> &ordered_levels,
-                            size_t i_row);
-
-        //---------------------------------------------
 
         bool z_on_memory = false;
         bool var_onmem = false;

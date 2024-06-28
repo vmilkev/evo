@@ -6,6 +6,24 @@ namespace evolm
     {
     }
 
+    sparse_solver::~sparse_solver()
+    {
+        try
+        {
+            remove_model();
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in sparse_solver::~sparse_solver()." << '\n';
+            std::cerr << e.what() << '\n';
+            throw e;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in sparse_solver destructor." << '\n';
+        }
+    }
+
     void sparse_solver::append_model(const model_sparse &m)
     {
         try
@@ -64,6 +82,8 @@ namespace evolm
 
             adj_effects_order.clear();
 
+            clear_model_matrix();
+
             bin_fnames.clear();
             bin_fnames.shrink_to_fit();
 
@@ -80,24 +100,6 @@ namespace evolm
         {
             std::cerr << "Exception in sparse_solver::remove_model()." << '\n';
             throw;
-        }
-    }
-
-    sparse_solver::~sparse_solver()
-    {
-        try
-        {
-            remove_model();
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Exception in sparse_solver::~sparse_solver()." << '\n';
-            std::cerr << e.what() << '\n';
-            throw e;
-        }
-        catch (...)
-        {
-            std::cerr << "Exception in sparse_solver destructor." << '\n';
         }
     }
 
@@ -437,7 +439,7 @@ namespace evolm
 
                     matrix<float> vect;
                     z_dot_y(vect, tr_levels, i, j, which_r );
-                    
+
                     size_t k2 = 0;
 
                     for (size_t k = levels_1 - 1; k < levels_2; k++)
@@ -491,7 +493,7 @@ namespace evolm
                 for( size_t j = 0; j < keys.size(); j++)
                     result = result + v2[ keys[j] ] * vals[ j ];
                 
-                out_vect(i, 0) = result;                
+                out_vect(i, 0) = result;
             }
         }
         catch (const std::exception &e)
@@ -505,69 +507,6 @@ namespace evolm
             std::cerr << "Exception in sparse_solver::z_dot_y(size_t, size_t, size_t, size_t)." << '\n';
             throw;
         }        
-    }
-
-    void sparse_solver::z_dot_z(matrix<float> &out_vect, size_t row, size_t vect_size, size_t i_matr, size_t j_matr, size_t r_index)
-    {
-        try
-        {
-            out_vect.resize(1, vect_size); // (1, n_levels)
-
-            size_t vect_dim = n_obs[i_matr];
-
-            // ---- Solution 1: -----------------------------
-            // matrix<float> v1 = get_vect_z_uni(i_matr, row);
-            // v1.transpose();
-            // ----------------------------------------------
-
-            // ---- Solution 2: -----------------------------
-            // std::vector<std::vector<float>> v11(1, std::vector<float>(n_obs[0]));
-            // std::vector<std::vector<float>> v22(1, std::vector<float>(n_obs[0]));
-            // ----------------------------------------------
-
-            // ---- Solution 3: -----------------------------
-            float **v11 = new float *[1];
-            float **v22 = new float *[1];
-
-            v11[0] = new float[vect_dim];
-            v22[0] = new float[vect_dim];
-            // ----------------------------------------------
-
-            get_vect_z_uni2(i_matr, row, v11);
-
-            for (size_t i = 0; i < vect_dim; i++) // Multiply each element by correct R(-1) according to observations pattern
-                v11[0][i] = v11[0][i] * r_map[ R_hash[i] ][ r_index ];
-
-            for (size_t i = 0; i < vect_size; i++)
-            {
-                // matrix<float> v2 = get_vect_z_uni(j_matr, i); // !!! very expensive: x 115; (1, 489) => (1, n_obs)
-
-                get_vect_z_uni2(j_matr, i, v22);
-
-                float t = 0.0f;
-                for (size_t j = 0; j < vect_dim; j++)
-                    t = t + v11[0][j] * v22[0][j];
-
-                out_vect(0, i) = t;
-                // matrix<float> res = v2 * v1; // x 1.6
-            }
-
-            delete[] v11[0];
-            delete[] v22[0];
-            delete[] v11;
-            delete[] v22;
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Exception in sparse_solver::z_dot_z(matrix<float> &size_t, size_t, size_t, size_t, size_t)." << '\n';
-            std::cerr << e.what() << '\n';
-            throw e;
-        }
-        catch (...)
-        {
-            std::cerr << "Exception in sparse_solver::z_dot_z(matrix<float> &size_t, size_t, size_t, size_t, size_t)." << '\n';
-            throw;
-        }
     }
 
     void sparse_solver::z_dot_z2(std::vector<float> &out_values, std::vector<size_t> &out_keys, size_t row, size_t vect_size, size_t i_matr, size_t j_matr, size_t r_index)
@@ -636,7 +575,14 @@ namespace evolm
 
             model_matrix.resize( get_all_levels() );
 
+auto start = std::chrono::high_resolution_clock::now();
+
             make_model_matrix(rcov_offsets, n_all_levels, ordered_random_levels);
+
+auto stop = std::chrono::high_resolution_clock::now();
+auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+std::cout <<"set_amatr() (milliseconds): "<< duration.count() << std::endl;
+
         }
         catch (const std::string &err)
         {
@@ -704,6 +650,23 @@ namespace evolm
             model_matrix[i].fread(fA);
         
         fA.close();
+    }
+
+    void sparse_solver::fclear()
+    {
+        for (size_t i = 0; i < bin_fnames.size(); i++)
+        {
+            std::ifstream f(bin_fnames[i].c_str());
+            if (f.good())
+                remove(bin_fnames[i].c_str());
+        }
+    }
+
+    void sparse_solver::clear_model_matrix()
+    {
+        fclear();
+        for (size_t i = 0; i < model_matrix.size(); i++)
+                model_matrix[i].clear();
     }
 
     std::string sparse_solver::create_fname()
@@ -779,7 +742,7 @@ namespace evolm
                     if ( b == (n_blocks - 1) )
                         last_block = get_levels(i_trate);
 
-#pragma omp parallel for //num_threads(3)
+//#pragma omp parallel for //num_threads(3)
                     for (size_t i_eff = first_block; i_eff < last_block; i_eff++) // private loop
                     {
                         size_t private_raw = get_all_levels(i_trate) + i_eff;
@@ -793,7 +756,8 @@ namespace evolm
                     range[1] = get_all_levels(i_trate) + last_block - 1; // last_processed_row of the block                     
                     blocks_ranges.push_back(range);
                     bin_fnames.push_back( create_fname() ); // generate and save a file name for the block
-                    fwrite(bin_fnames.back(), range[0], range[1]); // relocate the content of the block to a disck
+                    //fwrite(bin_fnames.back(), range[0], range[1]); // relocate the content of the block to a disck
+                    //unload_model_matrix(b);
                     //---------------------------------------------------------------------------------------------
                     // update the block range (first and last rows)
                     first_block = last_block;
@@ -911,108 +875,6 @@ namespace evolm
         catch (...)
         {
             std::cerr << "Exception in sparse_solver::get_row_cmatr2(size_t, size_t, size_t, std::vector<std::vector<size_t>> &, size_t, std::vector<int> &, size_t)." << '\n';
-            throw;
-        }   
-    }
-
-    matrix<float>
-    sparse_solver::get_row_cmatr(
-                        size_t rhs_size,
-                        size_t i_trate,
-                        size_t i_eff,
-                        std::vector<std::vector<size_t>> &cov_offsets,
-                        size_t num_levels,
-                        std::vector<size_t> &ordered_levels,
-                        size_t i_row)
-    {
-        try
-        {
-            matrix<float> vect_a(1, rhs_size);
-
-            size_t correlations = corr_size();
-
-            size_t last_random_level = 0;
-
-            for (size_t j_trate = 0; j_trate < n_trait; j_trate++)
-            {
-                size_t tr_levels = get_levels(j_trate);
-
-                size_t first_random_level = last_random_level + 1;
-                last_random_level = last_random_level + tr_levels;
-
-                size_t which_r = i_trate*(i_trate+1)/2 + j_trate;
-
-                if ( j_trate > i_trate )
-                    which_r = j_trate*(j_trate+1)/2 + i_trate;
-
-                std::vector<float> vals;
-                std::vector<size_t> keys;
-
-                z_dot_z2(vals, keys, i_eff, tr_levels, i_trate, j_trate, which_r);
-
-                for ( size_t i = 0; i < keys.size(); i++ )
-                    vect_a( 0, keys[i] + (first_random_level - 1) ) = vals[i];
-            }
-
-            // adding covariance structure:
-            for (size_t i1 = 0; i1 < correlations; i1++)
-            {
-                matrix<int> which_effects = get_corr_effects(i1);
-
-                matrix<size_t> shape_eff = which_effects.shape();
-
-                for (size_t i2 = 0; i2 < shape_eff[0]; i2++)
-                {
-                    for (size_t i3 = 0; i3 < shape_eff[0]; i3++)
-                    {
-                        size_t iblock_row = which_effects(i2, 0);
-                        size_t iblock_col = which_effects(i3, 0);
-
-                        std::vector<size_t> ioffset = cov_offsets[(iblock_row)*num_levels + iblock_col];
-                        
-                        size_t first_row = ioffset[0];
-                        size_t first_col = ioffset[1];
-
-                        size_t last_row = first_row + ordered_levels[iblock_row] - 1;
-                        size_t last_col = first_col + ordered_levels[iblock_col] - 1;
-
-                        if (i_row >= first_row && i_row <= last_row)
-                        {
-                            size_t t_row = i_row - first_row;
-                            size_t t_col1 = 0;
-                            size_t t_col2 = ordered_levels[iblock_col] - 1;
-
-                            bool identity = identity_correlation(i1);
-
-                            matrix<float> var = get_variance(i1, i2, i3);
-
-                            if (identity)
-                            {
-                                vect_a(0, first_col + t_row) = vect_a(0, first_col + t_row) + 1.0f * var[0];
-                            }
-                            else
-                            {
-                                matrix<float> corr = get_correlation(i1, t_row, t_col1, t_col2);
-
-                                for (size_t l = first_col; l <= last_col; l++)
-                                    vect_a(0, l) = vect_a(0, l) + corr(0, l - first_col) * var[0];
-                            }
-                        }
-                    }
-                }
-            }
-
-            return vect_a;
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Exception in sparse_solver::get_row_cmatr(size_t, size_t, size_t, std::vector<std::vector<size_t>> &, size_t, std::vector<int> &, size_t)." << '\n';
-            std::cerr << e.what() << '\n';
-            throw e;
-        }
-        catch (...)
-        {
-            std::cerr << "Exception in sparse_solver::get_row_cmatr(size_t, size_t, size_t, std::vector<std::vector<size_t>> &, size_t, std::vector<int> &, size_t)." << '\n';
             throw;
         }   
     }
@@ -1472,35 +1334,6 @@ namespace evolm
         try
         {
             return model.variances[which_correlation](row, col);
-            /*if (var_onmem)
-            {
-                // NOTE, variance was appended directly into memory
-                size_t irow[2] = {row, row};
-                size_t icol[2] = {col, col};
-
-                matrix<float> var; //(1, 1);
-
-                model.variances[which_correlation].cast_fget(irow, icol, var);
-
-                return var;
-            }
-            else if (!var_onmem)
-            {
-                // NOTE, variance was appended and stored on disk
-
-                size_t irow[2];
-                size_t icol[2];
-
-                irow[0] = row;
-                irow[1] = row;
-
-                icol[0] = col;
-                icol[1] = col;
-
-                return model.variances[which_correlation].fget(irow, icol);
-            }
-            else
-                throw std::string("Problem with determining the state of variance. In sparse_solver::get_variance()");*/
         }
         catch (const std::string &e)
         {
@@ -1561,17 +1394,6 @@ namespace evolm
             model.correlations[which_trait].to_dense(cor, irow, icol);
 
             return cor;
-
-            /*if (!cor_onmem)
-                return model.correlations[which_trait].fget(irow, icol);
-            else if (cor_onmem)
-            {
-                matrix<float> cor;
-                model.correlations[which_trait].cast_fget(irow, icol, cor);
-                return cor;
-            }
-            else
-                throw std::string("Problem with determining the state of correlation. In sparse_solver::get_correlation()");*/
         }
         catch (const std::string &e)
         {
@@ -1959,8 +1781,8 @@ namespace evolm
             diskload_cor_effects();
             diskload_cor();
 
-            bin_fnames.clear();
-            blocks_ranges.clear();
+            //bin_fnames.clear();
+            //blocks_ranges.clear();
 
             matrix<float> M(model_matrix.size(), model_matrix.size());
             for (size_t i = 0; i < model_matrix.size(); i++)

@@ -10,6 +10,7 @@
 #include "iointerface.hpp"
 #include <string>
 
+/**/
 TEST_CASE("Testing set-up")
 {
     bool is_ok = true;
@@ -999,24 +1000,6 @@ TEST_CASE("Small data test: model 1")
 
             //-------------------------------------------------
 
-            /*datstream.set_fname("tests/data/1000G.EUR.QC.22.bed"); // Expected rows: variants (SNPs); columns: samples (observations).
-
-            datstream.fgetdata(489, 141123, in);
-
-            REQUIRE(in.empty() == false);
-            CHECK(in[0].size() == 489);
-            CHECK(in.size() == 141123);
-
-            for (auto i = 0; i < 10; i++)
-            {
-                for (auto j = 0; j < 20; j++)
-                {
-                    CHECK(in[i][j] == allelebin[i][j]);
-                }
-            }
-
-            in.clear();
-            in.shrink_to_fit();*/
 
             //-------------------------------------------------
 
@@ -1702,14 +1685,14 @@ TEST_CASE("Multivariate model with missing values")
                         1, 0,
                         0, 0};
 
-    std::vector<size_t> z1{0, 0, 0, 1, 0, 0, 0, 0, 0,
+    std::vector<int> z1{0, 0, 0, 1, 0, 0, 0, 0, 0,
                            0, 0, 0, 0, 1, 0, 0, 0, 0,
                            0, 0, 0, 0, 0, 1, 0, 0, 0,
                            0, 0, 0, 0, 0, 0, 1, 0, 0,
                            0, 0, 0, 0, 0, 0, 0, 1, 0,
                            0, 0, 0, 0, 0, 0, 0, 0, 1};
 
-    std::vector<size_t> z2_miss{0, 0, 0, 0, 0, 0, 0, 0, 0,
+    std::vector<int> z2_miss{0, 0, 0, 0, 0, 0, 0, 0, 0,
                                 0, 0, 0, 0, 1, 0, 0, 0, 0,
                                 0, 0, 0, 0, 0, 1, 0, 0, 0,
                                 0, 0, 0, 0, 0, 0, 1, 0, 0,
@@ -1788,8 +1771,6 @@ TEST_CASE("Multivariate model with missing values")
         -0.11937};
 
     // ========================================================================================
-
-
     SECTION("Testing model using different fixed and raandom matrices (some with a missing records) for all traits (observations)")
     {
         try
@@ -2314,6 +2295,95 @@ TEST_CASE("Small data test: model 4")
             solver.append_model(model);
 
             solver.solve();
+
+            // std::vector<float> sol = solver.get_solution();
+
+            solver.get_solution("cpp_solution_model_4.dat");
+
+            solver.remove_model();
+
+            model.clear();
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << " Model 4. Exit from [The Pcg class: test full SNP blup] due to the exception:" << '\n';
+            std::cerr << " Model 4.  => " << e.what() << '\n';
+            // exit(EXIT_FAILURE);
+        }
+        catch (const std::string &err)
+        {
+            std::cerr << " Model 4. Exit from [The Pcg class: test full SNP blup] due to the exception:" << '\n';
+            std::cerr << " Model 4.  => " << err << '\n';
+            // exit(EXIT_FAILURE);
+        }
+        catch (int ierr)
+        {
+            std::cerr << " Model 4. Exit from [The Pcg class: test full SNP blup] due to the exception with code " << ierr << '\n';
+            // exit(EXIT_FAILURE);
+        }
+        catch (...)
+        {
+            std::cerr << " Model 4. Exit from [The Pcg class: test full SNP blup] due to an unknown exception." << '\n';
+            // exit(EXIT_FAILURE);
+        }
+    }
+}
+/**/
+
+TEST_CASE("Big data test: model 4")
+{
+    SECTION("The Pcg class: test full SNP blup")
+    {
+        try
+        {
+            evolm::Pcg solver;
+            evolm::Model model;
+std::cout<<"        Testing model 4 on dense solver..."<<"\n";
+auto start = std::chrono::high_resolution_clock::now();
+
+            std::vector<float> iR{10.41};
+
+            std::vector<float> iG1{20.93};
+
+            model.append_residual(iR, 1);
+
+            model.append_observation("tests/data/model_4/obs_500.dat"); // obs := 0
+
+            float type1 = 0;
+            float type2 = 0.0f;
+
+            model.append_effect("tests/data/model_4/obs_500_snp_1000.txt", type1); // eff := 0
+            model.append_effect("tests/data/model_4/fixed_500.dat", type2);         // eff := 1
+
+            std::vector<int> corr_eff{0};
+
+            std::vector<int> eff_trate{1, 0};
+            //std::vector<int> eff_trate{0, 1};
+            int obs_trate = 0;
+
+            std::string identity("I");
+
+            model.append_corrstruct(iG1, 1, identity, 1000, corr_eff);
+
+            model.append_traitstruct(obs_trate, eff_trate);
+
+            solver.append_model(model);
+
+            solver.solve(3);
+
+auto stop = std::chrono::high_resolution_clock::now();
+auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+std::cout <<"model 4 on dense solver (milliseconds): "<< duration.count() << std::endl;
+
+            //std::vector<std::vector<float>> A = solver.test_A();
+            //std::ofstream out_a("dense_a.txt");
+            //for (size_t i = 0; i < A.size(); i++)
+            //{
+            //    for (size_t j = 0; j < A[0].size(); j++)
+            //        out_a << std::setprecision(16) << A[i][j]<<" ";
+            //    out_a <<"\n";
+            //}
+            //out_a.close();
 
             // std::vector<float> sol = solver.get_solution();
 

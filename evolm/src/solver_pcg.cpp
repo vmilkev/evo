@@ -215,7 +215,7 @@ namespace evolm
             if (solution.is_open())
             {
                 for (size_t i = 0; i < sol.size(); i++)
-                    solution << sol[i] << "\n";
+                    solution << std::setprecision(16) << sol[i] << "\n";
 
                 solution.close();
             }
@@ -244,7 +244,7 @@ namespace evolm
         }
     }
 
-    matrix<float> Pcg::construct_dval(std::vector<std::vector<size_t>> &cov_offsets, size_t num_levels, std::vector<size_t> &ordered_levels)
+    matrix<double> Pcg::construct_dval(std::vector<std::vector<size_t>> &cov_offsets, size_t num_levels, std::vector<size_t> &ordered_levels)
     {
         try
         {
@@ -253,7 +253,7 @@ namespace evolm
             if (shape_rhs[0] == 0)
                 throw std::string("The size of RHS is 0!");
 
-            matrix<float> dval(shape_rhs[0], 1);
+            matrix<double> dval(shape_rhs[0], 1);
 
             size_t cmatr_row = 0;
 
@@ -286,7 +286,7 @@ namespace evolm
                     if (vect(0, cmatr_row) == 0.0f)
                         throw std::string("Pcg::construct_dval(std::vector<std::vector<size_t>> &, size_t, std::vector<int> &) => Expected division by 0.0!");
 
-                    dval(cmatr_row, 0) = 1.0f / vect(0, cmatr_row);
+                    dval(cmatr_row, 0) = 1.0 / static_cast<double>(vect(0, cmatr_row));
 
                     cmatr_row = cmatr_row + 1;
                 }
@@ -384,20 +384,13 @@ namespace evolm
 
                 amatr.resize(all_levels, all_levels);
 
-                set_amatr(rcov_offsets, n_all_levels, ordered_random_levels, true);
-
-                //---------------------------
-                /*std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
+auto start = std::chrono::high_resolution_clock::now();
 
                 set_amatr(rcov_offsets, n_all_levels, ordered_random_levels, true);
 
-                std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
-
-                std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
-
-                std::cout << "time to set amatrix: " << time_span.count() << " seconds."
-                          << "\n";*/
-                //-----------------------------
+auto stop = std::chrono::high_resolution_clock::now();
+auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+std::cout <<"set_amatr() (milliseconds): "<< duration.count() << std::endl;
 
                 amatrix_onmem = true;
             }
@@ -542,7 +535,7 @@ namespace evolm
 
                 for (size_t i_trate = 0; i_trate < n_trait; i_trate++)
                 {
-#pragma omp parallel for num_threads(n_threads)
+//#pragma omp parallel for num_threads(n_threads)
                     for (size_t i_eff = 0; i_eff < get_levels(i_trate); i_eff++)
                     {
                         size_t private_raw = get_all_levels(i_trate) + i_eff;
@@ -550,7 +543,6 @@ namespace evolm
                         size_t all_tr_levels = get_all_levels();
 
                         matrix<float> vect = get_row_cmatr(all_tr_levels, i_trate, i_eff, cov_offsets, num_levels, ordered_levels, private_raw);
-
                         for (size_t i = 0; i < all_tr_levels; i++)
                         {
                             amatr(private_raw, i) = vect(0, i);
@@ -725,15 +717,22 @@ namespace evolm
 
             sol.resize(unknowns, 1);
 
-            matrix<float> _Mi = construct_dval(cov_offsets, num_levels, ordered_levels); // actually, returning the inverse of dval (== Mi)
+            matrix<double> Mi = construct_dval(cov_offsets, num_levels, ordered_levels); // actually, returning the inverse of dval (== Mi)
 
-            matrix<double> Mi = _Mi._double(); // cast to double
+            //matrix<double> Mi = _Mi._double(); // cast to double
             matrix<double> _rhs = rhs._double(); // cast to double
+
+            for (size_t i = 0; i < unknowns; i++)
+                sol[i] = _rhs[i] * Mi[i]; // initial solution
 
             // -------------------------------------------------
             matrix<double> tVect(unknowns, 1); // vector to keep the result of operation: A*x
 
+auto start = std::chrono::high_resolution_clock::now();
             update_vect(cov_offsets, num_levels, ordered_levels, tVect, sol); // A*x(==sol)
+auto stop = std::chrono::high_resolution_clock::now();
+auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+std::cout <<"update_vect() (milliseconds): "<< duration.count() << std::endl;
 
             matrix<double> r_vect = _rhs - tVect; // r = b - A*x
 
@@ -747,13 +746,18 @@ namespace evolm
                 d[i] = Mi[i] * r_vect[i];
             }
 
+start = std::chrono::high_resolution_clock::now();
             double delta_new = v_dot_v(r_vect, d);
+stop = std::chrono::high_resolution_clock::now();
+duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+std::cout <<"v_dot_v() (milliseconds): "<< duration.count() << std::endl;
 
             double delta_zero = delta_new;
 
             iterations = 1;
 
-            while (iterations < max_iterations && delta_new > delta_zero * tolerance * tolerance)
+std::cout << "max_iterations: "<< max_iterations << "; iter: " << iterations << "; delta_new: " << delta_new << " condition: "<< /*delta_zero */ tolerance * tolerance << "\n";
+            while (iterations < max_iterations && delta_new > /*delta_zero */ tolerance * tolerance)
             {
                 matrix<double> q(unknowns, 1); // !!! can be declared outside the loop ?
 
@@ -799,14 +803,11 @@ namespace evolm
                 d = s + betha * d;
 
                 // debugging
-                // if (!(iterations % 50))
-                //{
-                //std::cout << "titeration: " << iterations << "; delta_new: " << delta_new << "\n";
-                //}
+                if (!(iterations % 1))
+                    std::cout << "iter: " << iterations << "; delta_new: " << delta_new <<" alpha: "<<alpha<<" i_value: "<<i_value<< "\n";
 
                 iterations = iterations + 1;
             }
-
             iterations = iterations - 1;
         }
         catch (const std::string &e)
@@ -964,7 +965,7 @@ namespace evolm
 
                 get_vect_z_uni2(j_matr, i, v22);
 
-                float t = 0.0;
+                float t = 0.0f;
                 for (size_t j = 0; j < vect_dim; j++)
                     t = t + v11[0][j] * v22[0][j];
 
@@ -1409,6 +1410,11 @@ namespace evolm
             res = res * v2;
 
             return res[0];
+
+            /*T res2 = (T)0.0;
+            for (size_t i = 0; i < v2.size(); i++)
+                res2 = res2 + v1[i]*v2[i];        
+            return res2;*/
         }
         catch (const std::exception &e)
         {
@@ -1594,14 +1600,14 @@ namespace evolm
 
             // set_pipeline(1);
 
-            matrix<float> Mi = construct_dval(rcov_offsets, n_all_levels, ordered_random_levels);
+            matrix<double> Mi = construct_dval(rcov_offsets, n_all_levels, ordered_random_levels);
 
             for (size_t i = 0; i < Mi.size(); i++)
             {
-                if (Mi[i] == 0.0f)
+                if (Mi[i] == 0.0)
                     throw std::string("Pcg::test_dval() => Expected division by 0.0: Mi[i] == 0.0!");
 
-                out.push_back(1.0 / Mi[i]);
+                out.push_back( static_cast<float>(1.0 / Mi[i]) );
             }
 
             rhs.clear();
