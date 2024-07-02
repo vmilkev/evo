@@ -351,7 +351,7 @@ namespace evolm
         % Here is the strategy:
         % create a matrix 'rcov_offsets' which holds [row col] values of a very first (top left corner)
         % element of each variance/covariance block of random effects in the order
-        % these blocks appear in the coefficient matrix A. The matrix
+        % these blocks appear in the model (coefficient) matrix A. The matrix
         % 'rcov_offsets' is a vector representation of full matrix
         % rcov_offsets(l) = {[row col]}.
         % Indexing:
@@ -575,13 +575,13 @@ namespace evolm
 
             model_matrix.resize( get_all_levels() );
 
-auto start = std::chrono::high_resolution_clock::now();
+//auto start = std::chrono::high_resolution_clock::now();
 
             make_model_matrix(rcov_offsets, n_all_levels, ordered_random_levels);
 
-auto stop = std::chrono::high_resolution_clock::now();
-auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-std::cout <<"set_amatr() (milliseconds): "<< duration.count() << std::endl;
+//auto stop = std::chrono::high_resolution_clock::now();
+//auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+//std::cout <<"set_amatr() (milliseconds): "<< duration.count() << std::endl;
 
         }
         catch (const std::string &err)
@@ -927,6 +927,7 @@ std::cout <<"set_amatr() (milliseconds): "<< duration.count() << std::endl;
                 {
                     for (auto &p : e)
                     {
+                        // !!! revise, we do not need to write-out data again, only the momory needs to be cleared
                         p.fwrite();
                     }
                 }
@@ -1490,7 +1491,10 @@ std::cout <<"set_amatr() (milliseconds): "<< duration.count() << std::endl;
             if (!cor_onmem)
             {
                 for (size_t i = 0; i < model.correlations.size(); i++)
+                {
                     model.correlations[i].fread();
+                    model.correlations[i].fread_rows_structure();
+                }
 
                 cor_onmem = true;
             }
@@ -1523,7 +1527,11 @@ std::cout <<"set_amatr() (milliseconds): "<< duration.count() << std::endl;
             if (cor_onmem)
             {
                 for (size_t i = 0; i < model.correlations.size(); i++)
+                {
+                    // !!! revise here: we do not need to write out the data again, only clearing the memory is needed
                     model.correlations[i].fwrite();
+                    model.correlations[i].fwrite_rows_structure();
+                }
 
                 cor_onmem = false;
             }

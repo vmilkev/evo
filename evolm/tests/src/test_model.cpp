@@ -6,7 +6,6 @@
 #include <string>
 #include <float.h>
 
-/**/
 TEST_CASE("Testing model set-up")
 {
     bool is_ok = true;
@@ -1926,6 +1925,16 @@ TEST_CASE("Testing multivariate model with missing values")
 
             solver.append_model(model);
 
+            // std::vector<std::vector<float>> A = solver.test_A();
+            // std::ofstream out_a("sparse_a.txt");
+            // for (size_t i = 0; i < A.size(); i++)
+            // {
+            //     for (size_t j = 0; j < A[0].size(); j++)
+            //         out_a << std::setprecision(8) << A[i][j]<<" ";
+            //     out_a <<"\n";
+            // }
+            // out_a.close();
+
             solver.solve();
 
             std::vector<float> sol = solver.get_solution();
@@ -1956,7 +1965,6 @@ TEST_CASE("Testing multivariate model with missing values")
     }
     // ========================================================================================
 }
-/**/
 
 TEST_CASE("Testing on big model 4")
 {
@@ -1992,7 +2000,9 @@ TEST_CASE("Testing on big model 4")
             evolm::sparse_pcg solver;
             evolm::model_sparse model;
 
-std::cout<<"        Testing model 4 on sparse solver..."<<"\n";
+            model.set_sparsity_threshold(0.0);
+
+std::cout<<"        ==> Testing model 4 on sparse solver..."<<"\n";
 auto start = std::chrono::high_resolution_clock::now();
 
             std::vector<float> iR{10.41};
@@ -2002,8 +2012,9 @@ auto start = std::chrono::high_resolution_clock::now();
             model.append_residual(iR, 1);
 
             model.append_observation("tests/data/model_4/obs_500.dat"); // obs := 0
-
+std::cout<<"            ==> appending eff_snp ..."<<"\n";
             model.append_effect(eff_snp, in.size(), in[0].size()); // eff := 0
+std::cout<<"            ==> appending eff_fixed ..."<<"\n";
             model.append_effect(eff_fixed, in2.size(), in2[0].size());         // eff := 1
 
             std::vector<int> corr_eff{0};
@@ -2022,16 +2033,17 @@ auto start = std::chrono::high_resolution_clock::now();
 
             solver.set_memory_limit(15);
 
-            //std::vector<std::vector<float>> A = solver.test_A();
-            //std::ofstream out_a("sparse_a.txt");
-            //for (size_t i = 0; i < A.size(); i++)
-            //{
-            //    for (size_t j = 0; j < A[0].size(); j++)
-            //        out_a << std::setprecision(16) << A[i][j]<<" ";
-            //    out_a <<"\n";
-            //}
-            //out_a.close();
+            // std::vector<std::vector<float>> A = solver.test_A();
+            // std::ofstream out_a("sparse_a.txt");
+            // for (size_t i = 0; i < A.size(); i++)
+            // {
+            //     for (size_t j = 0; j < A[0].size(); j++)
+            //         out_a << std::setprecision(16) << A[i][j]<<" ";
+            //     out_a <<"\n";
+            // }
+            // out_a.close();
 
+std::cout<<"            ==> solving ..."<<"\n";
             solver.solve();
 
 auto stop = std::chrono::high_resolution_clock::now();
@@ -2041,8 +2053,7 @@ std::cout <<"model 4 on sparse solver (milliseconds): "<< duration.count() << st
             // std::vector<float> sol = solver.get_solution();
 
             solver.get_solution("sparse_solution_model_4.dat");
-std::cout<<"DBL_MANT_DIG: "<<DBL_MANT_DIG<<"\n";
-std::cout<<"LDBL_MANT_DIG: "<<LDBL_MANT_DIG<<"\n";
+
             model.clear();
         }
         catch (const std::exception &e)

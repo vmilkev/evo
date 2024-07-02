@@ -1942,6 +1942,7 @@ TEST_CASE("Compact storage, checking class constructors, type = double")
         //s.to_dense(m);
         //m.print("testing rows_list");
 
+
         for (size_t i = 0; i < dim; i++)
         {
             for (size_t j = 0; j < dim; j++)

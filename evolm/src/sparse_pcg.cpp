@@ -28,7 +28,7 @@ namespace evolm
             diskload_var();
             diskload_cor();
             diskload_cor_effects();
-            
+ 
             jacobi_pcg();
 
             for (size_t i = 0; i < get_num_of_mem_blocks(); i++)
@@ -49,48 +49,6 @@ namespace evolm
         catch (...)
         {
             std::cerr << "Exception in sparse_pcg::solve()." << '\n';
-            throw;
-        }
-    }
-
-    void sparse_pcg::solve2()
-    {
-        try
-        {
-            memload_effects();
-            //memload_var();
-            memload_cor();
-            memload_cor_effects();
-
-            construct_rhs();
-
-            set_model_matrix();
-
-            diskload_effects();
-            diskload_var();
-            diskload_cor();
-            diskload_cor_effects();
-            
-            jacobi_pcg2();
-
-            for (size_t i = 0; i < get_num_of_mem_blocks(); i++)
-                unload_model_matrix(i);            
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Exception in sparse_pcg::solve2()." << '\n';
-            std::cerr << e.what() << '\n';
-            throw e;
-        }
-        catch (const std::string &e)
-        {
-            std::cerr << "Exception in sparse_pcg::solve2()." << '\n';
-            std::cerr <<"Reason: "<< e << '\n';
-            throw e;
-        }
-        catch (...)
-        {
-            std::cerr << "Exception in sparse_pcg::solve2()." << '\n';
             throw;
         }
     }
@@ -171,16 +129,8 @@ namespace evolm
 
             if (solution.is_open())
             {
-                if ( !sol.empty() )
-                {
-                    for (size_t i = 0; i < sol.size(); i++)
-                        solution << std::setprecision(16) << sol[i] << "\n";
-                }
-                else
-                {
-                    for (size_t i = 0; i < sol2.size(); i++)
-                        solution << std::setprecision(16) << sol2[i] << "\n";
-                }
+                for (size_t i = 0; i < sol.size(); i++)
+                    solution << std::setprecision(16) << sol[i] << "\n";
 
                 solution.close();
             }
@@ -320,11 +270,11 @@ namespace evolm
             for (size_t i = 0; i < unknowns; i++)
                 sol[i] = _rhs[i] * Mi[i]; // initial solution
 
-auto start = std::chrono::high_resolution_clock::now();
+//auto start = std::chrono::high_resolution_clock::now();
             update_vect(tVect, sol); // A*x
-auto stop = std::chrono::high_resolution_clock::now();
-auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-std::cout <<"update_vect() (milliseconds): "<< duration.count() << std::endl;
+//auto stop = std::chrono::high_resolution_clock::now();
+//auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+//std::cout <<"update_vect() (milliseconds): "<< duration.count() << std::endl;
 
             for (size_t i = 0; i < unknowns; i++)
                 r_vect[i] = _rhs[i] - tVect[i]; // r = rhs - A*x
@@ -334,11 +284,11 @@ std::cout <<"update_vect() (milliseconds): "<< duration.count() << std::endl;
             for (size_t i = 0; i < unknowns; i++)
                 d[i] = Mi[i] * r_vect[i];
 
-start = std::chrono::high_resolution_clock::now();
+//start = std::chrono::high_resolution_clock::now();
             double delta_new = v_dot_v(r_vect, d);
-stop = std::chrono::high_resolution_clock::now();
-duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-std::cout <<"v_dot_v() (milliseconds): "<< duration.count() << std::endl;
+//stop = std::chrono::high_resolution_clock::now();
+//duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+//std::cout <<"v_dot_v() (milliseconds): "<< duration.count() << std::endl;
 
             double delta_zero = delta_new;
 
@@ -349,7 +299,7 @@ std::cout <<"v_dot_v() (milliseconds): "<< duration.count() << std::endl;
             double delta_old = 0.0;
             double betha = 0.0;
 
-std::cout << "max_iterations: "<< max_iterations << "; iter: " << iterations << "; delta_new: " << delta_new << " condition: "<< /*delta_zero */ tolerance * tolerance << "\n";
+//std::cout << "max_iterations: "<< max_iterations << "; iter: " << iterations << "; delta_new: " << delta_new << " condition: "<< /*delta_zero */ tolerance * tolerance << "\n";
             while (iterations < max_iterations && delta_new > /*delta_zero */ tolerance * tolerance)
             {
                 update_vect(q, d); // here we casting vector from float to double every time by calling this function
@@ -393,12 +343,13 @@ std::cout << "max_iterations: "<< max_iterations << "; iter: " << iterations << 
                     d[i] = s[i] + betha * d[i];
 
                 // debugging
-                if (!(iterations % 1))
-                    std::cout << "iter: " << iterations << "; delta_new: " << delta_new <<" alpha: "<<alpha<<" i_value: "<<i_value<< "\n";
+                //if (!(iterations % 10))
+                //    std::cout << "iter: " << iterations << "; delta_new: " << delta_new <<" alpha: "<<alpha<<" i_value: "<<i_value<< "\n";
 
                 iterations = iterations + 1;
             }
             iterations = iterations - 1;
+            //std::cout << "no iterations: " << iterations <<"\n";
         }
         catch (const std::string &e)
         {
@@ -450,259 +401,6 @@ std::cout << "max_iterations: "<< max_iterations << "; iter: " << iterations << 
         catch (...)
         {
             std::cerr << "Exception in sparse_pcg::v_dot_v2(std::vector<double> &, std::vector<double> &)." << '\n';
-            throw;
-        }
-    }
-
-
-
-
-
-    void sparse_pcg::construct_dval(std::vector<long double> &inverted_diagonal)
-    {
-        try
-        {
-            if (inverted_diagonal.size() != model_matrix.size())
-                throw std::string("The size allocated for the vector of model matrix diagonals is not correct!");
-
-            size_t first_row = 0;
-            size_t last_row = 0;
-
-            for (size_t i = 0; i < get_num_of_mem_blocks(); i++)
-            {
-                //load_model_matrix(i);
-                get_mem_block_range(i, first_row, last_row);
-
-//#pragma omp parallel for //num_threads(3)
-                for (size_t j = first_row; j <= last_row; j++)
-                {
-                    float d = model_matrix[j].value_at(0,j);
-
-                    if (d == 0.0f)
-                        throw std::string("sparse_pcg::construct_dval2(std::vector<float> &) => The diagonal element of the model matrix is 0.0!");
-                    
-                    inverted_diagonal[j] = 1.0 / static_cast<long double>(d);
-                }
-
-                //unload_model_matrix(i);
-            }
-        }
-        catch (const std::string &err)
-        {
-            std::cerr << err << '\n';
-            throw err;
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Exception in sparse_pcg::construct_dval(std::vector<long double> &)." << '\n';
-            std::cerr << e.what() << '\n';
-            throw e;
-        }
-        catch (...)
-        {
-            std::cerr << "Exception in sparse_pcg::construct_dval2(std::vector<float> &)." << '\n';
-            throw;
-        }
-    }
-
-    void sparse_pcg::update_vect( std::vector<long double> &out_vect, std::vector<long double> &in_vect )
-    {
-        try
-        {
-            size_t first_row = 0;
-            size_t last_row = 0;
-
-            for (size_t i = 0; i < get_num_of_mem_blocks(); i++)
-            {
-                //load_model_matrix(i);
-                get_mem_block_range(i, first_row, last_row);
-
-//#pragma omp parallel for //num_threads(3)
-                for (size_t j = first_row; j <= last_row; j++)
-                {
-                    long double result = 0.0;
-                    model_matrix[j].vect_dot_vect(in_vect, result);
-                    out_vect[j] = result;
-                }
-
-                //unload_model_matrix(i);
-            }
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Exception in sparse_pcg::update_vect(std::vector<long double> &, std::vector<long double> &)." << '\n';
-            std::cerr << e.what() << '\n';
-            throw e;
-        }
-        catch (...)
-        {
-            std::cerr << "Exception in sparse_pcg::update_vect(std::vector<long double> &, std::vector<long double> &)." << '\n';
-            throw;
-        }
-    }
-
-    void sparse_pcg::jacobi_pcg2()
-    {
-        try
-        {
-            matrix<size_t> shape_rhs = rhs.shape();
-
-            if (shape_rhs[0] == 0)
-                throw std::string("The size of RHS is 0!");
-
-            size_t unknowns = shape_rhs[0];
-
-            if (befault_max_iter)
-                max_iterations = unknowns * 10;
-
-            std::vector<long double> Mi(unknowns, 0.0);     // inverse of diagonal of A
-            std::vector<long double> _rhs(unknowns, 0.0);   // rhs
-            std::vector<long double> tVect(unknowns, 0.0);  // vector to keep the result of operation: A*x
-            std::vector<long double> r_vect(unknowns, 0.0); // residual vector: r = rhs - A*x
-            std::vector<long double> d(unknowns, 0.0);
-            std::vector<long double> q(unknowns, 0.0);
-            std::vector<long double> s(unknowns, 0.0);
-
-            sol2.resize(unknowns, 0.0);                 // solution vector
-
-            construct_dval(Mi);
-
-            for (size_t i = 0; i < unknowns; i++)
-                _rhs[i] = static_cast<long double>(rhs[i]);
-           
-            for (size_t i = 0; i < unknowns; i++)
-                sol2[i] = _rhs[i] * Mi[i]; // initial solution
-
-auto start = std::chrono::high_resolution_clock::now();
-            update_vect(tVect, sol2); // A*x
-auto stop = std::chrono::high_resolution_clock::now();
-auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-std::cout <<"update_vect() (milliseconds): "<< duration.count() << std::endl;
-
-            for (size_t i = 0; i < unknowns; i++)
-                r_vect[i] = _rhs[i] - tVect[i]; // r = rhs - A*x
-
-            tVect.clear();
-            
-            for (size_t i = 0; i < unknowns; i++)
-                d[i] = Mi[i] * r_vect[i];
-
-start = std::chrono::high_resolution_clock::now();
-            long double delta_new = v_dot_v(r_vect, d);
-stop = std::chrono::high_resolution_clock::now();
-duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-std::cout <<"v_dot_v() (milliseconds): "<< duration.count() << std::endl;
-
-            long double delta_zero = delta_new;
-
-            iterations = 1;
-
-            long double i_value = 0.0;
-            long double alpha = 0.0;
-            long double delta_old = 0.0;
-            long double betha = 0.0;
-
-std::cout << "max_iterations: "<< max_iterations << "; iter: " << iterations << "; delta_new: " << delta_new << " condition: "<< /*delta_zero */ tolerance * tolerance << "\n";
-            while (iterations < max_iterations && delta_new > /*delta_zero */ tolerance * tolerance)
-            {
-                update_vect(q, d); // here we casting vector from float to double every time by calling this function
-
-                i_value = v_dot_v(d, q);
-
-                if (i_value == 0.0)
-                    throw std::string("sparse_pcg::jacobi_pcg() => Expected division by 0.0: v_dot_v(d, q) == 0.0!");
-
-                alpha = delta_new / i_value;
-
-                for (size_t i = 0; i < sol2.size(); i++)
-                    sol2[i] = sol2[i] + alpha * d[i];
-
-                if ( !(iterations % 50) )
-                {
-                    update_vect(tVect, sol2);
-
-                    for (size_t i = 0; i < unknowns; i++)
-                        r_vect[i] = _rhs[i] - tVect[i]; // r = b - A*x
-                }
-                else
-                {
-                    for (size_t i = 0; i < r_vect.size(); i++)
-                        r_vect[i] = r_vect[i] - alpha * q[i];
-                }
-
-                for (size_t i = 0; i < unknowns; i++)
-                    s[i] = Mi[i] * r_vect[i];
-
-                delta_old = delta_new;
-
-                delta_new = v_dot_v(r_vect, s);
-
-                if (delta_old == 0.0)
-                    throw std::string("sparse_pcg::jacobi_pcg() => Expected division by 0.0: delta_old == 0.0!");
-
-                betha = delta_new / delta_old;
-
-                for (size_t i = 0; i < unknowns; i++)
-                    d[i] = s[i] + betha * d[i];
-
-                // debugging
-                if (!(iterations % 1))
-                    std::cout << "iter: " << iterations << "; delta_new: " << delta_new <<" alpha: "<<alpha<<" i_value: "<<i_value<< "\n";
-
-                iterations = iterations + 1;
-            }
-            iterations = iterations - 1;
-        }
-        catch (const std::string &e)
-        {
-            std::cerr << "Exception in sparse_pcg::jacobi_pcg2(): " << e << '\n';
-            throw e;
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Exception in sparse_pcg::jacobi_pcg2()." << '\n';
-            std::cerr << e.what() << '\n';
-            throw e;
-        }
-        catch (...)
-        {
-            std::cerr << "Exception in sparse_pcg::jacobi_pcg2()." << '\n';
-            throw;
-        }
-    }
-
-    long double sparse_pcg::v_dot_v(std::vector<long double> &v1, std::vector<long double> &v2)
-    {
-        try
-        {
-            long double res = 0.0;
-
-            for (size_t i = 0; i < v1.size(); i++)
-                res = res + v1[i] * v2[i];
-
-            return res;
-
-            // it seems like this approach more acurate !
-            /*matrix<double> v11(1,v1.size());
-            matrix<double> v22(v1.size(),1);
-            matrix<double> res;
-            for (size_t i = 0; i < v1.size(); i++)
-            {
-                v11[i] = v1[i];
-                v22[i] = v2[i];
-            }
-            res = v11*v22;
-            return res[0];*/
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Exception in sparse_pcg::v_dot_v2(std::vector<long double> &, std::vector<long double> &)." << '\n';
-            std::cerr << e.what() << '\n';
-            throw e;
-        }
-        catch (...)
-        {
-            std::cerr << "Exception in sparse_pcg::v_dot_v2(std::vector<long double> &, std::vector<long double> &)." << '\n';
             throw;
         }
     }

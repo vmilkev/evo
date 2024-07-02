@@ -10,7 +10,6 @@
 #include "iointerface.hpp"
 #include <string>
 
-/**/
 TEST_CASE("Testing set-up")
 {
     bool is_ok = true;
@@ -1803,9 +1802,17 @@ TEST_CASE("Multivariate model with missing values")
 
             solver.append_model(model);
 
-            solver.solve();
+            // std::vector<std::vector<float>> A = solver.test_A();
+            // std::ofstream out_a("dense_a.txt");
+            // for (size_t i = 0; i < A.size(); i++)
+            // {
+            //     for (size_t j = 0; j < A[0].size(); j++)
+            //         out_a << std::setprecision(8) << A[i][j]<<" ";
+            //     out_a <<"\n";
+            // }
+            // out_a.close();
 
-            // exit(1);
+            solver.solve();
 
             std::vector<float> sol = solver.get_solution();
 
@@ -2328,7 +2335,6 @@ TEST_CASE("Small data test: model 4")
         }
     }
 }
-/**/
 
 TEST_CASE("Big data test: model 4")
 {
@@ -2338,7 +2344,7 @@ TEST_CASE("Big data test: model 4")
         {
             evolm::Pcg solver;
             evolm::Model model;
-std::cout<<"        Testing model 4 on dense solver..."<<"\n";
+std::cout<<"        ==> Testing model 4 on dense solver..."<<"\n";
 auto start = std::chrono::high_resolution_clock::now();
 
             std::vector<float> iR{10.41};
@@ -2375,15 +2381,15 @@ auto stop = std::chrono::high_resolution_clock::now();
 auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
 std::cout <<"model 4 on dense solver (milliseconds): "<< duration.count() << std::endl;
 
-            //std::vector<std::vector<float>> A = solver.test_A();
-            //std::ofstream out_a("dense_a.txt");
-            //for (size_t i = 0; i < A.size(); i++)
-            //{
-            //    for (size_t j = 0; j < A[0].size(); j++)
-            //        out_a << std::setprecision(16) << A[i][j]<<" ";
-            //    out_a <<"\n";
-            //}
-            //out_a.close();
+            // std::vector<std::vector<float>> A = solver.test_A();
+            // std::ofstream out_a("dense_a.txt");
+            // for (size_t i = 0; i < A.size(); i++)
+            // {
+            //     for (size_t j = 0; j < A[0].size(); j++)
+            //         out_a << std::setprecision(16) << A[i][j]<<" ";
+            //     out_a <<"\n";
+            // }
+            // out_a.close();
 
             // std::vector<float> sol = solver.get_solution();
 

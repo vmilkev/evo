@@ -175,12 +175,15 @@ namespace evolm
             {
             case 1:
                 i_effect.fread();
+                i_effect.fread_rows_structure();
                 break;
             case 2:
                 f_effect.fread();
+                f_effect.fread_rows_structure();
                 break;
             case 3:
                 d_effect.fread();
+                d_effect.fread_rows_structure();
                 break;            
             default:
                 throw std::string("Undetermined or invalid data type!");
@@ -208,12 +211,15 @@ namespace evolm
             {
             case 1:
                 i_effect.fwrite();
+                i_effect.fwrite_rows_structure();
                 break;
             case 2:
                 f_effect.fwrite();
+                f_effect.fwrite_rows_structure();
                 break;
             case 3:
                 d_effect.fwrite();
+                d_effect.fwrite_rows_structure();
                 break;            
             default:
                 throw std::string("Undetermined or invalid data type!");

@@ -295,10 +295,11 @@ namespace evolm
         {
             eff.transpose();
 
-            if ( eff.is_sparse() )
-                eff.make_rows_list();
+            eff.make_rows_list();
 
-            eff.fwrite();
+            eff.fwrite_rows_structure();
+
+            eff.fwrite(); // keys and values
 
             effects_storage e;
 
@@ -349,10 +350,11 @@ namespace evolm
 
             effect.transpose();
 
-            if ( effect.is_sparse() )
-                effect.make_rows_list();
+            effect.make_rows_list();
 
-            effect.fwrite();
+            effect.fwrite_rows_structure();
+
+            effect.fwrite(); // keys and values
 
             effects_storage e;
 
@@ -406,10 +408,11 @@ namespace evolm
 
             effect.transpose();
 
-            if ( effect.is_sparse() )
-                effect.make_rows_list();
+            effect.make_rows_list();
 
-            effect.fwrite();
+            effect.fwrite_rows_structure();
+
+            effect.fwrite(); // keys and values
 
             effects_storage e;
 
@@ -477,27 +480,27 @@ namespace evolm
             case 1:
                 i_effect.fread(fname);
                 i_effect.transpose();
-                if ( i_effect.is_sparse() )
-                    i_effect.make_rows_list();
-                i_effect.fwrite();                
+                i_effect.make_rows_list();
+                i_effect.fwrite_rows_structure();
+                i_effect.fwrite(); // keys and values
                 e.set(i_effect);
                 all_effects.push_back(e);
                 break;
             case 2:
                 f_effect.fread(fname);
                 f_effect.transpose();
-                if ( f_effect.is_sparse() )
-                    f_effect.make_rows_list();
-                f_effect.fwrite();                
+                f_effect.make_rows_list();
+                f_effect.fwrite_rows_structure();
+                f_effect.fwrite();  // keys and values
                 e.set(f_effect);
                 all_effects.push_back(e);
                 break;
             case 3:
                 d_effect.fread(fname);
                 d_effect.transpose();
-                if ( d_effect.is_sparse() )
-                    d_effect.make_rows_list();
-                d_effect.fwrite();
+                d_effect.make_rows_list();
+                d_effect.fwrite_rows_structure();
+                d_effect.fwrite();  // keys and values
                 e.set(d_effect);
                 all_effects.push_back(e);
                 break;            
@@ -551,8 +554,8 @@ namespace evolm
 
             variances.push_back(variance);
 
-            if ( correlation.is_sparse() )
-                correlation.make_rows_list();
+            correlation.make_rows_list();
+            correlation.fwrite_rows_structure();
 
             correlation.fwrite();
             correlations.push_back(correlation);
@@ -618,8 +621,8 @@ namespace evolm
 
             variances.push_back(variance);
 
-            if ( correlation.is_sparse() )
-                correlation.make_rows_list();
+            correlation.make_rows_list();
+            correlation.fwrite_rows_structure();
 
             correlation.fwrite();
             correlations.push_back(correlation);
@@ -708,8 +711,8 @@ namespace evolm
 
             variances.push_back(variance);
 
-            if ( correlation.is_sparse() )
-                correlation.make_rows_list();
+            correlation.make_rows_list();
+            correlation.fwrite_rows_structure();
 
             correlation.fwrite();
             correlations.push_back(correlation);
@@ -779,8 +782,8 @@ namespace evolm
 
             variances.push_back(variance);
 
-            if ( correlation.is_sparse() )
-                correlation.make_rows_list();
+            correlation.make_rows_list();
+            correlation.fwrite_rows_structure();
 
             correlation.fwrite();
             correlations.push_back(correlation);
@@ -866,8 +869,8 @@ namespace evolm
 
             variances.push_back(variance);
 
-            if ( correlation.is_sparse() )
-                correlation.make_rows_list();
+            correlation.make_rows_list();
+            correlation.fwrite_rows_structure();
 
             correlation.fwrite();
             correlations.push_back(correlation);

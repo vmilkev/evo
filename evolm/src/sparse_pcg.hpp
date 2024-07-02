@@ -20,7 +20,6 @@ namespace evolm
 
         public:
                 void solve();
-                void solve2();
 
                 void set_tolerance(double tol);
                 void set_maxiter(size_t iter);
@@ -46,13 +45,7 @@ namespace evolm
                 void update_vect(std::vector<double> &out_vect, std::vector<double> &in_vect);
                 double v_dot_v(std::vector<double> &v1, std::vector<double> &v2);
 
-                void jacobi_pcg2();
-                void construct_dval(std::vector<long double> &inverted_diagonal);
-                void update_vect(std::vector<long double> &out_vect, std::vector<long double> &in_vect);
-                long double v_dot_v(std::vector<long double> &v1, std::vector<long double> &v2);
-
                 std::vector<double> sol;
-                std::vector<long double> sol2;
 
                 double tolerance = 1e-6; // default;
                 size_t iterations;

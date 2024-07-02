@@ -803,12 +803,13 @@ std::cout << "max_iterations: "<< max_iterations << "; iter: " << iterations << 
                 d = s + betha * d;
 
                 // debugging
-                if (!(iterations % 1))
-                    std::cout << "iter: " << iterations << "; delta_new: " << delta_new <<" alpha: "<<alpha<<" i_value: "<<i_value<< "\n";
+                //if (!(iterations % 10))
+                //    std::cout << "iter: " << iterations << "; delta_new: " << delta_new <<" alpha: "<<alpha<<" i_value: "<<i_value<< "\n";
 
                 iterations = iterations + 1;
             }
             iterations = iterations - 1;
+            std::cout << "no iterations: " << iterations <<"\n";
         }
         catch (const std::string &e)
         {

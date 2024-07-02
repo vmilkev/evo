@@ -1,13 +1,6 @@
 #ifndef compact_storage_hpp__
 #define compact_storage_hpp__
 
-/*#include <iostream>
-#include <fstream>
-#include <vector>
-#include <string>
-#include <algorithm>
-#include <random>*/
-
 #include "dense_matrix.hpp"
 #include "sparse_matrix.hpp"
 
@@ -21,12 +14,15 @@ namespace evolm
         std::vector<T> vals;
         std::vector<size_t> keys;
         std::vector<std::int64_t> row_first_key; // optional container (on demand) holding indexes of a first kay in each row
+        std::vector<std::int64_t> row_last_key; // optional container (on demand) holding indexes of a last kay in each row
         
         size_t nRows;
         size_t nCols;
         bool symmetric;
         bool ondisk;
-        std::string binFilename;
+        bool ondisk_row_structure;
+        std::string binFilename; // for I/O vals and keys
+        std::string binFilename2; // for I/O row_first_key and row_last_key
         std::fstream fA;
 
         const size_t data_type = 3003;
@@ -89,6 +85,8 @@ namespace evolm
         void fread(const std::string &fname);
         void fwrite(std::fstream &external_fA);
         void fread(std::fstream &external_fA);
+        void fwrite_rows_structure();
+        void fread_rows_structure();
         
         void optimize();
         void transpose();
@@ -139,12 +137,14 @@ namespace evolm
         nCols = 0;
         symmetric = false;
         ondisk = false;
+        ondisk_row_structure = false;
 
         std::random_device rd;
         srand(rd());
         int iNum = rand() % 100000;
 
         binFilename = "storage_" + std::to_string(iNum);
+        binFilename2 = "storage2_" + std::to_string(iNum);
     }
     //===========================================================================================    
     template <typename T>
@@ -154,12 +154,14 @@ namespace evolm
         nCols = ncol;
         symmetric = false;
         ondisk = false;
+        ondisk_row_structure = false;
 
         std::random_device rd;
         srand(rd());
         int iNum = rand() % 100000;
 
         binFilename = "storage_" + std::to_string(iNum);
+        binFilename2 = "storage2_" + std::to_string(iNum);
     }
     //===========================================================================================    
     template <typename T>
@@ -169,12 +171,14 @@ namespace evolm
         nCols = nrow;
         symmetric = true;
         ondisk = false;
+        ondisk_row_structure = false;
 
         std::random_device rd;
         srand(rd());
         int iNum = rand() % 100000;
 
         binFilename = "storage_" + std::to_string(iNum);
+        binFilename2 = "storage2_" + std::to_string(iNum);
     }
     //===========================================================================================
     template <typename T>
@@ -184,12 +188,14 @@ namespace evolm
         nCols = n_cols;
         symmetric = false;
         ondisk = false;
+        ondisk_row_structure = false;
 
         std::random_device rd;
         srand(rd());
         int iNum = rand() % 100000;
 
         binFilename = "storage_" + std::to_string(iNum);
+        binFilename2 = "storage2_" + std::to_string(iNum);
 
         if ( (value.size() != row.size()) || (value.size() != col.size()) )
             throw std::string("compact_storage<T>::compact_storage(std::vector<T> &, std::vector<size_t> &, std::vector<size_t> &, size_t, size_t): Provided arrays are not of the equal sizes!");
@@ -223,12 +229,14 @@ namespace evolm
         nCols = n_rows;
         symmetric = true;
         ondisk = false;
+        ondisk_row_structure = false;
 
         std::random_device rd;
         srand(rd());
         int iNum = rand() % 100000;
 
         binFilename = "storage_" + std::to_string(iNum);
+        binFilename2 = "storage2_" + std::to_string(iNum);
 
         if ( (value.size() != row.size()) || (value.size() != col.size()) )
             throw std::string("compact_storage<T>::compact_storage(std::vector<T> &, std::vector<size_t> &, std::vector<size_t> &, size_t): Provided arrays are not of the equal sizes!");
@@ -271,12 +279,14 @@ namespace evolm
         nCols = n_cols;
         symmetric = false;
         ondisk = false;
+        ondisk_row_structure = false;
 
         std::random_device rd;
         srand(rd());
         int iNum = rand() % 100000;
 
         binFilename = "storage_" + std::to_string(iNum);
+        binFilename2 = "storage2_" + std::to_string(iNum);
         
         if ( (n_rows*n_cols) < value.size() )
             throw std::string("compact_storage<T>::compact_storage(std::vector<T> &, size_t, size_t): Too many elements in the provided array for a givem storage size!");
@@ -296,12 +306,14 @@ namespace evolm
         nCols = n_rows;
         symmetric = true;
         ondisk = false;
+        ondisk_row_structure = false;
 
         std::random_device rd;
         srand(rd());
         int iNum = rand() % 100000;
 
         binFilename = "storage_" + std::to_string(iNum);
+        binFilename2 = "storage2_" + std::to_string(iNum);
         
         if ( (n_rows*n_rows+n_rows)/2 < value.size() )
             throw std::string("compact_storage<T>::compact_storage(std::vector<T> &, size_t): Too many elements in the provided array for a givem storage size!");
@@ -319,11 +331,15 @@ namespace evolm
     {
         symmetric = obj.symmetric;
         ondisk = obj.ondisk;
+        ondisk_row_structure = obj.ondisk_row_structure;
         nRows = obj.nRows;
         nCols = obj.nCols;
         binFilename = obj.binFilename;
+        binFilename2 = obj.binFilename2;
         vals = obj.vals;
         keys = obj.keys;
+        row_first_key = obj.row_first_key;
+        row_last_key = obj.row_last_key;
     }
     //===========================================================================================    
     template <typename T>
@@ -333,14 +349,21 @@ namespace evolm
 
         std::swap(symmetric, obj.symmetric);
         std::swap(ondisk, obj.ondisk);
+        std::swap(ondisk_row_structure, obj.ondisk_row_structure);
         std::swap(nRows, obj.nRows);
         std::swap(nCols, obj.nCols);
 
         if ( ondisk ) // exchange file names only if rhs is not on memory!
             std::swap(binFilename, obj.binFilename);
 
+        if (ondisk_row_structure)
+            std::swap(binFilename2, obj.binFilename2);
+
         std::swap(vals, obj.vals);
         std::swap(keys, obj.keys);
+
+        std::swap(row_first_key, obj.row_first_key);
+        std::swap(row_last_key, obj.row_last_key);
 
         return *this;
     }
@@ -393,6 +416,10 @@ namespace evolm
         nCols = 0;
         symmetric = false;
         ondisk = false;
+        
+        clear_rows_list();
+
+        ondisk_row_structure = false;
     }
     //===========================================================================================
     template <typename T>
@@ -614,11 +641,32 @@ namespace evolm
 
         external_fA.write( reinterpret_cast<const char *>( &keys_size ), sizeof(keys_size) ); // 3. writing size of keys
         external_fA.write( reinterpret_cast<const char *>( keys.data() ), keys_size * sizeof(keys_size) ); // 4. writing all keys
+    }
+    //===========================================================================================
+    template <typename T>
+    void compact_storage<T>::fwrite_rows_structure()
+    {
+        fA.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+        fA.open(binFilename2, fA.binary | fA.trunc | fA.out);
 
-        /*ondisk = true;
+        if (!fA.is_open())
+            throw std::string("compact_storage<T>::fwrite_rows_structure(): Error while opening a binary file.");
 
-        vals.clear();
-        keys.clear();*/
+        size_t first_size = row_first_key.size();
+        size_t last_size = row_last_key.size();
+
+        fA.write( reinterpret_cast<const char *>( &first_size ), sizeof(first_size) ); // 1. writing size of row_first_key
+        fA.write( reinterpret_cast<const char *>( row_first_key.data() ), first_size * sizeof(std::int64_t) ); // 2. writing all row_first_key
+
+        fA.write( reinterpret_cast<const char *>( &last_size ), sizeof(last_size) ); // 3. writing size of row_last_key
+        fA.write( reinterpret_cast<const char *>( row_last_key.data() ), last_size * sizeof(std::int64_t) ); // 4. writing all row_last_key
+
+        fA.close();
+
+        ondisk_row_structure = true;
+
+        row_first_key.clear();
+        row_last_key.clear();
     }
     //===========================================================================================
     template <typename T>
@@ -658,9 +706,6 @@ namespace evolm
     template <typename T>
     void compact_storage<T>::fread(std::fstream &external_fA)
     {
-        /*if (!ondisk)
-            throw std::string("The storage status is not ondisk!");*/
-        
         size_t vals_size = 0;
         size_t keys_size = 0;
 
@@ -677,8 +722,40 @@ namespace evolm
         external_fA.read( reinterpret_cast<char *>( &keys_size ), sizeof(keys_size) ); // 3. reading size of keys
         keys.resize(keys_size);
         external_fA.read( reinterpret_cast<char *>( keys.data() ), keys_size * sizeof(keys_size) ); // 4. reading all keys
+    }
+    //===========================================================================================
+    template <typename T>
+    void compact_storage<T>::fread_rows_structure()
+    {
+        if (!ondisk_row_structure)
+            throw std::string("compact_storage<T>::fread_rows_structure(): The storage status is not ondisk!");
+        
+        fA.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+        fA.open(binFilename2, fA.binary | fA.in);
 
-        //ondisk = false;
+        if (!fA.is_open())
+            throw std::string("compact_storage<T>::fread_rows_structure(): Error while opening a binary file.");
+
+        size_t first_size = 0;
+        size_t last_size = 0;
+
+        if ( !row_first_key.empty() || !row_last_key.empty() )
+        {
+            row_first_key.clear();
+            row_last_key.clear();
+        }
+
+        fA.read( reinterpret_cast<char *>( &first_size ), sizeof(first_size) ); // 1. reading size of values        
+        row_first_key.resize(first_size);
+        fA.read( reinterpret_cast<char *>( row_first_key.data() ), first_size * sizeof(std::int64_t) ); // 2. reading all values
+
+        fA.read( reinterpret_cast<char *>( &last_size ), sizeof(last_size) ); // 3. reading size of keys
+        row_last_key.resize(last_size);
+        fA.read( reinterpret_cast<char *>( row_last_key.data() ), last_size * sizeof(std::int64_t) ); // 4. reading all keys
+
+        fA.close();
+
+        ondisk_row_structure = false;
     }
     //===========================================================================================
     template <typename T>
@@ -782,7 +859,7 @@ namespace evolm
             std::vector<size_t> zeros_position;
             for (size_t i = 0; i < vals.size(); i++) // Check if there are still some zeros in vals
             {
-                if ( vals[i] == (T)0 )
+                if ( vals[i] == (T)0.0 )
                     zeros_position.push_back(i);
             }
 
@@ -791,11 +868,11 @@ namespace evolm
             if ( !zeros_position.empty() )
                 local_sparsity = 1.0 - (double)(vals.size()-zeros_position.size()) / ( (double)max_key() + 1.0 );
 
-            if ( local_sparsity > sparsity_threshold ) // If TRUE, keep data sparse
+            if ( local_sparsity >= sparsity_threshold ) // If TRUE, keep data sparse
             {
                 if ( !zeros_position.empty() ) // if some zerros exist, remove them
                     convert_to_sparse();
-
+       
                 return; // OK, completed
             }
 
@@ -806,7 +883,7 @@ namespace evolm
             if ( vals.size() != (max_key()+1) ) // Check if the container is in a correct represesntation
                 throw std::string("compact_storage<T>::compact_storage(std::vector<T> &, size_t, size_t): The provided data expected to be in a complete dense format, but some records are missing!");
 
-            if ( sparsity() > sparsity_threshold ) // If TRUE, convert to sparse representation
+            if ( sparsity() >= sparsity_threshold ) // If TRUE, convert to sparse representation
                 convert_to_sparse();
         }
     }
@@ -819,7 +896,7 @@ namespace evolm
             double num_zeros = 0.0;            
             for (auto const &v: vals)
             {
-                if (v == (T)0)
+                if (v == (T)0.0)
                     num_zeros = num_zeros + 1.0;
             }
 
@@ -873,9 +950,7 @@ namespace evolm
     void compact_storage<T>::transpose()
     {
         if (symmetric)
-        {
             return;
-        }
 
         if (is_sparse())
         {
@@ -898,6 +973,12 @@ namespace evolm
             nCols = t_row;
 
             sort_vectors();
+
+            if (!row_first_key.empty())
+            {
+                clear_rows_list();
+                make_rows_list();
+            }
         }
         else
         {
@@ -927,6 +1008,10 @@ namespace evolm
         std::ifstream f(binFilename.c_str());
         if (f.good())
             remove(binFilename.c_str());
+        
+        std::ifstream f2(binFilename2.c_str());
+        if (f2.good())
+            remove(binFilename2.c_str());
     }
     //===========================================================================================
     template <typename T>
@@ -942,10 +1027,12 @@ namespace evolm
     {        
         // rename file name:
         binFilename.clear();
+        binFilename2.clear();
         std::random_device rd;
         srand(rd());
         int iNum = rand() % 100000;
         binFilename = "smatrix_" + std::to_string(iNum);
+        binFilename2 = "smatrix2_" + std::to_string(iNum);
     }
     //===========================================================================================
     template <typename T>
@@ -971,7 +1058,7 @@ namespace evolm
     template <typename T>
     void compact_storage<T>::convert_to_dense()
     {
-        std::vector<T> second( max_key()+1, (T)0 );
+        std::vector<T> second( max_key()+1, (T)0.0 );
         
         if ( !is_sparse() )
         {
@@ -1005,7 +1092,7 @@ namespace evolm
         {
             for (size_t i = 0; i < vals.size(); i++)
             {
-                if ( vals[i] != (T)0 )
+                if ( vals[i] != (T)0.0 )
                     out[i] = vals[i];
             }
         }
@@ -1026,7 +1113,7 @@ namespace evolm
         {
             for (size_t i = 0; i < vals.size(); i++)
             {
-                if ( vals[i] != (T)0 )
+                if ( vals[i] != (T)0.0 )
                 {
                     second.push_back(vals[i]);
                     third.push_back(i);
@@ -1037,7 +1124,7 @@ namespace evolm
         {
             for (size_t i = 0; i < vals.size(); i++)
             {
-                if ( vals[i] != (T)0 )
+                if ( vals[i] != (T)0.0 )
                 {
                     second.push_back(vals[i]);
                     third.push_back(keys[i]);
@@ -1121,7 +1208,7 @@ namespace evolm
         {
             for (size_t i = first_key; i <= last_key; i++) // assume sorted!
             {   
-                if ( vals[i] == (T)0 )
+                if ( vals[i] == (T)0.0 )
                     continue;
                 
                 i_row = row_inrec(i);
@@ -1197,7 +1284,7 @@ namespace evolm
         {
             for (size_t i = first_key; i <= last_key; i++) // assume sorted!
             {   
-                if ( vals[i] == (T)0 )
+                if ( vals[i] == (T)0.0 )
                     continue;
                 
                 i_row = row_inrec(i);
@@ -1273,7 +1360,7 @@ namespace evolm
         {
             for (size_t i = first_key; i <= last_key; i++) // assume sorted!
             {   
-                if ( vals[i] == (T)0 )
+                if ( vals[i] == (T)0.0 )
                     continue;
                 
                 i_row = row_inrec(i);
@@ -1349,7 +1436,7 @@ namespace evolm
         {
             for (size_t i = first_key; i <= last_key; i++) // assume sorted!
             {   
-                if ( vals[i] == (T)0 )
+                if ( vals[i] == (T)0.0 )
                     continue;
                 
                 i_row = row_inrec(i);
@@ -1375,9 +1462,6 @@ namespace evolm
         size_t i_col = 0;
         size_t i_row = 0;
 
-        //size_t n_rows = row_range[1] - row_range[0] + 1;
-        //size_t n_cols = col_range[1] - col_range[0] + 1;
-
         if ( symmetric )
             throw std::string("to_dense(T **, size_t *, size_t *): The method isnot allowed on symmetric storage!");
 
@@ -1389,7 +1473,7 @@ namespace evolm
             for (size_t i = row_range[0]; i <= row_range[1]; i++)
             {
                 for (size_t j = col_range[0]; j <= col_range[1]; j++)
-                    out[i - row_range[0]][j - col_range[0]] = (T)0;
+                    out[i - row_range[0]][j - col_range[0]] = (T)0.0;
             }
 
             std::int64_t first_index = 0;
@@ -1451,9 +1535,6 @@ namespace evolm
 
         size_t i_col = 0;
         size_t i_row = 0;
-
-        //size_t n_rows = row_range[1] - row_range[0] + 1;
-        //size_t n_cols = col_range[1] - col_range[0] + 1;
 
         if ( symmetric )
             throw std::string("fcast_to_dense(float **, size_t *, size_t *): The method isnot allowed on symmetric storage!");
@@ -1529,7 +1610,6 @@ namespace evolm
         size_t i_col = 0;
         size_t i_row = 0;
 
-        //size_t n_rows = row_range[1] - row_range[0] + 1;
         size_t n_cols = col_range[1] - col_range[0] + 1;
 
         size_t new_key = 0;
@@ -1555,10 +1635,10 @@ namespace evolm
                     index = row_first_key[ next_index ];
                 }
                 first_index = index; // very first key in the row row_range[0]
-            }
 
-            if (first_index == -1) // empty data
-                return;
+                if (first_index == -1) // empty data
+                    return;
+            }
 
             for (size_t i = (size_t)first_index; i < last_index; i++)
             {
@@ -1583,7 +1663,7 @@ namespace evolm
         {
             for (size_t i = first_key; i <= last_key; i++) // assume sorted!
             {
-                if ( vals[i] == (T)0 )
+                if ( vals[i] == (T)0.0 )
                     continue;
 
                 i_row = row_inrec(i);
@@ -1613,7 +1693,6 @@ namespace evolm
         size_t i_col = 0;
         size_t i_row = 0;
 
-        //size_t n_rows = row_range[1] - row_range[0] + 1;
         size_t n_cols = col_range[1] - col_range[0] + 1;
 
         size_t new_key = 0;
@@ -1667,7 +1746,7 @@ namespace evolm
         {
             for (size_t i = first_key; i <= last_key; i++) // assume sorted!
             {
-                if ( vals[i] == (float)0 )
+                if ( vals[i] == (T)0.0 )
                     continue;
 
                 i_row = row_inrec(i);
@@ -1797,13 +1876,14 @@ namespace evolm
     void compact_storage<T>::row_dot_float_vect(float **in_vect, size_t irow, size_t icol, float &out_res)
     {
         out_res = 0.0f;
+        float out_res2 = 0.0f;
 
         size_t first_key = key_inrec(irow, 0);
         size_t last_key = key_inrec(irow, icol);
         
         if( is_sparse() )
         {
-            std::int64_t first_index = 0;
+            size_t first_index = 0;
             size_t last_index = keys.size();
 
             if ( !row_first_key.empty() )
@@ -1811,39 +1891,44 @@ namespace evolm
                 std::int64_t index = row_first_key[ irow ];
                 if (index == -1) // empty row
                     return;
-                first_index = index; // very first key in the row row_range[0]
+                first_index = (size_t)index; // very first key in the row row_range[0]
+                last_index = (size_t)row_last_key[ irow ];
+
+                for (size_t i = first_index; i <= last_index; i++)
+                    out_res2 = out_res2 + in_vect[0][ keys[i]-first_key ] * static_cast<float>(vals[i]);
+            }
+            else
+            {
+                for (size_t i = first_index; i < last_index; i++)
+                {
+                    if (keys[i] > last_key)
+                        break;
+                    if ( keys[i] >= first_key )
+                        out_res2 = out_res2 + in_vect[0][ keys[i]-first_key ] * static_cast<float>(vals[i]);
+                }
             }
 
-            for (size_t i = (size_t)first_index; i < last_index; i++)
-            {
-                if (keys[i] > last_key)
-                    break;
-                if ( keys[i] >= first_key )
-                    out_res = out_res + in_vect[0][ keys[i]-first_key ] * static_cast<float>(vals[i]);
-            }
+            out_res = out_res2;
         }
         else
         {
             for (size_t i = first_key; i <= last_key; i++)
-            {
-                //if ( vals[i] == 0 )
-                //    continue;
                 out_res = out_res + in_vect[0][ i-first_key ] * static_cast<float>(vals[i]);
-            }
         }
     }
     //===========================================================================================
     template <typename T>
     void compact_storage<T>::row_dot_vect(T **in_vect, size_t irow, size_t icol, T &out_res)
     {
-        out_res = (T)0;
+        out_res = (T)0.0;
+        T out_res2 = (T)0.0;
 
         size_t first_key = key_inrec(irow, 0);
         size_t last_key = key_inrec(irow, icol);
-        
+
         if( is_sparse() )
         {
-            std::int64_t first_index = 0;
+            size_t first_index = 0;
             size_t last_index = keys.size();
 
             if ( !row_first_key.empty() )
@@ -1851,25 +1936,29 @@ namespace evolm
                 std::int64_t index = row_first_key[ irow ];
                 if (index == -1) // empty row
                     return;
-                first_index = index; // very first key in the row row_range[0]
+                first_index = (size_t)index; // very first key in the row row_range[0]
+                last_index = (size_t)row_last_key[ irow ];
+
+                for (size_t i = first_index; i <= last_index; i++)
+                    out_res2 = out_res2 + in_vect[0][ keys[i]-first_key ] * vals[i];                
+            }
+            else
+            {
+                for (size_t i = first_index; i < last_index; i++)
+                {
+                    if (keys[i] > last_key)
+                        break;
+                    if ( keys[i] >= first_key )
+                        out_res2 = out_res2 + in_vect[0][ keys[i]-first_key ] * vals[i];
+                }
             }
 
-            for (size_t i = (size_t)first_index; i < last_index; i++)
-            {
-                if (keys[i] > last_key)
-                    break;
-                if ( keys[i] >= first_key )
-                    out_res = out_res + in_vect[0][ keys[i]-first_key ] * vals[i];
-            }
+            out_res = out_res2;
         }
         else
         {
             for (size_t i = first_key; i <= last_key; i++)
-            {
-                //if ( vals[i] == (T)0 )
-                //    continue;
                 out_res = out_res + in_vect[0][ i-first_key ] * vals[i];
-            }
         }
     }
     //===========================================================================================
@@ -1877,34 +1966,40 @@ namespace evolm
     void compact_storage<T>::vect_dot_vect(std::vector<double> &in_vect, double &out_res)
     {
         out_res = 0.0;
+        double out_res2 = 0.0;
 
         if( is_sparse() )
         {
             for (size_t i = 0; i < keys.size(); i++)
-                out_res = out_res + in_vect[ keys[i] ] * static_cast<double>(vals[i]);
+                out_res2 = out_res2 + in_vect[ keys[i] ] * static_cast<double>(vals[i]);
         }
         else
         {
             for (size_t i = 0; i < vals.size(); i++)
-                out_res = out_res + in_vect[i] * static_cast<double>(vals[i]);
+                out_res2 = out_res2 + in_vect[i] * static_cast<double>(vals[i]);
         }
+
+        out_res = out_res2;
     }
     //===========================================================================================
     template <typename T>
     void compact_storage<T>::vect_dot_vect(std::vector<long double> &in_vect, long double &out_res)
     {
         out_res = 0.0;
+        long double out_res2 = 0.0;
 
         if( is_sparse() )
         {
             for (size_t i = 0; i < keys.size(); i++)
-                out_res = out_res + in_vect[ keys[i] ] * static_cast<long double>(vals[i]);
+                out_res2 = out_res2 + in_vect[ keys[i] ] * static_cast<long double>(vals[i]);
         }
         else
         {
             for (size_t i = 0; i < vals.size(); i++)
-                out_res = out_res + in_vect[i] * static_cast<long double>(vals[i]);
+                out_res2 = out_res2 + in_vect[i] * static_cast<long double>(vals[i]);
         }
+
+        out_res = out_res2;
     }
     //===========================================================================================
     template <typename T>
@@ -1915,7 +2010,7 @@ namespace evolm
 
         if( is_sparse() )
         {
-            std::int64_t first_index = 0;
+            size_t first_index = 0;
             size_t last_index = keys.size();
 
             if ( !row_first_key.empty() )
@@ -1923,25 +2018,27 @@ namespace evolm
                 std::int64_t index = row_first_key[ irow ];
                 if (index == -1) // empty row
                     return;
-                first_index = index; // very first key in the row row_range[0]
-            }
+                first_index = (size_t)index; // very first key in the row row_range[0]
+                last_index = (size_t)row_last_key[ irow ];
 
-            for (size_t i = (size_t)first_index; i < last_index; i++)
-            {
-                if (keys[i] > last_key)
-                    break;
-                if ( keys[i] >= first_key )
+                for (size_t i = first_index; i <= last_index; i++)
                     vect_to_add[ vect_first_index+(keys[i]-first_key) ] = vect_to_add[ vect_first_index+(keys[i]-first_key) ] + vals[i] * variance;
+            }
+            else
+            {
+                for (size_t i = first_index; i < last_index; i++)
+                {
+                    if (keys[i] > last_key)
+                        break;
+                    if ( keys[i] >= first_key )
+                        vect_to_add[ vect_first_index+(keys[i]-first_key) ] = vect_to_add[ vect_first_index+(keys[i]-first_key) ] + vals[i] * variance;
+                }
             }
         }
         else
         {
             for (size_t i = first_key; i <= last_key; i++)
-            {
-                //if ( vals[i] == 0 )
-                //    continue;
                 vect_to_add[ vect_first_index+(i-first_key) ] = vect_to_add[ vect_first_index+(i-first_key) ] + vals[i] * variance;
-            }
         }
     }
     //===========================================================================================
@@ -1949,7 +2046,7 @@ namespace evolm
     T compact_storage<T>::value_at(size_t irow, size_t icol)
     {
         size_t first_key = key_inrec(irow, icol);
-        T out_value = (T)0;
+        T out_value = (T)0.0;
 
         if( is_sparse() )
         {
@@ -1960,8 +2057,9 @@ namespace evolm
             {
                 std::int64_t index = row_first_key[ irow ];
                 if (index == -1) // empty row
-                    return (T)0;
+                    return (T)0.0;
                 first_index = index; // very first key in the row row_range[0]
+                last_index = (size_t)row_last_key[ irow ] + 1;
             }
 
             for (size_t i = (size_t)first_index; i < last_index; i++)
@@ -1977,13 +2075,23 @@ namespace evolm
     template <typename T>
     void compact_storage<T>::make_rows_list()
     {
-        if( !row_first_key.empty() )
-            row_first_key.clear();
-        
         if ( !is_sparse() )
             return;
+
+        if( !row_first_key.empty() )
+            row_first_key.clear();
+
+        if( !row_last_key.empty() )
+            row_last_key.clear();
         
+        if ( symmetric )
+            return;
+
+        if ( empty() )
+            throw std::string("compact_storage<T>::make_rows_list(): The container is empty!");
+
         row_first_key.resize(nRows, -1);
+        row_last_key.resize(nRows, -1);
 
         size_t i_key = 0;
         size_t next_row = 0;
@@ -2004,6 +2112,28 @@ namespace evolm
             if( i_key < keys.size() )
                 row_first_key[i_row] = i_key;
         }
+
+        i_key = keys.size() - 1; // very last key index
+        next_row = 0;
+
+        i_row = row_inrec( keys[i_key] ); // get the row associated with a very last key
+        row_last_key[i_row] = i_key; // key with last index associated with row number irow
+
+        size_t first_row = row_inrec( keys[0] );
+
+        while ( i_row > first_row )
+        {
+            next_row = i_row;
+
+            while ( next_row == i_row )
+            {
+                i_key--;
+                i_row = row_inrec( keys[i_key] );
+            }
+
+            if( i_key >= 0 )
+                row_last_key[i_row] = i_key;
+        }
     }
     //===========================================================================================
     template <typename T>
@@ -2011,6 +2141,8 @@ namespace evolm
     {
         row_first_key.clear();
         row_first_key.shrink_to_fit();
+        row_last_key.clear();
+        row_last_key.shrink_to_fit();
     }
     //===========================================================================================
     
