@@ -68,6 +68,7 @@ namespace evolm
         void fclear();
         void fclear(const std::string &fname);
         size_t size();
+        double size_inmem();
         size_t ncols();
         size_t nrows();
         size_t max_key();
@@ -87,6 +88,8 @@ namespace evolm
         void fread(std::fstream &external_fA);
         void fwrite_rows_structure();
         void fread_rows_structure();
+
+        size_t bin_file_read_position = 0;
         
         void optimize();
         void transpose();
@@ -365,6 +368,8 @@ namespace evolm
         std::swap(row_first_key, obj.row_first_key);
         std::swap(row_last_key, obj.row_last_key);
 
+        obj.clear();
+
         return *this;
     }
     //=========================================================================================== 
@@ -406,6 +411,12 @@ namespace evolm
     }
     //===========================================================================================
     template <typename T>
+    double compact_storage<T>::size_inmem()
+    {
+        return vals.size() * sizeof(T) + keys.size() * sizeof(size_t) + row_first_key.size() * sizeof(std::int64_t) * 2.0;
+    }
+    //===========================================================================================
+    template <typename T>
     void compact_storage<T>::clear()
     {
         vals.clear();
@@ -416,6 +427,8 @@ namespace evolm
         nCols = 0;
         symmetric = false;
         ondisk = false;
+        binFilename.clear();
+        binFilename2.clear();
         
         clear_rows_list();
 
@@ -877,6 +890,8 @@ namespace evolm
             }
 
             convert_to_dense(); // otherwise, convert to dense representation
+
+            zeros_position.clear();
         }
         else
         {
@@ -1838,6 +1853,8 @@ namespace evolm
             out.resize(nRows,nCols);
         
         out.append_with_keys(t_vect, keys);
+
+        t_vect.clear();
     }
     //===========================================================================================
     template <typename T>
@@ -1854,6 +1871,8 @@ namespace evolm
             out.resize(nRows,nCols);
         
         out.append_with_keys(t_vect, keys);
+
+        t_vect.clear();
     }
     //===========================================================================================
     template <typename T>

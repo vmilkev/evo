@@ -2344,22 +2344,22 @@ TEST_CASE("Big data test: model 4")
         {
             evolm::Pcg solver;
             evolm::Model model;
-std::cout<<"        ==> Testing model 4 on dense solver..."<<"\n";
-auto start = std::chrono::high_resolution_clock::now();
+//std::cout<<"        ==> Testing model 4 on dense solver..."<<"\n";
+//auto start = std::chrono::high_resolution_clock::now();
 
-            std::vector<float> iR{10.41};
+            std::vector<float> iR{0.01};
 
-            std::vector<float> iG1{20.93};
+            std::vector<float> iG1{0.03};
 
             model.append_residual(iR, 1);
 
-            model.append_observation("tests/data/model_4/obs_500.dat"); // obs := 0
+            model.append_observation("tests/data/model_4/obs_1000.dat"); // obs := 0
 
             float type1 = 0;
             float type2 = 0.0f;
 
-            model.append_effect("tests/data/model_4/obs_500_snp_1000.txt", type1); // eff := 0
-            model.append_effect("tests/data/model_4/fixed_500.dat", type2);         // eff := 1
+            model.append_effect("tests/data/model_4/obs_1000_snp_1000.txt", type1); // eff := 0
+            model.append_effect("tests/data/model_4/fixed_1000.dat", type2);         // eff := 1
 
             std::vector<int> corr_eff{0};
 
@@ -2377,9 +2377,9 @@ auto start = std::chrono::high_resolution_clock::now();
 
             solver.solve(3);
 
-auto stop = std::chrono::high_resolution_clock::now();
-auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-std::cout <<"model 4 on dense solver (milliseconds): "<< duration.count() << std::endl;
+//auto stop = std::chrono::high_resolution_clock::now();
+//auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+//std::cout <<"model 4 on dense solver (milliseconds): "<< duration.count() << std::endl;
 
             // std::vector<std::vector<float>> A = solver.test_A();
             // std::ofstream out_a("dense_a.txt");

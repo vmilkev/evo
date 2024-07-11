@@ -43,6 +43,26 @@ namespace evolm
                         throw;
                 }
         }
+        //===============================================================================================================
+
+        void IOInterface::clear()
+        {
+                try
+                {
+                        snp_id.clear();
+                }
+                catch (const std::exception &e)
+                {
+                        std::cerr << "Exception in IOInterface::set_missing(float)" << '\n';
+                        std::cerr << e.what() << '\n';
+                        throw e;
+                }
+                catch (...)
+                {
+                        std::cerr << "Exception in IOInterface::set_missing(float)" << '\n';
+                        throw;
+                }
+        }
 
         //===============================================================================================================
 

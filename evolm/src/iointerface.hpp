@@ -31,6 +31,7 @@ namespace evolm
         void fgetvar(const std::string &var_name,                         // Extract a data for a specific variable accessed by the name 'var_name'
                      Effects &out_var,          
                      const std::string &ref_var = std::string());         // Reference variable name (observations var name) which used to track missing records
+        void clear();
 
     private:
         template <typename T>

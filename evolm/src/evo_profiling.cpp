@@ -158,18 +158,22 @@ std::cout<<"=> appending z2_miss ..."<<"\n";
         model.clear();
 */
             // Prepare effects
-            size_t n_snps = 1000;
+            size_t n_snps = 141123;
             //---------------------------------
-            std::vector<std::vector<int>> in;
+            /*std::vector<std::vector<float>> in;
             std::vector<std::vector<float>> in2;
 
             evolm::IOInterface datstream;
-            datstream.set_fname("tests/data/model_4/obs_500_snp_1000.txt");
+            datstream.set_fname("tests/data/model_4/obs_489_snp_141123.txt");
             datstream.fgetdata(in);
-            datstream.set_fname("tests/data/model_4/fixed_500.dat");
+std::cout<<"        ==> completed reading SNPs..."<<"\n";
+            datstream.set_fname("tests/data/model_4/fixed_1.dat");
             datstream.fgetdata(in2);
+std::cout<<"        ==> completed reading fixed effects..."<<"\n";
 
-            std::vector<int> eff_snp;
+            datstream.clear();
+
+            std::vector<float> eff_snp;
             for (size_t i = 0; i < in.size(); i++)
             {
                 for (size_t j = 0; j < in[0].size(); j++)
@@ -181,17 +185,12 @@ std::cout<<"=> appending z2_miss ..."<<"\n";
                 for (size_t j = 0; j < in2[0].size(); j++)
                     eff_fixed.push_back(in2[i][j]);
             }
-            std::vector<float> dense_corr;
-            for (size_t i = 0; i < n_snps; i++)
-            {
-                for (size_t j = 0; j < n_snps; j++)
-                {
-                    if (i == j)
-                        dense_corr.push_back(1.0f);
-                    else
-                        dense_corr.push_back(0.0f);
-                }
-            }
+
+            evolm::compact_storage<float> snp(eff_snp, in.size(), in[0].size());
+            snp.fwrite("tests/data/model_4/snp_489_141123.bin");
+            evolm::compact_storage<float> fixed(eff_fixed, in2.size(), in2[0].size());
+            fixed.fwrite("tests/data/model_4/fixed_489.bin");*/
+            
             //---------------------------------
 
             evolm::sparse_pcg solver;
@@ -199,20 +198,27 @@ std::cout<<"=> appending z2_miss ..."<<"\n";
 
             model.set_sparsity_threshold(0.0);
 
-//std::cout<<"        ==> Model 4 on sparse solver..."<<"\n";
-//auto start = std::chrono::high_resolution_clock::now();
+std::cout<<"        ==> Appending model 4 on sparse solver..."<<"\n";
+auto start = std::chrono::high_resolution_clock::now();
 
-            std::vector<float> iR{10.41};
+            std::vector<float> iR{0.00001};
 
-            std::vector<float> iG1{20.93};
+            std::vector<float> iG1{0.00003};
 
             model.append_residual(iR, 1);
 
-            model.append_observation("tests/data/model_4/obs_500.dat"); // obs := 0
-//std::cout<<"            ==> appending eff_snp ..."<<"\n";
-            model.append_effect(eff_snp, in.size(), in[0].size()); // eff := 0
-//std::cout<<"            ==> appending eff_fixed ..."<<"\n";
-            model.append_effect(eff_fixed, in2.size(), in2[0].size());         // eff := 1
+            model.append_observation("tests/data/model_4/obs_1.dat"); // obs := 0
+            //bool t_var = true;
+            //while (t_var)
+            //    std::cout<<"waiting ..."<<"\r";
+
+            //model.append_effect(eff_snp, in.size(), in[0].size()); // eff := 0
+            //eff_snp.clear(); eff_snp.shrink_to_fit();
+            model.append_effect("tests/data/model_4/snp_489_141123.bin"); // eff := 0
+
+            //model.append_effect(eff_fixed, in2.size(), in2[0].size());    // eff := 1
+            //eff_fixed.clear(); eff_fixed.shrink_to_fit();
+            model.append_effect("tests/data/model_4/fixed_489.bin");    // eff := 1
 
             std::vector<int> corr_eff{0};
 
@@ -222,33 +228,39 @@ std::cout<<"=> appending z2_miss ..."<<"\n";
 
             std::string identity("I");
 
-            //model.append_corrstruct(iG1, 1, identity, 1000, corr_eff);
-            model.append_corrstruct(iG1, 1, dense_corr, 1000, corr_eff);
+            model.append_corrstruct(iG1, 1, identity, n_snps, corr_eff);
 
             model.append_traitstruct(obs_trate, eff_trate);
-
+            
             solver.append_model(model);
 
-            solver.set_memory_limit(15);
+            //clear initial data structure
+            iR.clear();
+            iG1.clear();
+            /*for (auto &v: in)
+                v.clear();
+            for (auto &v: in2)
+                v.clear();
+            in.clear();
+            in.shrink_to_fit();
+            in2.clear();
+            in2.shrink_to_fit();*/
+            //----------------------------
 
-            // std::vector<std::vector<float>> A = solver.test_A();
-            // std::ofstream out_a("sparse_a.txt");
-            // for (size_t i = 0; i < A.size(); i++)
-            // {
-            //     for (size_t j = 0; j < A[0].size(); j++)
-            //         out_a << std::setprecision(16) << A[i][j]<<" ";
-            //     out_a <<"\n";
-            // }
-            // out_a.close();
+            //bool t_var = true;
+            //while (t_var)
+            //    std::cout<<"waiting ..."<<"\r";
 
-//std::cout<<"            ==> solving ..."<<"\n";
+            solver.set_memory_limit(10);
+            solver.set_cpu_limit(10);
+
+std::cout<<"            ==> solving ..."<<"\n";
+            
             solver.solve();
 
-//auto stop = std::chrono::high_resolution_clock::now();
-//auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-//std::cout <<"model 4 on sparse solver (milliseconds): "<< duration.count() << std::endl;
-
-            // std::vector<float> sol = solver.get_solution();
+auto stop = std::chrono::high_resolution_clock::now();
+auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+std::cout <<"model 4 on sparse solver (milliseconds): "<< duration.count() << std::endl;
 
             solver.get_solution("sparse_solution_model_4.dat");
 

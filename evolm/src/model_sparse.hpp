@@ -51,6 +51,7 @@ namespace evolm
                 void clear(); // clears all
                 // ----------------------------------------------
                 void set_sparsity_threshold(double threshold);
+                size_t get_size_of_data();
 #ifdef UTEST
                 size_t size_of(const std::string type);
                 std::vector<std::vector<size_t>> shape_of(const std::string type);
@@ -64,6 +65,7 @@ namespace evolm
                 // ----------------------------------------------
         private:
                 double sparsity_threshold = 0.5;
+                size_t size_of_data = 0.0;
 
                 // Data
                 std::vector<matrix<float>> residuals;             // assumed to full matrix
@@ -74,7 +76,6 @@ namespace evolm
                 // Correlation structure
                 std::vector<matrix<int>> correlated_effects; // assumed to be (nx1) vectors. In matlab: which_correlated_effects
                 std::vector<matrix<float>> variances;        // assumed to be full matrix. In matlab: G
-                //std::vector<matrix<float>> correlations;     // assumed to be full matrix. In matlab: covariance_matrix
                 std::vector<compact_storage<float>> correlations;
                 std::vector<bool> identity_correlations;     // indicates which provided correlations should be treated as identity matrices
                 std::vector<size_t> identity_dimension;

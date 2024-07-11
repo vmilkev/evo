@@ -9,6 +9,7 @@ namespace evolm
 
     sparse_pcg::~sparse_pcg()
     {
+        clear_model_matrix();
     }
 
     void sparse_pcg::solve()
@@ -16,23 +17,53 @@ namespace evolm
         try
         {
             memload_effects();
-            //memload_var();
+            // memload_var();
             memload_cor();
             memload_cor_effects();
 
             construct_rhs();
 
+            double size_of_maps = r_map.size() * (sizeof(size_t) + r_map.begin()->second.size() * sizeof(float)) * 3.0 + adj_effects_order.size() * sizeof(size_t) * 6.0;
+            double size_of_data = (size_of_maps + (double)model.get_size_of_data()) / 1073741824.0;
+
+            set_data_size(size_of_data);
+
             set_model_matrix();
 
-            diskload_effects();
+            /*diskload_effects();
             diskload_var();
             diskload_cor();
             diskload_cor_effects();
- 
-            jacobi_pcg();
+            adj_effects_order.clear();*/
 
-            for (size_t i = 0; i < get_num_of_mem_blocks(); i++)
-                unload_model_matrix(i);            
+            remove_model();
+
+            // after cleaning data, load as much as possible model_matrix to memory
+            //----------------------------
+            if (first_row_ondisk < model_matrix.size() - 1)
+            {
+                size_t rows_per_memory = std::floor( ( ( get_memory_limit() - 2.0 * size_of_data) / row_size_upper_bound ) - 2.0 );
+                
+                size_t last_row = rows_per_memory - 1;
+                if (last_row >= model_matrix.size())
+                    last_row = model_matrix.size();
+
+                std::fstream fA;
+                fA.open(bin_fname, fA.binary | fA.in);
+                fA.seekg(model_matrix[first_row_ondisk].bin_file_read_position, fA.beg);
+
+                for (size_t i = first_row_ondisk; i < last_row; i++)
+                    model_matrix[i].fread(fA);
+
+                fA.close();
+                if ( rows_per_memory < first_row_ondisk )
+                    throw std::string("rows_per_memory < first_row_ondisk");
+                
+                first_row_ondisk = last_row;
+            }
+            //----------------------------
+
+            jacobi_pcg();
         }
         catch (const std::exception &e)
         {
@@ -43,7 +74,7 @@ namespace evolm
         catch (const std::string &e)
         {
             std::cerr << "Exception in sparse_pcg::solve()." << '\n';
-            std::cerr <<"Reason: "<< e << '\n';
+            std::cerr << "Reason: " << e << '\n';
             throw e;
         }
         catch (...)
@@ -162,27 +193,69 @@ namespace evolm
             if (inverted_diagonal.size() != model_matrix.size())
                 throw std::string("The size allocated for the vector of model matrix diagonals is not correct!");
 
-            size_t first_row = 0;
-            size_t last_row = 0;
-
-            for (size_t i = 0; i < get_num_of_mem_blocks(); i++)
+#pragma omp parallel for num_threads(available_cpu)
+            for (size_t j = 0; j < first_row_ondisk; j++) // process data which is already in memory
             {
-                //load_model_matrix(i);
+                float d = model_matrix[j].value_at(0, j);
+
+                if (d == 0.0f)
+                    throw std::string("sparse_pcg::construct_dval2(std::vector<float> &) => The diagonal element of the model matrix is 0.0!");
+
+                inverted_diagonal[j] = 1.0 / static_cast<double>(d);
+            }
+
+            /*for (size_t i = 0; i < get_num_of_mem_blocks(); i++) // variant 1, on blocks with consecutive reading
+            {
+                size_t first_row = 0;
+                size_t last_row = 0;
+
+                load_model_matrix(i);
                 get_mem_block_range(i, first_row, last_row);
 
-//#pragma omp parallel for //num_threads(3)
-                for (size_t j = first_row; j <= last_row; j++)
+#pragma omp parallel for num_threads( available_cpu )
+                for (size_t j = first_row; j <= last_row; j++) // process in parallel
                 {
                     float d = model_matrix[j].value_at(0,j);
 
                     if (d == 0.0f)
                         throw std::string("sparse_pcg::construct_dval2(std::vector<float> &) => The diagonal element of the model matrix is 0.0!");
-                    
+
                     inverted_diagonal[j] = 1.0 / static_cast<double>(d);
                 }
-
-                //unload_model_matrix(i);
+                unload_model_matrix(i);
+            }*/
+            std::vector<bool> reading_complete(model_matrix.size(), false);
+            std::fstream fA;
+            fA.open(bin_fname, fA.binary | fA.in);
+            fA.seekg(model_matrix[first_row_ondisk].bin_file_read_position, fA.beg);
+#pragma omp parallel sections
+            {
+#pragma omp section
+                {
+                    for (size_t j = first_row_ondisk; j < model_matrix.size(); j++)
+                    {
+                        model_matrix[j].fread(fA);
+                        reading_complete[j] = true;
+                    }
+                }
+#pragma omp section
+                {
+                    size_t j = first_row_ondisk;
+                    while (j < model_matrix.size())
+                    {
+                        if (reading_complete[j] == true)
+                        {
+                            float d = model_matrix[j].value_at(0, j);
+                            if (d == 0.0f)
+                                throw std::string("sparse_pcg::construct_dval2(std::vector<float> &) => The diagonal element of the model matrix is 0.0!");
+                            inverted_diagonal[j] = 1.0 / static_cast<double>(d);
+                            model_matrix[j].remove_data();
+                            j = j + 1;
+                        }
+                    }
+                }
             }
+            fA.close();
         }
         catch (const std::string &err)
         {
@@ -191,39 +264,78 @@ namespace evolm
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in sparse_pcg::construct_dval2(std::vector<float> &)." << '\n';
+            std::cerr << "Exception in sparse_pcg::construct_dval(std::vector<float> &)." << '\n';
             std::cerr << e.what() << '\n';
             throw e;
         }
         catch (...)
         {
-            std::cerr << "Exception in sparse_pcg::construct_dval2(std::vector<float> &)." << '\n';
+            std::cerr << "Exception in sparse_pcg::construct_dval(std::vector<float> &)." << '\n';
             throw;
         }
     }
 
-    void sparse_pcg::update_vect( std::vector<double> &out_vect, std::vector<double> &in_vect )
+    void sparse_pcg::update_vect(std::vector<double> &out_vect, std::vector<double> &in_vect)
     {
         try
         {
-            size_t first_row = 0;
-            size_t last_row = 0;
-
-            for (size_t i = 0; i < get_num_of_mem_blocks(); i++)
+#pragma omp parallel for num_threads(available_cpu)
+            for (size_t j = 0; j < first_row_ondisk; j++) // process data which is already in memory
             {
-                //load_model_matrix(i);
+                double result = 0.0;
+                model_matrix[j].vect_dot_vect(in_vect, result);
+                out_vect[j] = result;
+            }
+
+            /*for (size_t i = 0; i < get_num_of_mem_blocks(); i++) // variant 1, on blocks with consecutive reading
+            {
+                size_t first_row = 0;
+                size_t last_row = 0;
+
+                load_model_matrix(i);
                 get_mem_block_range(i, first_row, last_row);
 
-//#pragma omp parallel for //num_threads(3)
+#pragma omp parallel for num_threads( available_cpu )
                 for (size_t j = first_row; j <= last_row; j++)
                 {
                     double result = 0.0;
                     model_matrix[j].vect_dot_vect(in_vect, result);
                     out_vect[j] = result;
                 }
+                unload_model_matrix(i);
+            }*/
 
-                //unload_model_matrix(i);
+            std::vector<bool> reading_complete(model_matrix.size(), false);
+            std::fstream fA;
+            fA.open(bin_fname, fA.binary | fA.in);
+            fA.seekg(model_matrix[first_row_ondisk].bin_file_read_position, fA.beg);
+#pragma omp parallel sections
+            {
+#pragma omp section
+                {
+                    for (size_t j = first_row_ondisk; j < model_matrix.size(); j++)
+                    {                        
+                        model_matrix[j].fread(fA);
+                        reading_complete[j] = true;
+                    }
+                }
+#pragma omp section
+                {
+                    size_t j = first_row_ondisk;
+                    while (j < model_matrix.size())
+                    {
+                        if (reading_complete[j] == true)
+                        {
+                            double result = 0.0;
+                            model_matrix[j].vect_dot_vect(in_vect, result);
+                            out_vect[j] = result;
+                            model_matrix[j].remove_data();
+                            j = j + 1;
+                        }
+                    }
+                }
             }
+            fA.close();
         }
         catch (const std::exception &e)
         {
@@ -260,35 +372,35 @@ namespace evolm
             std::vector<double> q(unknowns, 0.0);
             std::vector<double> s(unknowns, 0.0);
 
-            sol.resize(unknowns, 0.0);                 // solution vector
+            sol.resize(unknowns, 0.0); // solution vector
 
             construct_dval(Mi);
 
             for (size_t i = 0; i < unknowns; i++)
                 _rhs[i] = static_cast<double>(rhs[i]);
-           
+
             for (size_t i = 0; i < unknowns; i++)
                 sol[i] = _rhs[i] * Mi[i]; // initial solution
 
-//auto start = std::chrono::high_resolution_clock::now();
+            //auto start = std::chrono::high_resolution_clock::now();
             update_vect(tVect, sol); // A*x
-//auto stop = std::chrono::high_resolution_clock::now();
-//auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-//std::cout <<"update_vect() (milliseconds): "<< duration.count() << std::endl;
+            //auto stop = std::chrono::high_resolution_clock::now();
+            //auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+            //std::cout << "update_vect() (milliseconds): " << duration.count() << std::endl;
 
             for (size_t i = 0; i < unknowns; i++)
                 r_vect[i] = _rhs[i] - tVect[i]; // r = rhs - A*x
 
             tVect.clear();
-            
+
             for (size_t i = 0; i < unknowns; i++)
                 d[i] = Mi[i] * r_vect[i];
 
-//start = std::chrono::high_resolution_clock::now();
+            //start = std::chrono::high_resolution_clock::now();
             double delta_new = v_dot_v(r_vect, d);
-//stop = std::chrono::high_resolution_clock::now();
-//duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-//std::cout <<"v_dot_v() (milliseconds): "<< duration.count() << std::endl;
+            //stop = std::chrono::high_resolution_clock::now();
+            //duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+            //std::cout << "v_dot_v() (milliseconds): " << duration.count() << std::endl;
 
             double delta_zero = delta_new;
 
@@ -299,7 +411,7 @@ namespace evolm
             double delta_old = 0.0;
             double betha = 0.0;
 
-//std::cout << "max_iterations: "<< max_iterations << "; iter: " << iterations << "; delta_new: " << delta_new << " condition: "<< /*delta_zero */ tolerance * tolerance << "\n";
+            // std::cout << "max_iterations: "<< max_iterations << "; iter: " << iterations << "; delta_new: " << delta_new << " condition: "<< /*delta_zero */ tolerance * tolerance << "\n";
             while (iterations < max_iterations && delta_new > /*delta_zero */ tolerance * tolerance)
             {
                 update_vect(q, d); // here we casting vector from float to double every time by calling this function
@@ -314,7 +426,7 @@ namespace evolm
                 for (size_t i = 0; i < sol.size(); i++)
                     sol[i] = sol[i] + alpha * d[i];
 
-                if ( !(iterations % 50) )
+                if (!(iterations % 50))
                 {
                     update_vect(tVect, sol);
 
@@ -343,13 +455,13 @@ namespace evolm
                     d[i] = s[i] + betha * d[i];
 
                 // debugging
-                //if (!(iterations % 10))
-                //    std::cout << "iter: " << iterations << "; delta_new: " << delta_new <<" alpha: "<<alpha<<" i_value: "<<i_value<< "\n";
+                // if (!(iterations % 10))
+                //std::cout << "iter: " << iterations << "; delta_new: " << delta_new << " alpha: " << alpha << " i_value: " << i_value << "\n";
 
                 iterations = iterations + 1;
             }
             iterations = iterations - 1;
-            //std::cout << "no iterations: " << iterations <<"\n";
+            //std::cout << "no iterations: " << iterations << " delta_new: " << delta_new << " condition: " << /*delta_zero */ tolerance * tolerance << "\n";
         }
         catch (const std::string &e)
         {
@@ -379,18 +491,46 @@ namespace evolm
                 res = res + v1[i] * v2[i];
 
             return res;
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in sparse_pcg::v_dot_v(std::vector<double> &, std::vector<double> &)." << '\n';
+            std::cerr << e.what() << '\n';
+            throw e;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in sparse_pcg::v_dot_v(std::vector<double> &, std::vector<double> &)." << '\n';
+            throw;
+        }
+    }
 
-            // it seems like this approach more acurate !
-            /*matrix<double> v11(1,v1.size());
-            matrix<double> v22(v1.size(),1);
-            matrix<double> res;
+    double sparse_pcg::v_dot_v2(std::vector<double> &v1, std::vector<double> &v2)
+    {
+        try
+        {
+            // it seems like this approach more acurate?
+            // At least needs less iterations to converge!
+
+            double *v11 = new double[v1.size()];
+            double *v22 = new double[v2.size()];
+
             for (size_t i = 0; i < v1.size(); i++)
             {
                 v11[i] = v1[i];
                 v22[i] = v2[i];
             }
-            res = v11*v22;
-            return res[0];*/
+
+            double res = 0.0;
+            for (size_t i = 0; i < v1.size(); i++)
+            {
+                res = res + v11[i] * v22[i];
+            }
+
+            delete[] v11;
+            delete[] v22;
+
+            return res;
         }
         catch (const std::exception &e)
         {

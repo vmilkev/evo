@@ -1201,6 +1201,7 @@ TEST_CASE("Testing on model 1")
     {
         try
         {
+            std::cout<<"   ===> Testing 14 ..."<<"\n";
             evolm::model_sparse model;
             evolm::sparse_pcg solver;
 
@@ -1231,6 +1232,7 @@ TEST_CASE("Testing on model 1")
             solver.append_model(model);
 
             solver.set_memory_limit(0.0000005);
+            solver.set_cpu_limit(2);
 
             size_t n_all_levels_checking = solver.test_num_all_levels();
 
@@ -1743,7 +1745,8 @@ TEST_CASE("Testing on model 4")
 
             solver.append_model(model);
 
-            solver.set_memory_limit(0.000005);
+            solver.set_memory_limit(0.005);
+            solver.set_cpu_limit(4);
 
             solver.solve();
 
@@ -1978,9 +1981,9 @@ TEST_CASE("Testing on big model 4")
             std::vector<std::vector<float>> in2;
 
             evolm::IOInterface datstream;
-            datstream.set_fname("tests/data/model_4/obs_500_snp_1000.txt");
+            datstream.set_fname("tests/data/model_4/obs_1000_snp_1000.txt");
             datstream.fgetdata(in);
-            datstream.set_fname("tests/data/model_4/fixed_500.dat");
+            datstream.set_fname("tests/data/model_4/fixed_1000.dat");
             datstream.fgetdata(in2);
 
             std::vector<float> eff_snp;
@@ -2000,18 +2003,18 @@ TEST_CASE("Testing on big model 4")
             evolm::sparse_pcg solver;
             evolm::model_sparse model;
 
-            model.set_sparsity_threshold(0.0);
+            model.set_sparsity_threshold(0.2);
 
 std::cout<<"        ==> Testing model 4 on sparse solver..."<<"\n";
 auto start = std::chrono::high_resolution_clock::now();
 
-            std::vector<float> iR{10.41};
+            std::vector<float> iR{0.01};
 
-            std::vector<float> iG1{20.93};
+            std::vector<float> iG1{0.03};
 
             model.append_residual(iR, 1);
 
-            model.append_observation("tests/data/model_4/obs_500.dat"); // obs := 0
+            model.append_observation("tests/data/model_4/obs_1000.dat"); // obs := 0
 std::cout<<"            ==> appending eff_snp ..."<<"\n";
             model.append_effect(eff_snp, in.size(), in[0].size()); // eff := 0
 std::cout<<"            ==> appending eff_fixed ..."<<"\n";
@@ -2031,7 +2034,10 @@ std::cout<<"            ==> appending eff_fixed ..."<<"\n";
 
             solver.append_model(model);
 
-            solver.set_memory_limit(15);
+            solver.set_memory_limit(0.05);
+            solver.set_cpu_limit(4);
+
+            //solver.set_memory_limit(15);
 
             // std::vector<std::vector<float>> A = solver.test_A();
             // std::ofstream out_a("sparse_a.txt");

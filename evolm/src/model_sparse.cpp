@@ -165,6 +165,8 @@ namespace evolm
             for (size_t i = 0; i < lda; i++)
                 observation[i] = arr[i];
 
+            size_of_data = size_of_data + observation.size() * sizeof(float);
+
             observation.fwrite();
 
             observations.push_back(observation);
@@ -208,6 +210,8 @@ namespace evolm
 
             for (size_t i = 0; i < lda; i++)
                 observation[i] = arr[i];
+
+            size_of_data = size_of_data + observation.size() * sizeof(float);
 
             observation.fwrite();
             observations.push_back(observation);
@@ -261,6 +265,8 @@ namespace evolm
             for (size_t i = 0; i < lda; i++)
                 observation[i] = arr[i][0];
 
+            size_of_data = size_of_data + observation.size() * sizeof(float);
+
             observation.fwrite();
             observations.push_back(observation);
 
@@ -296,6 +302,8 @@ namespace evolm
             eff.transpose();
 
             eff.make_rows_list();
+
+            size_of_data = size_of_data + eff.size_inmem();
 
             eff.fwrite_rows_structure();
 
@@ -351,6 +359,8 @@ namespace evolm
             effect.transpose();
 
             effect.make_rows_list();
+
+            size_of_data = size_of_data + effect.size_inmem();
 
             effect.fwrite_rows_structure();
 
@@ -409,6 +419,8 @@ namespace evolm
             effect.transpose();
 
             effect.make_rows_list();
+
+            size_of_data = size_of_data + effect.size_inmem();
 
             effect.fwrite_rows_structure();
 
@@ -481,6 +493,7 @@ namespace evolm
                 i_effect.fread(fname);
                 i_effect.transpose();
                 i_effect.make_rows_list();
+                size_of_data = size_of_data + i_effect.size_inmem();
                 i_effect.fwrite_rows_structure();
                 i_effect.fwrite(); // keys and values
                 e.set(i_effect);
@@ -490,6 +503,7 @@ namespace evolm
                 f_effect.fread(fname);
                 f_effect.transpose();
                 f_effect.make_rows_list();
+                size_of_data = size_of_data + f_effect.size_inmem();
                 f_effect.fwrite_rows_structure();
                 f_effect.fwrite();  // keys and values
                 e.set(f_effect);
@@ -499,6 +513,7 @@ namespace evolm
                 d_effect.fread(fname);
                 d_effect.transpose();
                 d_effect.make_rows_list();
+                size_of_data = size_of_data + d_effect.size_inmem();
                 d_effect.fwrite_rows_structure();
                 d_effect.fwrite();  // keys and values
                 e.set(d_effect);
@@ -555,6 +570,7 @@ namespace evolm
             variances.push_back(variance);
 
             correlation.make_rows_list();
+            size_of_data = size_of_data + correlation.size_inmem();
             correlation.fwrite_rows_structure();
 
             correlation.fwrite();
@@ -622,6 +638,7 @@ namespace evolm
             variances.push_back(variance);
 
             correlation.make_rows_list();
+            size_of_data = size_of_data + correlation.size_inmem();
             correlation.fwrite_rows_structure();
 
             correlation.fwrite();
@@ -712,6 +729,7 @@ namespace evolm
             variances.push_back(variance);
 
             correlation.make_rows_list();
+            size_of_data = size_of_data + correlation.size_inmem();
             correlation.fwrite_rows_structure();
 
             correlation.fwrite();
@@ -783,6 +801,7 @@ namespace evolm
             variances.push_back(variance);
 
             correlation.make_rows_list();
+            size_of_data = size_of_data + correlation.size_inmem();
             correlation.fwrite_rows_structure();
 
             correlation.fwrite();
@@ -870,6 +889,7 @@ namespace evolm
             variances.push_back(variance);
 
             correlation.make_rows_list();
+            size_of_data = size_of_data + correlation.size_inmem();
             correlation.fwrite_rows_structure();
 
             correlation.fwrite();
@@ -941,6 +961,8 @@ namespace evolm
                 e.fclear();
                 e.clear();
             }
+            //residuals.clear();
+            //residuals.shrink_to_fit();
             std::vector<matrix<float>>().swap(residuals);
         }
         catch (const std::exception &e)
@@ -965,7 +987,16 @@ namespace evolm
                 e.fclear();
                 e.clear();
             }
+            //observations.clear();
+            //observations.shrink_to_fit();
             std::vector<matrix<float>>().swap(observations);
+            
+            for (auto &e : miss_observations)
+            {
+                e.clear();
+            }
+            miss_observations.clear();
+            miss_observations.shrink_to_fit();
         }
         catch (const std::exception &e)
         {
@@ -985,12 +1016,10 @@ namespace evolm
         try
         {
             for (auto &e : all_effects)
-            {
                 e.clear();
-                // e.fclear();
-                // e.clear();
-            }
-            // std::vector < matrix<int> >().swap( all_effects );
+            
+            //all_effects.clear();
+            //all_effects.shrink_to_fit();
             std::vector<effects_storage>().swap(all_effects);
         }
         catch (const std::exception &e)
@@ -1015,6 +1044,8 @@ namespace evolm
                 e.fclear();
                 e.clear();
             }
+            //correlated_effects.clear();
+            //correlated_effects.shrink_to_fit();
             std::vector<matrix<int>>().swap(correlated_effects);
 
             for (auto &e : variances)
@@ -1022,6 +1053,8 @@ namespace evolm
                 e.fclear();
                 e.clear();
             }
+            //variances.clear();
+            //variances.shrink_to_fit();
             std::vector<matrix<float>>().swap(variances);
 
             for (auto &e : correlations)
@@ -1029,6 +1062,8 @@ namespace evolm
                 e.fclear();
                 e.clear();
             }
+            //correlations.clear();
+            //correlations.shrink_to_fit();
             std::vector<compact_storage<float>>().swap(correlations);
 
             identity_correlations.clear();
@@ -1053,6 +1088,10 @@ namespace evolm
     {
         try
         {
+            //observation_trait.clear();
+            //observation_trait.shrink_to_fit();
+            //effects_trait.clear();
+            //effects_trait.shrink_to_fit();
             std::vector<int>().swap(observation_trait);
             std::vector<matrix<int>>().swap(effects_trait);
         }
@@ -1095,6 +1134,11 @@ namespace evolm
     void model_sparse::set_sparsity_threshold(double threshold)
     {
         sparsity_threshold = threshold;
+    }
+    //===============================================================================================================
+    size_t model_sparse::get_size_of_data()
+    {
+        return size_of_data;
     }
     //===============================================================================================================
 #ifdef UTEST

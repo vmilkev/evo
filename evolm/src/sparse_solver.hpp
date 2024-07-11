@@ -12,14 +12,17 @@ namespace evolm
         void append_model(const model_sparse &m);
         void remove_model();
         void set_memory_limit(double limit);
+        double get_memory_limit();
+        void set_cpu_limit(int limit);
         
         sparse_solver();
         ~sparse_solver();
 
-        size_t get_num_of_mem_blocks();
-        void load_model_matrix(size_t mem_blok);
-        void get_mem_block_range(size_t mem_blok, size_t &first, size_t &second);
-        void unload_model_matrix(size_t mem_blok);
+        //size_t get_num_of_mem_blocks();
+        //void load_model_matrix(size_t mem_blok);
+        //void get_mem_block_range(size_t mem_blok, size_t &first, size_t &second);
+        //void unload_model_matrix(size_t mem_blok);
+        void unload_model_matrix(size_t first_row, size_t last_row);
         void clear_model_matrix();
 
 #ifdef UTEST
@@ -47,15 +50,16 @@ namespace evolm
         void get_load_per_memory_block(std::vector<std::vector<size_t>> &loads);
         std::string create_fname();
         void fwrite(const std::string &fname, size_t first_row, size_t last_row);
+        void fwrite(std::fstream &external_fA, size_t first_row, size_t last_row);
         void fread(const std::string &fname, size_t first_row, size_t last_row);
         void fclear();
 
+        //std::fstream fA;
+        //std::vector<std::string> bin_fnames;
+        //std::vector<std::vector<size_t>> blocks_ranges;
+        const double gb_constant = 1073741824.0; // num of bytes in 1 GB
         double available_memory = 100; // default available memory in GB
-        const double gb_constant = 1073741824; // num of bytes in 1 GB
-
-        std::fstream fA;
-        std::vector<std::string> bin_fnames;
-         std::vector<std::vector<size_t>> blocks_ranges;
+        double data_size = 0.0;
 
     protected:
 
@@ -70,7 +74,12 @@ namespace evolm
         std::vector<size_t> R_hash;                 // the hash keys corresponding each observation pattern, the size of n_obs; the size and values are the same for all traits
         std::map<size_t, std::vector<float>> r_map; // hash values are keys, and specific (according to the observation pattern) covar matrices are values of the map
                                                     // the usage: r_map[ R_hash[i] ][j], where i is observation, j is indexing j = r*(r+1)/2 +c pointing to an element of R(-1)
+        
         std::vector<compact_storage<float>> model_matrix;
+        int available_cpu = 1; // initialized number of threads, default set in constructor
+        size_t first_row_ondisk = 0;
+        std::string bin_fname;
+        double row_size_upper_bound = 0.0;
 
         matrix<float> rhs;
 
@@ -86,6 +95,7 @@ namespace evolm
 
         void make_model_matrix(std::vector<std::vector<size_t>> &cov_offsets, size_t num_levels, std::vector<size_t> &ordered_levels);
         void set_model_matrix();
+        void set_data_size(double dat_size);
 
         void get_row_cmatr2(
                             compact_storage<float> &model_matrix_row,

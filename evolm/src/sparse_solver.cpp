@@ -4,6 +4,8 @@ namespace evolm
 {
     sparse_solver::sparse_solver()
     {
+        const auto processor_count = std::thread::hardware_concurrency();
+        available_cpu = processor_count;
     }
 
     sparse_solver::~sparse_solver()
@@ -82,13 +84,13 @@ namespace evolm
 
             adj_effects_order.clear();
 
-            clear_model_matrix();
+            /*clear_model_matrix();
 
             bin_fnames.clear();
             bin_fnames.shrink_to_fit();
 
             blocks_ranges.clear();
-            blocks_ranges.shrink_to_fit();
+            blocks_ranges.shrink_to_fit();*/
         }
         catch (const std::exception &e)
         {
@@ -574,6 +576,7 @@ namespace evolm
             std::vector<std::vector<size_t>> rcov_offsets = get_cov_offsets(ordered_random_levels);
 
             model_matrix.resize( get_all_levels() );
+            first_row_ondisk = model_matrix.size();
 
 //auto start = std::chrono::high_resolution_clock::now();
 
@@ -602,7 +605,7 @@ namespace evolm
         }
     }
 
-    size_t sparse_solver::get_num_of_mem_blocks()
+    /*size_t sparse_solver::get_num_of_mem_blocks()
     {
         return bin_fnames.size();
     }
@@ -622,10 +625,17 @@ namespace evolm
     {
         for (size_t i = blocks_ranges[mem_blok][0]; i <= blocks_ranges[mem_blok][1]; i++)
             model_matrix[i].remove_data();
+    }*/
+
+    void sparse_solver::unload_model_matrix(size_t first_row, size_t last_row)
+    {
+        for (size_t i = first_row; i <= last_row; i++)
+            model_matrix[i].remove_data();
     }
 
     void sparse_solver::fwrite(const std::string &fname, size_t first_row, size_t last_row)
     {
+        std::fstream fA;
         fA.exceptions(std::ifstream::failbit | std::ifstream::badbit);
         fA.open(fname, fA.binary | fA.trunc | fA.out);
 
@@ -638,8 +648,21 @@ namespace evolm
         fA.close();
     }
 
+    void sparse_solver::fwrite(std::fstream &external_fA, size_t first_row, size_t last_row)
+    {
+        if (!external_fA.is_open())
+            throw std::string("sparse_solver::fwrite(const std::string &, size_t, size_t): Error while opening a binary file.");
+
+        for (size_t i = first_row; i <= last_row; i++)
+        {
+            model_matrix[i].bin_file_read_position = external_fA.tellp(); // get the current position of the stream
+            model_matrix[i].fwrite(external_fA);
+        }        
+    }
+
     void sparse_solver::fread(const std::string &fname, size_t first_row, size_t last_row)
     {
+        std::fstream fA;
         fA.exceptions(std::ifstream::failbit | std::ifstream::badbit);
         fA.open(fname, fA.binary | fA.in);
 
@@ -654,12 +677,9 @@ namespace evolm
 
     void sparse_solver::fclear()
     {
-        for (size_t i = 0; i < bin_fnames.size(); i++)
-        {
-            std::ifstream f(bin_fnames[i].c_str());
-            if (f.good())
-                remove(bin_fnames[i].c_str());
-        }
+        std::ifstream f(bin_fname.c_str());
+        if (f.good())
+            remove(bin_fname.c_str());
     }
 
     void sparse_solver::clear_model_matrix()
@@ -680,29 +700,50 @@ namespace evolm
 
     void sparse_solver::set_memory_limit(double limit)
     {
-        available_memory = limit;
+        available_memory = limit * 0.95;
+    }
+
+    double sparse_solver::get_memory_limit()
+    {
+        return available_memory;
+    }
+
+    void sparse_solver::set_data_size(double dat_size)
+    {
+        data_size = dat_size;
+    }
+
+    void sparse_solver::set_cpu_limit(int limit)
+    {
+        available_cpu = limit;
     }
 
     void sparse_solver::get_load_per_memory_block(std::vector<std::vector<size_t>> &loads)
     {
         loads.resize(n_trait, std::vector<size_t>(2));
 
-        double size_of_row = ( (double)get_all_levels() * 4.0 ) / gb_constant;
-        size_t rows_per_memory = std::floor( (double)available_memory / (double)size_of_row );
+        row_size_upper_bound = ( (double)get_all_levels() * 4.0 ) / gb_constant; // upper bound
+        double runtime_data_size = (double)available_cpu * row_size_upper_bound * (4.0); // upper bound
 
+        double rows_per_memory = ( available_memory - 2.0 * data_size - runtime_data_size ) / row_size_upper_bound;
+
+        if (rows_per_memory == 0.0)
+            throw std::string("Not enough memory, leading to rows_per_memory == 0. In order to fix the issue: increase a memory limit or decrease the number of available cpu.");
+        
         for (size_t i_trate = 0; i_trate < n_trait; i_trate++)
         {
             size_t rows_in_trait = get_levels(i_trate);
-            size_t blocks_per_trait = std::ceil( (double)rows_in_trait / (double)rows_per_memory);
+            size_t blocks_per_trait = std::ceil( (double)rows_in_trait / rows_per_memory);
 
-            loads[i_trate][0] = blocks_per_trait;
-            loads[i_trate][1] = std::floor( (double)rows_in_trait / (double)blocks_per_trait );
+            loads[i_trate][0] = blocks_per_trait;            
 
             if (blocks_per_trait == 0)
             {
                 loads[i_trate][0] = 1;
                 loads[i_trate][1] = rows_in_trait;
             }
+            else
+                loads[i_trate][1] = std::floor( (double)rows_in_trait / (double)blocks_per_trait ); // rows per block            
         }    
     }
 
@@ -720,11 +761,23 @@ namespace evolm
         // [ z2 ]                   [ z2' * x1 * R21  z2' * z1 * R21  z2' * z2 * R22 ]
         try
         {
+            bin_fname = create_fname();
+            std::fstream fA;
+            fA.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+            fA.open(bin_fname, fA.binary | fA.trunc | fA.out);
+
             std::vector<std::vector<size_t>> loads;
             get_load_per_memory_block(loads);
 
+            double running_data_size = (double)available_cpu * row_size_upper_bound * 4.0 + 2.0 * data_size; // upper bound
+            double total_used_memory = 0.0;
+            double size_of_block = row_size_upper_bound * (double)loads[0][1];
+            bool calcullate_ocupied_memoty = true;
+
             size_t n_blocks = 0;
             size_t rows_per_block = 0;
+
+            int all_blocks = 0;
 
             for (size_t i_trate = 0; i_trate < n_trait; i_trate++)
             {
@@ -742,7 +795,7 @@ namespace evolm
                     if ( b == (n_blocks - 1) )
                         last_block = get_levels(i_trate);
 
-//#pragma omp parallel for //num_threads(3)
+#pragma omp parallel for num_threads( available_cpu )
                     for (size_t i_eff = first_block; i_eff < last_block; i_eff++) // private loop
                     {
                         size_t private_raw = get_all_levels(i_trate) + i_eff;
@@ -754,16 +807,53 @@ namespace evolm
                     //---------------------------------------------------------------------------------------------
                     // end of memory block fitting to a memory while building a model_matrix, write it to a disck                     
                     range[1] = get_all_levels(i_trate) + last_block - 1; // last_processed_row of the block                     
-                    blocks_ranges.push_back(range);
-                    bin_fnames.push_back( create_fname() ); // generate and save a file name for the block
-                    //fwrite(bin_fnames.back(), range[0], range[1]); // relocate the content of the block to a disck
-                    //unload_model_matrix(b);
+
+                    all_blocks++;
+
+                    if (calcullate_ocupied_memoty)
+                    {
+                        for (size_t i2 = range[0]; i2 <= range[1]; i2++ ) // get used memory, in GB
+                            total_used_memory = total_used_memory + model_matrix[i2].size_inmem() / gb_constant;
+                        
+//std::cout<<" used memory: "<<total_used_memory<<" size_of_block "<<size_of_block<<" running_data_size "<<running_data_size<<" available_memory "<<available_memory<<"\n";
+                        if ( ( total_used_memory + size_of_block + running_data_size ) > available_memory ) // update memory usage untill we use it all
+                        {
+                            calcullate_ocupied_memoty = false;
+                            first_row_ondisk = range[0]; // will be the very first row writen into disck
+                        }
+                    }
+
+                    if ( !calcullate_ocupied_memoty ) // update memory usage untill we use it all
+                    { // if the memory completely ocupied, write the data block to the disck
+            //bool t_var = true;
+            //while (t_var)
+            //    std::cout<<"waiting ..."<<"\r";
+
+                        fwrite(fA, range[0], range[1]); // relocate the content of the block to a disck
+                        
+                        // another variant for comparison
+                        //blocks_ranges.push_back(range);
+                        //bin_fnames.push_back( create_fname() ); // generate and save a file name for the block
+                        //fwrite(bin_fnames.back(), range[0], range[1]); // relocate the content of the block to a disck
+                        //-------------------------------
+
+                        unload_model_matrix(range[0], range[1]);
+                        //unload_model_matrix(b);
+//std::cout<<"writing completed, writing range: "<<range[0]<<" "<<range[1]<<"\n";
+            //bool t_var = true;
+            //while (t_var)
+            //    std::cout<<"waiting ..."<<"\r";
+
+                    }                    
                     //---------------------------------------------------------------------------------------------
                     // update the block range (first and last rows)
                     first_block = last_block;
                     last_block = first_block + rows_per_block;
                 } // end of blocks_within_trait loop
             } // end of traits loop
+
+            fA.close();
+//std::cout<<"all blocks: "<<all_blocks<<" first_row_ondisk "<<first_row_ondisk<<" last row in matrix "<<model_matrix.size()-1<<"\n";
         }
         catch (const std::string &err)
         {
@@ -1793,12 +1883,47 @@ namespace evolm
             //blocks_ranges.clear();
 
             matrix<float> M(model_matrix.size(), model_matrix.size());
-            for (size_t i = 0; i < model_matrix.size(); i++)
+
+            for (size_t i = 0; i < first_row_ondisk; i++)
             {
                 matrix<float> M0;
                 model_matrix[i].to_dense(M0);
                 for (size_t j = 0; j < M0.size(); j++)
                     M(i,j) = M0[j];
+            }
+
+            /*for (size_t i = 0; i < get_num_of_mem_blocks(); i++) // variant 1, on blocks with consecutive reading
+            {
+                size_t first_row = 0;
+                size_t last_row = 0;
+
+                load_model_matrix(i);
+                get_mem_block_range(i, first_row, last_row);
+
+                for (size_t i2 = first_row; i2 <= last_row; i2++)
+                {
+                    matrix<float> M0;
+                    model_matrix[i2].to_dense(M0);
+                    for (size_t j = 0; j < M0.size(); j++)
+                        M(i2,j) = M0[j];
+                }
+
+                unload_model_matrix(i);
+            }*/
+            
+            for (size_t i = first_row_ondisk; i < model_matrix.size(); i++) // variant 2
+            {
+                std::fstream fA;
+                fA.open(bin_fname, fA.binary | fA.in);
+                fA.seekg (model_matrix[i].bin_file_read_position, fA.beg);
+                model_matrix[i].fread(fA);
+
+                matrix<float> M0;
+                model_matrix[i].to_dense(M0);
+                for (size_t j = 0; j < M0.size(); j++)
+                    M(i,j) = M0[j];
+
+                fA.close();
             }
 
             M.to_vector2d(A);

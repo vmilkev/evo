@@ -45,6 +45,7 @@ namespace evolm
                 void construct_dval(std::vector<double> &inverted_diagonal);
                 void update_vect(std::vector<double> &out_vect, std::vector<double> &in_vect);
                 double v_dot_v(std::vector<double> &v1, std::vector<double> &v2);
+                double v_dot_v2(std::vector<double> &v1, std::vector<double> &v2);
 
                 std::vector<double> sol;
 

@@ -384,13 +384,13 @@ namespace evolm
 
                 amatr.resize(all_levels, all_levels);
 
-auto start = std::chrono::high_resolution_clock::now();
+//auto start = std::chrono::high_resolution_clock::now();
 
                 set_amatr(rcov_offsets, n_all_levels, ordered_random_levels, true);
 
-auto stop = std::chrono::high_resolution_clock::now();
-auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-std::cout <<"set_amatr() (milliseconds): "<< duration.count() << std::endl;
+//auto stop = std::chrono::high_resolution_clock::now();
+//auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+//std::cout <<"set_amatr() (milliseconds): "<< duration.count() << std::endl;
 
                 amatrix_onmem = true;
             }
@@ -531,11 +531,11 @@ std::cout <<"set_amatr() (milliseconds): "<< duration.count() << std::endl;
                     n_threads = processor_count;
                 }
 
-                std::cout << "n_threads: " << n_threads << "\n";
+                //std::cout << "n_threads: " << n_threads << "\n";
 
                 for (size_t i_trate = 0; i_trate < n_trait; i_trate++)
                 {
-//#pragma omp parallel for num_threads(n_threads)
+#pragma omp parallel for num_threads(n_threads)
                     for (size_t i_eff = 0; i_eff < get_levels(i_trate); i_eff++)
                     {
                         size_t private_raw = get_all_levels(i_trate) + i_eff;
@@ -728,11 +728,11 @@ std::cout <<"set_amatr() (milliseconds): "<< duration.count() << std::endl;
             // -------------------------------------------------
             matrix<double> tVect(unknowns, 1); // vector to keep the result of operation: A*x
 
-auto start = std::chrono::high_resolution_clock::now();
+//auto start = std::chrono::high_resolution_clock::now();
             update_vect(cov_offsets, num_levels, ordered_levels, tVect, sol); // A*x(==sol)
-auto stop = std::chrono::high_resolution_clock::now();
-auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-std::cout <<"update_vect() (milliseconds): "<< duration.count() << std::endl;
+//auto stop = std::chrono::high_resolution_clock::now();
+//auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+//std::cout <<"update_vect() (milliseconds): "<< duration.count() << std::endl;
 
             matrix<double> r_vect = _rhs - tVect; // r = b - A*x
 
@@ -746,17 +746,17 @@ std::cout <<"update_vect() (milliseconds): "<< duration.count() << std::endl;
                 d[i] = Mi[i] * r_vect[i];
             }
 
-start = std::chrono::high_resolution_clock::now();
+//start = std::chrono::high_resolution_clock::now();
             double delta_new = v_dot_v(r_vect, d);
-stop = std::chrono::high_resolution_clock::now();
-duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-std::cout <<"v_dot_v() (milliseconds): "<< duration.count() << std::endl;
+//stop = std::chrono::high_resolution_clock::now();
+//duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+//std::cout <<"v_dot_v() (milliseconds): "<< duration.count() << std::endl;
 
             double delta_zero = delta_new;
 
             iterations = 1;
 
-std::cout << "max_iterations: "<< max_iterations << "; iter: " << iterations << "; delta_new: " << delta_new << " condition: "<< /*delta_zero */ tolerance * tolerance << "\n";
+//std::cout << "max_iterations: "<< max_iterations << "; iter: " << iterations << "; delta_new: " << delta_new << " condition: "<< /*delta_zero */ tolerance * tolerance << "\n";
             while (iterations < max_iterations && delta_new > /*delta_zero */ tolerance * tolerance)
             {
                 matrix<double> q(unknowns, 1); // !!! can be declared outside the loop ?
@@ -809,7 +809,7 @@ std::cout << "max_iterations: "<< max_iterations << "; iter: " << iterations << 
                 iterations = iterations + 1;
             }
             iterations = iterations - 1;
-            std::cout << "no iterations: " << iterations <<"\n";
+            //std::cout << "no iterations: " << iterations << " delta_new: " << delta_new << " condition: "<< /*delta_zero */ tolerance * tolerance  <<"\n";
         }
         catch (const std::string &e)
         {
