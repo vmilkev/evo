@@ -1141,3 +1141,212 @@ TEST_CASE("Sparse matrix, checking class constructors, type = double")
         CHECK(e(2, 3) == 12);
     }
 }
+
+TEST_CASE("Sparse matrix, checking extend_by, element_wise_dot operators, type = double")
+{
+    // Data
+    evolm::smatrix<double> operator_var(15, 5);
+    operator_var(0, 0) = 1.0;
+    operator_var(1, 0) = 1.0;
+    operator_var(2, 0) = 1.0;
+    operator_var(3, 1) = 1.0;
+    operator_var(4, 1) = 1.0;
+    operator_var(5, 1) = 1.0;
+    operator_var(6, 2) = 1.0;
+    operator_var(7, 2) = 1.0;
+    operator_var(8, 2) = 1.0;
+    operator_var(9, 3) = 1.0;
+    operator_var(10, 3) = 1.0;
+    operator_var(11, 3) = 1.0;
+    operator_var(12, 4) = 1.0;
+    operator_var(13, 4) = 1.0;
+    operator_var(14, 4) = 1.0;
+
+    evolm::smatrix<double> shift_var(15, 3);
+    shift_var(1, 0) = 1.0;
+    shift_var(4, 0) = 1.0;
+    shift_var(7, 0) = 1.0;
+    shift_var(10, 0) = 1.0;
+    shift_var(13, 0) = 1.0;
+    shift_var(0, 1) = 1.0;
+    shift_var(3, 1) = 1.0;
+    shift_var(6, 1) = 1.0;
+    shift_var(9, 1) = 1.0;
+    shift_var(12, 1) = 1.0;
+    shift_var(2, 2) = 1.0;
+    shift_var(5, 2) = 1.0;
+    shift_var(8, 2) = 1.0;
+    shift_var(11, 2) = 1.0;
+    shift_var(14, 2) = 1.0;
+
+    evolm::smatrix<double> one_var(15, 1);
+    for (size_t i = 0; i < 15; i++)
+        one_var(i,0) = 1.0;
+    
+    // Operators results
+    evolm::smatrix<double> operator_ext_by_shift(15, 8);
+    operator_ext_by_shift(0, 0) = 1.0;
+    operator_ext_by_shift(1, 0) = 1.0;
+    operator_ext_by_shift(2, 0) = 1.0;
+    operator_ext_by_shift(3, 1) = 1.0;
+    operator_ext_by_shift(4, 1) = 1.0;
+    operator_ext_by_shift(5, 1) = 1.0;
+    operator_ext_by_shift(6, 2) = 1.0;
+    operator_ext_by_shift(7, 2) = 1.0;
+    operator_ext_by_shift(8, 2) = 1.0;
+    operator_ext_by_shift(9, 3) = 1.0;
+    operator_ext_by_shift(10, 3) = 1.0;
+    operator_ext_by_shift(11, 3) = 1.0;
+    operator_ext_by_shift(12, 4) = 1.0;
+    operator_ext_by_shift(13, 4) = 1.0;
+    operator_ext_by_shift(14, 4) = 1.0;
+    operator_ext_by_shift(1, 5) = 1.0;
+    operator_ext_by_shift(4, 5) = 1.0;
+    operator_ext_by_shift(7, 5) = 1.0;
+    operator_ext_by_shift(10, 5) = 1.0;
+    operator_ext_by_shift(13, 5) = 1.0;
+    operator_ext_by_shift(0, 6) = 1.0;
+    operator_ext_by_shift(3, 6) = 1.0;
+    operator_ext_by_shift(6, 6) = 1.0;
+    operator_ext_by_shift(9, 6) = 1.0;
+    operator_ext_by_shift(12, 6) = 1.0;
+    operator_ext_by_shift(2, 7) = 1.0;
+    operator_ext_by_shift(5, 7) = 1.0;
+    operator_ext_by_shift(8, 7) = 1.0;
+    operator_ext_by_shift(11, 7) = 1.0;
+    operator_ext_by_shift(14, 7) = 1.0;
+
+    evolm::smatrix<double> operator_dot_shift(15, 15);
+    operator_dot_shift(1, 0) = 1.0;
+    operator_dot_shift(4, 1) = 1.0;
+    operator_dot_shift(7, 2) = 1.0;
+    operator_dot_shift(10, 3) = 1.0;
+    operator_dot_shift(13, 4) = 1.0;
+    operator_dot_shift(0, 5) = 1.0;
+    operator_dot_shift(3, 6) = 1.0;
+    operator_dot_shift(6, 7) = 1.0;
+    operator_dot_shift(9, 8) = 1.0;
+    operator_dot_shift(12, 9) = 1.0;
+    operator_dot_shift(2, 10) = 1.0;
+    operator_dot_shift(5, 11) = 1.0;
+    operator_dot_shift(8, 12) = 1.0;
+    operator_dot_shift(11, 13) = 1.0;
+    operator_dot_shift(14, 14) = 1.0;
+
+    evolm::smatrix<double> shift_dot_operator = operator_dot_shift;
+
+    evolm::smatrix<double> shift_bar_operator(15, 15);
+    shift_bar_operator(1, 0) = 1.0;
+    shift_bar_operator(0, 1) = 1.0;
+    shift_bar_operator(2, 2) = 1.0;
+    shift_bar_operator(4, 3) = 1.0;
+    shift_bar_operator(3, 4) = 1.0;
+    shift_bar_operator(5, 5) = 1.0;
+    shift_bar_operator(7, 6) = 1.0;
+    shift_bar_operator(6, 7) = 1.0;
+    shift_bar_operator(8, 8) = 1.0;
+    shift_bar_operator(10, 9) = 1.0;
+    shift_bar_operator(9, 10) = 1.0;
+    shift_bar_operator(11, 11) = 1.0;
+    shift_bar_operator(13, 12) = 1.0;
+    shift_bar_operator(12, 13) = 1.0;
+    shift_bar_operator(14, 14) = 1.0;
+
+    evolm::smatrix<double> one_and_shift_bar_operator(15, 20);
+    one_and_shift_bar_operator(0, 0) = 1.0;
+    one_and_shift_bar_operator(1, 0) = 1.0;
+    one_and_shift_bar_operator(2, 0) = 1.0;
+    one_and_shift_bar_operator(1, 1) = 1.0;
+    one_and_shift_bar_operator(0, 2) = 1.0;
+    one_and_shift_bar_operator(2, 3) = 1.0;
+    one_and_shift_bar_operator(3, 4) = 1.0;
+    one_and_shift_bar_operator(4, 4) = 1.0;
+    one_and_shift_bar_operator(5, 4) = 1.0;
+    one_and_shift_bar_operator(4, 5) = 1.0;
+    one_and_shift_bar_operator(3, 6) = 1.0;
+    one_and_shift_bar_operator(5, 7) = 1.0;
+    one_and_shift_bar_operator(6, 8) = 1.0;
+    one_and_shift_bar_operator(7, 8) = 1.0;
+    one_and_shift_bar_operator(8, 8) = 1.0;
+    one_and_shift_bar_operator(7, 9) = 1.0;
+    one_and_shift_bar_operator(6, 10) = 1.0;
+    one_and_shift_bar_operator(8, 11) = 1.0;
+    one_and_shift_bar_operator(9, 12) = 1.0;
+    one_and_shift_bar_operator(10, 12) = 1.0;
+    one_and_shift_bar_operator(11, 12) = 1.0;
+    one_and_shift_bar_operator(10, 13) = 1.0;
+    one_and_shift_bar_operator(9, 14) = 1.0;
+    one_and_shift_bar_operator(11, 15) = 1.0;
+    one_and_shift_bar_operator(12, 16) = 1.0;
+    one_and_shift_bar_operator(13, 16) = 1.0;
+    one_and_shift_bar_operator(14, 16) = 1.0;
+    one_and_shift_bar_operator(13, 17) = 1.0;
+    one_and_shift_bar_operator(12, 18) = 1.0;
+    one_and_shift_bar_operator(14, 19) = 1.0;
+
+    SECTION("Testing extend_by operator")
+    {
+        evolm::smatrix<double> extended_var(operator_var);
+        
+        extended_var.extend_by(shift_var);
+
+        CHECK( operator_ext_by_shift.size() == extended_var.size() );
+
+        CHECK( operator_ext_by_shift.nrows() == extended_var.nrows() );
+
+        CHECK( extended_var.ncols() == operator_ext_by_shift.ncols());
+
+        for (size_t i = 0; i < operator_ext_by_shift.size(); i++)
+            CHECK( operator_ext_by_shift[i] == extended_var[i] );
+    }
+
+    SECTION("Testing element_wise_dot operator")
+    {
+        evolm::smatrix<double> dot_var(operator_var);
+
+        dot_var.element_wise_dot(shift_var);
+
+        CHECK( operator_dot_shift.size() == dot_var.size() );
+
+        CHECK( operator_dot_shift.nrows() == dot_var.nrows() );
+
+        CHECK( operator_dot_shift.ncols() == dot_var.ncols());
+
+        for (size_t i = 0; i < operator_dot_shift.size(); i++)
+            CHECK( operator_dot_shift[i] == dot_var[i] );
+    }
+
+    SECTION("Testing element_wise_dot operator with extend_by operator")
+    {
+        evolm::smatrix<double> dot_var(one_var);
+
+        dot_var.extend_by(shift_var);
+
+        dot_var.element_wise_dot(operator_var);
+
+        CHECK( one_and_shift_bar_operator.size() == dot_var.size() );
+
+        CHECK( one_and_shift_bar_operator.nrows() == dot_var.nrows() );
+
+        CHECK( one_and_shift_bar_operator.ncols() == dot_var.ncols());
+
+        for (size_t i = 0; i < one_and_shift_bar_operator.size(); i++)
+            CHECK( one_and_shift_bar_operator[i] == dot_var[i] );
+    }
+
+    SECTION("Testing BAR operation: element_wise_dot operator")
+    {
+        evolm::smatrix<double> dot_var(shift_var);
+
+        dot_var.element_wise_dot(operator_var);
+
+        CHECK( shift_bar_operator.size() == dot_var.size() );
+
+        CHECK( shift_bar_operator.nrows() == dot_var.nrows() );
+
+        CHECK( shift_bar_operator.ncols() == dot_var.ncols());
+
+        for (size_t i = 0; i < shift_bar_operator.size(); i++)
+            CHECK( shift_bar_operator[i] == dot_var[i] );
+    }
+}

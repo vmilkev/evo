@@ -84,7 +84,7 @@ namespace evolm
                 std::vector<int> observation_trait;     // assumed to be (nx1) vectors
                 std::vector<matrix<int>> effects_trait; // assumed to be (nx1) vectors
 
-                float missing_constant; // variable indicating which number recogniised as missing in observations
+                float missing_constant = -999.0; // variable indicating which number recogniised as missing in observations
         };
 
 } // end of namespace evolm

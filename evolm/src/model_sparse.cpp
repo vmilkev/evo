@@ -4,27 +4,6 @@ namespace evolm
 {
     model_sparse::model_sparse()
     {
-        try
-        {
-            missing_constant = -999.0;
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Exception in model_sparse::model_sparse()" << '\n';
-            std::cerr << "Reason: " << e.what() << '\n';
-            throw e;
-        }
-        catch (const std::string &e)
-        {
-            std::cerr << "Exception in model_sparse::model_sparse()" << '\n';
-            std::cerr << "Reason: " << e << '\n';
-            throw e;
-        }
-        catch (...)
-        {
-            std::cerr << "Exception in model_sparse::model_sparse()" << '\n';
-            throw;
-        }
     }
     //===============================================================================================================
     void model_sparse::set_missing(float val)

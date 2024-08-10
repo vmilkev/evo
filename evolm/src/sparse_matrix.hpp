@@ -202,6 +202,10 @@ namespace evolm
         void get_keyslist( std::vector<std::int64_t> &key_list );
         bool is_ondisk();
         double get_sparsity();
+
+        void extend_by(smatrix &rhs_matr);
+        void element_wise_dot(smatrix &rhs_matr);
+        void to_vect(std::vector<T> &values, std::vector<size_t> &keys);
     };
         
 } // end of namespace evolm

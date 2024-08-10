@@ -1,10 +1,10 @@
-var_f1 var_i1 var_f2 var_cat var_str var_str2
-12.2 20 51.1 1 aple true
-15.5 30 10 2 plum true
-21.0 45 562 3 aple false
-30.5 50 452 3 plum true
-40 61 231 4 tomato false
-51.3 71 125 2 tomato true
-60.6 80 121 1 plum true
-70.001 91 121 1 aple false
-82.012 10 110.0 4 tomato false
+id   obs_f var_i1 var_f2 var_cat var_str  var_str2
+1002 12.2  20     51.1   1       apple    true
+1003 15.5  30     10     2       plum     true
+1004 21.0  45     562    3       apple    false
+1052 30.5  50     452    3       plum     true
+1062 40    61     231    4       tomato   false
+1072 51.3  71     125    2       tomato   true
+1082 -9.0  80     121    1       plum     true
+1092 70.01 91     121    1       apple    false
+1102 82.12 10     110.0  4       tomato   false

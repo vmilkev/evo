@@ -984,7 +984,7 @@ namespace evolm
             size_t current_element = 0;
 
             for(size_t i = 0; i < n_values; i++)
-            {
+            { 
                 row = rhs.row_inrec(it->first);      // to which row the key belongs 
                 col = rhs.col_inrec(it->first, row); // knowing the row find the col
                 T value = it->second;
@@ -2625,6 +2625,148 @@ namespace evolm
     //===============================================================================================================
 
     template <typename T>
+    void smatrix<T>::extend_by(smatrix &rhs_matr)
+    {
+        try
+        {
+            if (symetric)
+                throw std::string("The matrix is symmetrix in half-store format!");
+            
+            if ( numRow != rhs_matr.numRow )
+                throw std::string("numRow != rhs_matr.numRow");
+            
+            smatrix<T> t_lhs(*this);
+
+            resize(t_lhs.numRow, t_lhs.numCol + rhs_matr.numCol);
+
+            for (auto const & e: t_lhs.A)
+            {
+                size_t lhs_row = t_lhs.row_inrec(e.first);
+                size_t lhs_col = t_lhs.col_inrec(e.first, lhs_row);
+                A[ key_inrec(lhs_row,lhs_col) ] = e.second;
+            }
+
+            for (auto const & e: rhs_matr.A)
+            {
+                size_t rhs_row = rhs_matr.row_inrec(e.first);
+                size_t rhs_col = rhs_matr.col_inrec(e.first, rhs_row);
+                A[ key_inrec(rhs_row,rhs_col + t_lhs.numCol) ] = e.second;
+            }
+
+            t_lhs.resize();
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << "Exception in smatrix<T>::extend_by(smatrix &)" << '\n';
+            std::cerr << e.what() << '\n';
+        }
+        catch(const std::string& e)
+        {
+            std::cerr << "Exception in smatrix<T>::extend_by(smatrix &)" << '\n';
+            std::cerr << e << '\n';
+        }
+        catch(...)
+        {
+            std::cerr << "Exception in smatrix<T>::extend_by(smatrix &)" << '\n';
+        }
+    }
+
+    template void smatrix<float>::extend_by(smatrix &rhs_matr);
+    template void smatrix<double>::extend_by(smatrix &rhs_matr);
+    template void smatrix<int>::extend_by(smatrix &rhs_matr);
+
+    //===============================================================================================================
+
+    template <typename T>
+    void smatrix<T>::element_wise_dot(smatrix &rhs_matr)
+    {
+        try
+        {
+            if (symetric)
+                throw std::string("The matrix is symmetrix in half-store format!");
+            
+            if ( numRow != rhs_matr.numRow )
+                throw std::string("numRow != rhs_matr.numRow");
+            
+            smatrix<T> t_lhs(*this);
+
+            resize(t_lhs.numRow, t_lhs.numCol * rhs_matr.numCol);
+
+            for (auto const & e: rhs_matr.A)
+            {
+                size_t rhs_row = rhs_matr.row_inrec(e.first);
+                size_t rhs_col = rhs_matr.col_inrec(e.first, rhs_row);
+                T rhs_val = e.second;
+
+                for (size_t i = 0; i < t_lhs.numCol; i++)
+                {
+                    T lhs_val = t_lhs.get_nonzero(rhs_row, i);
+                    if (lhs_val != (T)0)
+                    {
+                        size_t new_col = rhs_col * t_lhs.numCol + i;
+                        A[ key_inrec(rhs_row, new_col) ] = lhs_val * rhs_val;
+                    }
+                }
+            }
+
+            t_lhs.resize();
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << "Exception in smatrix<T>::element_wise_dot(smatrix &)" << '\n';
+            std::cerr << e.what() << '\n';
+        }
+        catch(const std::string& e)
+        {
+            std::cerr << "Exception in smatrix<T>::element_wise_dot(smatrix &)" << '\n';
+            std::cerr << e << '\n';
+        }
+        catch(...)
+        {
+            std::cerr << "Exception in smatrix<T>::element_wise_dot(smatrix &)" << '\n';
+        }
+    }
+
+    template void smatrix<float>::element_wise_dot(smatrix &rhs_matr);
+    template void smatrix<double>::element_wise_dot(smatrix &rhs_matr);
+    template void smatrix<int>::element_wise_dot(smatrix &rhs_matr);
+
+    //===============================================================================================================
+
+    template <typename T>
+    void smatrix<T>::to_vect(std::vector<T> &values, std::vector<size_t> &keys)
+    {
+        try
+        {
+            for (auto const & e: A)
+            {
+                values.push_back(e.second);
+                keys.push_back(e.first);
+            }
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << "Exception in smatrix<T>::to_vect(std::vector<float> &, std::vector<size_t> &)" << '\n';
+            std::cerr << e.what() << '\n';
+        }
+        catch(const std::string& e)
+        {
+            std::cerr << "Exception in smatrix<T>::to_vect(std::vector<float> &, std::vector<size_t> &)" << '\n';
+            std::cerr << e << '\n';
+        }
+        catch(...)
+        {
+            std::cerr << "Exception in smatrix<T>::to_vect(std::vector<float> &, std::vector<size_t> &)" << '\n';
+        }
+    }
+
+    template void smatrix<float>::to_vect(std::vector<float> &values, std::vector<size_t> &keys);
+    template void smatrix<double>::to_vect(std::vector<double> &values, std::vector<size_t> &keys);
+    template void smatrix<int>::to_vect(std::vector<int> &values, std::vector<size_t> &keys);
+
+    //===============================================================================================================
+
+    template <typename T>
     void smatrix<T>::print(std::string whiichMatrix)
     {
         try
@@ -2722,7 +2864,7 @@ namespace evolm
         catch(...)
         {
             std::cerr << "Exception in smatrix<T>::print(std::string)" << '\n';
-        }                 
+        }
     }
 
     template void smatrix<float>::print(std::string whiichMatrix);

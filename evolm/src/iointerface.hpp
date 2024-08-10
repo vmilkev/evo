@@ -9,7 +9,8 @@
 #include <cstring>
 #include <regex>
 
-#include "effects.hpp"
+#include "effects_storage.hpp"
+#include <plinkio/plinkio.h>
 
 namespace evolm
 {
@@ -19,42 +20,59 @@ namespace evolm
     
         IOInterface();
         void set_fname(std::string file);                                 // Setting IO file name
-        void set_missing(float val);                                      // indicates which numbers recognised as missing
         void fgetdata(size_t samples,
                       size_t variants,
                       std::vector<std::vector<int>> &out);                // Reads a binary SNP data stored in the PLINK bed format
         void fgetdata(bool includes_id,
                       std::vector<std::vector<int>> &out);                // Reads ASCII SNP data with extra info (the very first two columns -> outputs in the additional data structure)
         void fgetdata(std::vector<std::vector<int>> &out);                // Reads ASCII SNP data
+        
         template <typename T>
         void fgetdata(std::vector<std::vector<T>> &out);                  // Reads general ASCII formated data
+        
         void fgetvar(const std::string &var_name,                         // Extract a data for a specific variable accessed by the name 'var_name'
-                     Effects &out_var,          
-                     const std::string &ref_var = std::string());         // Reference variable name (observations var name) which used to track missing records
+                     effects_storage &out_var);         // Reference variable name (observations var name) which used to track missing records
+        
         void clear();
 
-    private:
+        void scale_genotypes(std::vector<float> &values, size_t &nrows, size_t &ncols);
+
+        // temporaly in public!
+        bool is_plink_file(const std::string &fname);
+        
         template <typename T>
         int find_value(std::vector<T> &where,
                        T what);                                           // fins the position of the string 'what' in the vector 'where'
+
+    private:
+        //template <typename T>
+        //int find_value(std::vector<T> &where,
+        //               T what);                                           // fins the position of the string 'what' in the vector 'where'
         void str_parse(std::string &snpStr,
                        std::vector<int> &markers);                        // Parsing a SNP string
         int get_datatype(std::string &str_token);                         // accepts data as a string token and return its type
         int define_vartype(std::vector<int> &types_vect);                 // accepts types vector and defines a future variable data type
-        void str_tofloat(std::vector<std::string> &data_str,
+        
+        void str_to_float(std::vector<std::string> &data_str,
                          std::vector<float> &fvalues);                    // converts vector of strings to a vector of floating point numbers
-        void str_toint(std::vector<std::string> &data_str,
+        
+        void str_to_int(std::vector<std::string> &data_str,
                        std::vector<int> &fvalues);                        // converts vector of strings to a vector of integer numbers
-        void catvect_toeffmatrix(std::vector<int> &cvalues,
-                                 std::vector<std::vector<int>> &ematrix); // get integers vector and returns an effect matrix
+        void cat_to_effect(std::vector<int> &cvalues,
+                           compact_storage<int> &ematrix); // get integers vector and returns an effect matrix
         template <typename T>
-        size_t dim_ofeffmatrix(std::vector<T> &ivalues,
+        size_t int_to_cat(std::vector<T> &ivalues,
                                std::vector<int> &cat_values);             // get integers vector (categorical data) and returns a number of columns of a corresponding effect matrix, and vector of unique values
 
         std::string io_file;                                              // IO file name
         std::map<size_t, size_t> snp_id;                                  // KEY: the consecutive index; the VALUE: observation ID
 
-        float miss_constant;
+        //bool is_plink_file(const std::string &fname);
+        void get_m_matrix_plink(evolm::matrix<int> &M);
+        void get_m_matrix_ascii(int data_format, evolm::matrix<int> &out);
+        void make_zmatrix( evolm::matrix<int> &M, evolm::matrix<float> &Z );
+
+        int detect_data_format_in_snp_txt_file(const std::string &fname);
     };
 
 } // end of namespace evolm

@@ -41,11 +41,10 @@ namespace evolm
 
         void row_dot_float_vect(float **in_vect, size_t irow, size_t icol, float &out_res);
 
-        //matrix<float> fget(size_t irow[], size_t icol[]);
-        //void vect_fget(size_t irow[], size_t icol[], std::vector<std::vector<float>> &vect);
-        //void vect_fget(size_t irow[], size_t icol[], float **vect);
+        void extend_by(effects_storage &rhs_matr);
+        void element_wise_dot(effects_storage &rhs_matr);
 
-        //friend class sparse_solver;
+        void print(std::string &message);
     };
 }
 

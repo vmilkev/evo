@@ -571,13 +571,26 @@ namespace evoped
     {
         try
         {
-            read_snp(fname); // reads SNPs with IDs from ASCII fiele
-            make_zmatrix(); // scalling
-            //Z.fwrite(); // move data to a binary file
-            G = Z; // copy to the main container
-            snp_map.clear();
-            Z.fclear();
-            Z.clear();
+            if ( is_plink_file(fname) ) // the pipeline for binary (.bad) plink-formated data
+            {
+                evolm::matrix<int> M;
+                get_m_matrix(fname, M);
+                make_zmatrix(M); // scalling SNPs
+                M.clear();
+                G = Z; // copy to the main container
+                Z.fclear();
+                Z.clear();
+            }
+            else
+            {
+                read_snp(fname); // reads SNPs with IDs from ASCII fiele
+                make_zmatrix(); // scalling
+                //Z.fwrite(); // move data to a binary file
+                G = Z; // copy to the main container
+                snp_map.clear();
+                Z.fclear();
+                Z.clear();
+            }
         }
         catch (const std::exception &e)
         {

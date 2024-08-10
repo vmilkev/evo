@@ -918,13 +918,13 @@ namespace evolm
             // adding covariance structure:
             for (size_t i1 = 0; i1 < correlations; i1++)
             {
-                matrix<int> which_effects = get_corr_effects(i1);
+                matrix<int> which_effects = get_corr_effects(i1); // dim = (n_eff, 0)
 
                 matrix<size_t> shape_eff = which_effects.shape();
 
-                for (size_t i2 = 0; i2 < shape_eff[0]; i2++)
+                for (size_t i2 = 0; i2 < shape_eff[0]; i2++) // loop over number of correlated effects
                 {
-                    for (size_t i3 = 0; i3 < shape_eff[0]; i3++)
+                    for (size_t i3 = 0; i3 < shape_eff[0]; i3++) // correlated effects by correlated effects
                     {
                         size_t iblock_row = which_effects(i2, 0);
                         size_t iblock_col = which_effects(i3, 0);

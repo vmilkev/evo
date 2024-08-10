@@ -1,195 +1,96 @@
-#include "model.hpp"
-#include "sparse_pcg.hpp"
+#include "model_sparse.hpp"
 #include "iointerface.hpp"
-#include "parser.hpp"
-#include "modelparser.hpp"
-#include "effects.hpp"
+#include "model_parser.hpp"
+
+void get_effect_from_data(evolm::IOInterface &in_data, std::vector<std::string> &in_var_vect, evolm::effects_storage &out_s, std::string &effect_name);
+bool consist_snp_substring(std::string &var_name);
 
 int main(void)
 {
     try
     {
-        /*
-        std::cout << "Parser:"
-                  << "\n";
+        std::cout << "Parser:"<< "\n\n";
+        
+        evolm::model_sparse model; // model constructor, all results should go here
+        model.set_missing(-9.0);
 
-        //evolm::Modelparser m;
+        evolm::model_parser m_parser; // parser constructor
 
-        //m.eval_expr( "y1,y2 , another_var, ,= x1+ x2 - 1 +(1+f|x3*x4) - x4 +(-1|x4) + x1+x2:x3 + x4*x5*x6 - x4:x5:x6" );
+        //-------------------------------------------------
+        // Example of data file:
+        // id   obs_f var_i1 var_f2 var_cat var_str var_str2
+        // 1002 12.2  20     51.1   1       aple    true
+        // 1003 15.5  30     10     2       plum    true
+        // 1004 21.0  45     562    3       aple    false
+        // 1052 30.5  50     452    3       plum    true
+        // 1062 40    61     231    4       tomato  false
+        // 1072 51.3  71     125    2       tomato  true
+        // 1082 -9.0  80     121    1       plum    true
+        // 1092 70.01 91     121    1       aple    false
+        // 1102 82.12 10     110.0  4       tomato  false
+        //--------------------------------------------------
 
-        // --------------------------
-        std::cout << "Selected file reading:"
-                  << "\n";
+        std::string model_expression("obs_f~ x1 + (1+var_f2|id)a +(1|var_cat)random2 +(1|x1)random_3; data = tests/data/diverse_data.dat; x1 = tests/data/data_matr.dat");
+        //std::string model_expression("obs_f,var_f2 ~ 1 + (1+var_f2|id) + var_cat + var_i1 + var_str*var_str2 + id + var_cat : var_str + (1|var_cat) + var_i1 * var_str2 * var_cat + x1 + (1|x2)");
+        //std::string model_expression("obs_f,var_f2 , , ,~ 1 + (1+var_f2|id) + x1+ x2 +(1+f|x3*x4) - x4 +(1 + x1:x2|x4) + x1+x2:x3 + (1|var_cat) + x4*x5*x6 - x4:x5:x6");
 
-            // Example:
-            // id   obs_f var_i1 var_f2 var_cat var_str var_str2
-            // 1002 12.2  20     51.1   1       aple    true
-            // 1003 15.5  30     10     2       plum    true
-            // 1004 21.0  45     562    3       aple    false
-            // 1052 30.5  50     452    3       plum    true
-            // 1062 40    61     231    4       tomato  false
-            // 1072 51.3  71     125    2       tomato  true
-            // 1082 -9.0  80     121    1       plum    true
-            // 1092 70.01 91     121    1       aple    false
-            // 1102 82.12 10     110.0  4       tomato  false
+        std::string extra_vars_expression(
+                                "data=tests/data/diverse_data.dat;"
+                                "x2 = tests/data/x3_9_obs.dat;"
+                                "obs_missing_value = -9.0;"
+                                "Z1_snp = tests/data/snp_with_id_9_20.dat;"
+                                "Z2_snp = tests/data/snp_no_id_9_20.dat");
 
-        evolm::IOInterface in;
-        evolm::Modelparser m;
+        std::string extra_vars_expression2("Z3_snp = tests/data/large_data/SNPS/YY_plink_");
 
-        in.set_fname("tests/data/diverse_data.dat");
-        in.set_missing(-9.0);
+        std::string extra_vars_expression3("G = [1 2 3, 4 5.0 6, 7 8 9, 10 11 12.0 ]");
 
-        m.eval_expr("obs_f = -1 + var_cat + var_i1 + var_str*var_str2 + id");
+        std::string variance_expression("var = (var_cat, x1)*A1*G1 + (a)*I*G2 + R; A1 = tests/data/x3_9_obs.dat; G1 = [0.5 0.1, 0.1 0.7]; G2 = [2.0]; R = [3.0]");
 
-        std::vector<std::string> obs;
-        std::vector<std::string> fixed;
-        std::vector<std::string> random;
+        m_parser.process_expression(extra_vars_expression);
+        m_parser.process_expression(model_expression);
+        m_parser.process_expression(extra_vars_expression3);
+        m_parser.process_expression(variance_expression);
 
-        m.get_modelvars(obs,fixed,random);
+        m_parser.print();
 
-         evolm::Effects obs_res;
+        std::cout << "Completed model parsing ..."<< "\n";
 
-        in.fgetvar(obs[0], obs_res);
-        obs_res.print( obs[0] );
+        //------------------------------------------------
 
-        // here we still need to parse "." (each col elementwise multiplication)
-        // and concatenate effect matrices (+);
-        // and vector of intercept (1).
-        for (size_t i = 0; i < fixed.size(); i++)
-        {
-             evolm::Effects fix_res;
-            in.fgetvar(fixed[i], fix_res);
-            fix_res.print( fixed[i] );
-        }
-
-        // -------------------------
-*/
 /*
-        // Testing model
-        std::vector<float> R{40, 11,
-                             11, 30}; // full matrix
-
-        std::vector<float> y1{4.5, 2.9, 3.9, 3.5, 5.0, 4.0};
-
-        std::vector<float> y2_miss{-999.0, 5.0, 6.8, 6.0, 7.5, -999.0};
-        std::vector<float> y2{10.0, 5.0, 6.8, 6.0, 7.5, 10.0};
-
-        std::vector<int> x1{1, 0,
-                            0, 1,
-                            0, 1,
-                            1, 0,
-                            1, 0,
-                            0, 1};
-
-        std::vector<int> x2_miss{
-            0, 0,
-            0, 1,
-            0, 1,
-            1, 0,
-            1, 0,
-            0, 0};
-
-        std::vector<int> z1{0, 0, 0, 1, 0, 0, 0, 0, 0,
-                            0, 0, 0, 0, 1, 0, 0, 0, 0,
-                            0, 0, 0, 0, 0, 1, 0, 0, 0,
-                            0, 0, 0, 0, 0, 0, 1, 0, 0,
-                            0, 0, 0, 0, 0, 0, 0, 1, 0,
-                            0, 0, 0, 0, 0, 0, 0, 0, 1};
-
-        std::vector<int> z2_miss{0, 0, 0, 0, 0, 0, 0, 0, 0,
-                                 0, 0, 0, 0, 1, 0, 0, 0, 0,
-                                 0, 0, 0, 0, 0, 1, 0, 0, 0,
-                                 0, 0, 0, 0, 0, 0, 1, 0, 0,
-                                 0, 0, 0, 0, 0, 0, 0, 1, 0,
-                                 0, 0, 0, 0, 0, 0, 0, 0, 0};
-
-        std::vector<float> iA{1.8333, 0.5, 0, -0.66667, 0, -1, 0, 0, 0,
-                              0.5, 2, 0.5, 0, -1, -1, 0, 0, 0,
-                              0, 0.5, 2, 0, -1, 0.5, 0, -1, 0,
-                              -0.66667, 0, 0, 1.8333, 0.5, 0, -1, 0, 0,
-                              0, -1, -1, 0.5, 2.5, 0, -1, 0, 0,
-                              -1, -1, 0.5, 0, 0, 2.5, 0, -1, 0,
-                              0, 0, 0, -1, -1, 0, 2.3333, 0, -0.66667,
-                              0, 0, -1, 0, 0, -1, 0, 2, 0,
-                              0, 0, 0, 0, 0, 0, -0.66667, 0, 1.3333};
-
-        std::vector<float> G{20, 18,
-                             18, 40};
-
-        evolm::model_sparse model;
-        evolm::sparse_pcg solver;
-
-        // define the model
-        model.append_residual(R, 2);
-
-        model.append_observation(y1, 6);      // obs := 0
-        model.append_observation(y2_miss, 6); // obs := 1
-std::cout<<"=> appending x1 ..."<<"\n";
-        model.append_effect(x1, 6, 2); // eff := 0
-std::cout<<"=> appending z1 ..."<<"\n";
-        model.append_effect(z1, 6, 9); // eff := 1
-std::cout<<"=> appending x2_miss ..."<<"\n";
-        model.append_effect(x2_miss, 6, 2); // eff := 2
-std::cout<<"=> appending z2_miss ..."<<"\n";
-        model.append_effect(z2_miss, 6, 9); // eff := 3
-
-        std::vector<int> eff_trate_1{0, 1};
-        int obs_trate_1 = 0;
-
-        std::vector<int> eff_trate_2{2, 3};
-        int obs_trate_2 = 1;
-
-        std::vector<int> corr_eff{1, 3};
-
-        model.append_corrstruct(G, 2, iA, 9, corr_eff);
-        model.append_traitstruct(obs_trate_1, eff_trate_1);
-        model.append_traitstruct(obs_trate_2, eff_trate_2);
-
-        solver.append_model(model);
-
-        solver.solve();
-
-        std::vector<float> sol = solver.get_solution();
-
-        solver.get_solution("sparse_solution_model_mv_2.dat");
-
-        solver.remove_model();
-
-        model.clear();
-*/
             // Prepare effects
             size_t n_snps = 141123;
             //---------------------------------
-            /*std::vector<std::vector<float>> in;
-            std::vector<std::vector<float>> in2;
+            // std::vector<std::vector<float>> in;
+            // std::vector<std::vector<float>> in2;
 
-            evolm::IOInterface datstream;
-            datstream.set_fname("tests/data/model_4/obs_489_snp_141123.txt");
-            datstream.fgetdata(in);
-std::cout<<"        ==> completed reading SNPs..."<<"\n";
-            datstream.set_fname("tests/data/model_4/fixed_1.dat");
-            datstream.fgetdata(in2);
-std::cout<<"        ==> completed reading fixed effects..."<<"\n";
+            // evolm::IOInterface datstream;
+            // datstream.set_fname("tests/data/model_4/obs_489_snp_141123.txt");
+            // datstream.fgetdata(in);
 
-            datstream.clear();
+            // datstream.set_fname("tests/data/model_4/fixed_1.dat");
+            // datstream.fgetdata(in2);
 
-            std::vector<float> eff_snp;
-            for (size_t i = 0; i < in.size(); i++)
-            {
-                for (size_t j = 0; j < in[0].size(); j++)
-                    eff_snp.push_back(in[i][j]);
-            }
-            std::vector<float> eff_fixed;
-            for (size_t i = 0; i < in2.size(); i++)
-            {
-                for (size_t j = 0; j < in2[0].size(); j++)
-                    eff_fixed.push_back(in2[i][j]);
-            }
+            // datstream.clear();
 
-            evolm::compact_storage<float> snp(eff_snp, in.size(), in[0].size());
-            snp.fwrite("tests/data/model_4/snp_489_141123.bin");
-            evolm::compact_storage<float> fixed(eff_fixed, in2.size(), in2[0].size());
-            fixed.fwrite("tests/data/model_4/fixed_489.bin");*/
+            // std::vector<float> eff_snp;
+            // for (size_t i = 0; i < in.size(); i++)
+            // {
+            //     for (size_t j = 0; j < in[0].size(); j++)
+            //         eff_snp.push_back(in[i][j]);
+            // }
+            // std::vector<float> eff_fixed;
+            // for (size_t i = 0; i < in2.size(); i++)
+            // {
+            //     for (size_t j = 0; j < in2[0].size(); j++)
+            //         eff_fixed.push_back(in2[i][j]);
+            // }
+
+            // evolm::compact_storage<float> snp(eff_snp, in.size(), in[0].size());
+            // snp.fwrite("tests/data/model_4/snp_489_141123.bin");
+            // evolm::compact_storage<float> fixed(eff_fixed, in2.size(), in2[0].size());
+            // fixed.fwrite("tests/data/model_4/fixed_489.bin");
             
             //---------------------------------
 
@@ -237,14 +138,14 @@ auto start = std::chrono::high_resolution_clock::now();
             //clear initial data structure
             iR.clear();
             iG1.clear();
-            /*for (auto &v: in)
-                v.clear();
-            for (auto &v: in2)
-                v.clear();
-            in.clear();
-            in.shrink_to_fit();
-            in2.clear();
-            in2.shrink_to_fit();*/
+            // for (auto &v: in)
+            //     v.clear();
+            // for (auto &v: in2)
+            //     v.clear();
+            // in.clear();
+            // in.shrink_to_fit();
+            // in2.clear();
+            // in2.shrink_to_fit();
             //----------------------------
 
             //bool t_var = true;
@@ -265,12 +166,20 @@ std::cout <<"model 4 on sparse solver (milliseconds): "<< duration.count() << st
             solver.get_solution("sparse_solution_model_4.dat");
 
             model.clear();
-
+*/
 
         return 0;
     }
     catch (const std::exception &e)
     {
         std::cerr << e.what() << '\n';
+    }
+    catch (const std::string &e)
+    {
+        std::cerr << e << '\n';
+    }
+    catch (...)
+    {
+        std::cerr << "Exception -> exit." << '\n';
     }
 }

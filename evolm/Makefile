@@ -8,6 +8,16 @@ TESTDIR := tests
 BDIR_TST := $(TESTDIR)/release
 TSRCDIR := $(TESTDIR)/src
 
+EXTSRC2 := ../libplinkio/src
+EXTLIBNAME := plinkio
+
+# Mac
+LIBRARY_PATH := /Users/au383883/Documents/MY/codebase/evo/libplinkio/release_lib
+# Debian
+#LIBRARY_PATH := /usr/home/qgg/vimi/codebase/evo/libplinkio/release_lib
+# Ubuntu
+#LIBRARY_PATH := /home/vimi/Documents/codebase/evo/libplinkio/release_lib
+
 # determine OS and source of BLAS lib
 UNAME_OS := $(shell uname -s)
 SOURSE_BLAS_IS_INTEL := 0
@@ -16,7 +26,8 @@ SOURSE_BLAS_IS_INTEL := 0
 ifeq ($(UNAME_OS),Darwin)
 	CXX := clang++
 else
-#	ifeq ( $(SOURSE_BLAS_IS_INTEL), 1)
+	SHELL := /bin/bash
+	export LD_LIBRARY_PATH := $(LD_LIBRARY_PATH):$(LIBRARY_PATH)
 	ifdef SOURSE_BLAS_IS_INTEL
 		CXX := icpx
 	else
@@ -30,37 +41,39 @@ PYSUFF := $(shell python3-config --extension-suffix)
 VERSUFF := .so
 
 ifeq ($(UNAME_OS),Darwin) # using apple's Accelerate
-	CFLAGS_TEST :=  -I$(SRCDIR) $(PYBINDINCL)
-	CFLAGS_APP := -I$(SRCDIR)
-	CFLAGS_PYLIB := -DPYBIND $(PYBINDINCL)
-	CFLAGS_CLIB :=
+	CFLAGS_TEST :=  -I$(SRCDIR) $(PYBINDINCL) -I$(EXTSRC2)
+	CFLAGS_APP := -I$(SRCDIR) -I$(EXTSRC2)
+	CFLAGS_PYLIB := -DPYBIND $(PYBINDINCL) -I$(EXTSRC2)
+	CFLAGS_CLIB := -I$(EXTSRC2)
 
 	EXTRA_CFLAGS := -Wall -Wextra -pedantic -Wno-c99-extensions -D UTEST -O3 -Xpreprocessor -fopenmp -I/opt/homebrew/opt/openblas/include -I/opt/homebrew/opt/libomp/include -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -std=c++17 -pthread
 
 	LIBFLAGS := -undefined dynamic_lookup -shared -lpthread -lm -lomp -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -L/opt/homebrew/opt/libomp/lib -L/opt/homebrew/opt/openblas/lib -lopenblas
 	LIBFLAGS_TEST := -undefined dynamic_lookup -lpthread -lm -lomp -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -L/opt/homebrew/opt/libomp/lib -L/opt/homebrew/opt/openblas/lib -lopenblas
-	EXTRA_LIBFLAGS :=  -L$(BDIR_CLIB) -l$(APPNAME)
+	EXTRA_LIBFLAGS :=  -L$(BDIR_CLIB) -l$(APPNAME) -L$(LIBRARY_PATH) -l$(EXTLIBNAME)
 else
 	ifeq ($(UNAME_OS),Linux)
 #		ifeq ( $(SOURSE_BLAS_IS_INTEL), 1) # using Intel's MKL
 		ifdef SOURSE_BLAS_IS_INTEL
-			CFLAGS_TEST := -O3 -qopenmp -I$(SRCDIR) -DMKL_ILP64 -I${MKLROOT}/include $(PYBINDINCL) -std=c++17
-			CFLAGS_APP := -O3 -qopenmp -I$(SRCDIR) -DMKL_ILP64 -I${MKLROOT}/include -std=c++17
-			CFLAGS_PYLIB := -O3 -qopenmp -DPYBIND -DMKL_ILP64 -I${MKLROOT}/include $(PYBINDINCL) -fPIC -std=c++17
-			CFLAGS_CLIB := -O3 -qopenmp -DMKL_ILP64 -I${MKLROOT}/include -fPIC -std=c++17
+			CFLAGS_TEST := -O3 -qopenmp -I$(SRCDIR) -I$(EXTSRC2) -DMKL_ILP64 -I${MKLROOT}/include $(PYBINDINCL) -std=c++17
+			CFLAGS_APP := -O3 -qopenmp -I$(SRCDIR) -I$(EXTSRC2) -DMKL_ILP64 -I${MKLROOT}/include -std=c++17
+			CFLAGS_PYLIB := -O3 -qopenmp -I$(EXTSRC2) -DPYBIND -DMKL_ILP64 -I${MKLROOT}/include $(PYBINDINCL) -fPIC -std=c++17
+			CFLAGS_CLIB := -O3 -qopenmp -I$(EXTSRC2) -DMKL_ILP64 -I${MKLROOT}/include -fPIC -std=c++17
 			
 			EXTRA_CFLAGS := -D UTEST -D intelmkl -Wall -pthread
-			EXTRA_LIBFLAGS := -L$(BDIR_CLIB) -l$(APPNAME)
+			EXTRA_LIBFLAGS := -L$(BDIR_CLIB) -l$(APPNAME) -L$(LIBRARY_PATH) -l$(EXTLIBNAME)
 			EXTRA_LIBFLAGS_2 :=
 			
 			LIBFLAGS := -shared -qopenmp -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_ilp64.a ${MKLROOT}/lib/intel64/libmkl_core.a ${MKLROOT}/lib/intel64/libmkl_intel_thread.a -Wl,--end-group -lpthread -lm
 			LIBFLAGS_TEST := -qopenmp -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_ilp64.a ${MKLROOT}/lib/intel64/libmkl_core.a ${MKLROOT}/lib/intel64/libmkl_intel_thread.a -Wl,--end-group -lpthread -lm
 		else # using openBLAS
-			CFLAGS_APP := -I$(SRCDIR) -I(EXTSRC)
-			CFLAGS_PYLIB := -DPYBIND $(PYBINDINCL) -I(EXTSRC) -fPIC
+			CFLAGS_APP := -I$(SRCDIR) -I(EXTSRC) -I$(EXTSRC2)
+			CFLAGS_PYLIB := -DPYBIND $(PYBINDINCL) -I(EXTSRC) -I$(EXTSRC2) -fPIC
 			EXTRA_CFLAGS := -Wall -Wextra -pedantic -D UTEST -03 -fopenmp -I/opt/openBLAS/include -std=c++17
 			LIBFLAGS_PY := -shared -lpthread -lm -lgomp /opt/openBLAS/lib/libopenblas.a
 			LIBFLAGS_TEST := -lpthread -lm -lgomp /opt/openBLAS/lib/libopenblas.a
+
+			EXTRA_LIBFLAGS := -L$(LIBRARY_PATH) -l$(EXTLIBNAME)
 		endif
 	endif
 endif
@@ -147,11 +160,21 @@ rclean:
 test:
 	@echo " Testing ..."
 #	python3 $(TESTDIR)/$(SRCDIR)/*.py
-	@export  LD_LIBRARY_PATH=$(PWDADDR)/$(BDIR_CLIB):"$(LIBRARY_PATH)"; $(TARGET_TEST)
+ifeq ($(UNAME_OS),Darwin)
+	@export DYLD_LIBRARY_PATH=$(LIBRARY_PATH); $(TARGET_TEST)
+else
+	$(TARGET_TEST)
+endif
+#	@export  LD_LIBRARY_PATH=$(PWDADDR)/$(BDIR_CLIB):"$(LIBRARY_PATH)"; $(TARGET_TEST)
 
 run:
 	@echo " Running ..."
-	@export  LD_LIBRARY_PATH=$(PWDADDR)/$(BDIR_CLIB):"$(LIBRARY_PATH)"; $(TARGET_APP)
+ifeq ($(UNAME_OS),Darwin)
+	@export DYLD_LIBRARY_PATH=$(LIBRARY_PATH); time $(TARGET_APP)
+else
+	time $(TARGET_APP)
+endif
+#	@export  LD_LIBRARY_PATH=$(PWDADDR)/$(BDIR_CLIB):"$(LIBRARY_PATH)"; $(TARGET_APP)
 
 cleanlogs:
 	@echo " Cleaning logs ..."
