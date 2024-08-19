@@ -56,9 +56,13 @@ namespace evoped
             // checked_id - vector of ids to check
             // missing_id - vector of missing ids (whose not found in id vector)
 
-            for (size_t i = 0; i < checked_id.size(); i++)
+            /*for (size_t i = 0; i < checked_id.size(); i++)
                 if (!std::binary_search(id_list.begin(), id_list.end(), checked_id[i]))
+                    missing_id.push_back(checked_id[i]);*/
+            for (size_t i = 0; i < checked_id.size(); i++)
+                if ( std::find(id_list.begin(), id_list.end(), checked_id[i]) == id_list.end() )
                     missing_id.push_back(checked_id[i]);
+
         }
         catch (const std::exception &e)
         {
@@ -89,8 +93,11 @@ namespace evoped
             // checked_id - vector of ids to check
             // is_in_id - vector of present ids (whose are found in id vector)
 
-            for (size_t i = 0; i < checked_id.size(); i++)
+            /*for (size_t i = 0; i < checked_id.size(); i++)
                 if ( std::binary_search(id_list.begin(), id_list.end(), checked_id[i]) )
+                    is_in_id.push_back(checked_id[i]);*/
+            for (size_t i = 0; i < checked_id.size(); i++)
+                if ( std::find(id_list.begin(), id_list.end(), checked_id[i]) != id_list.end() )
                     is_in_id.push_back(checked_id[i]);
         }
         catch (const std::exception &e)
@@ -120,31 +127,26 @@ namespace evoped
         try
         {
             //----------------------------------
-            std::vector<int64_t> vec_1(where_tocheck);
+            /*std::vector<int64_t> vec_1(where_tocheck);
             std::vector<int64_t> vec_2(what_tocheck);
             
             std::sort(vec_1.begin(), vec_1.end());
-            std::sort(vec_2.begin(), vec_2.end());
+            std::sort(vec_2.begin(), vec_2.end());*/
             //----------------------------------
             bool out = true;
 
             std::vector<std::int64_t> missing;
-            //check_id(where_tocheck, what_tocheck, missing);
-            check_id(vec_1, vec_2, missing);
+            check_id(where_tocheck, what_tocheck, missing);
+            //check_id(vec_1, vec_2, missing);
 
             if (!missing.empty())
             {
-                /*std::cout<<"missing size: "<<missing.size()<<"\n";
-                size_t sz = std::min((size_t)100, missing.size());
-                for (size_t i = 0; i<sz; i++)
-                    std::cout<<"missing: "<<missing[i]<<"\n";*/
-
                 out = false;
                 missing.clear();
             }
 
-            vec_1.clear();
-            vec_2.clear();
+            //vec_1.clear();
+            //vec_2.clear();
 
             return out;
         }
@@ -408,7 +410,269 @@ namespace evoped
             throw;
         }
     }
+    //===========================================================================================
+    template <typename T>
+    void Utilities2::fwrite_matrix(const std::string &fname, std::vector<T> &vals, std::vector<size_t> &keys, std::vector<std::int64_t> &ids)
+    {
+        //int integer_var;
+        float float_var;
+        double double_var;
 
+        // determine type of the matrix, expectd: float or double
+        //const std::type_info &type_1 = typeid(integer_var);
+        const std::type_info &type_2 = typeid(float_var);
+        const std::type_info &type_3 = typeid(double_var);
+        const std::type_info &type_T = typeid(vals[0]);
+        
+        size_t var_type = 0; // type of matrix
+        size_t var_type2 = 5; // int64 type of IDs
+
+        if (type_T == type_2)
+            var_type = 2;
+        else if (type_T == type_3)
+            var_type = 3;
+        else
+            throw std::string("Utilities2::fwrite_matrix(const std::string &, std::vector<T> &, std::vector<size_t> &, std::vector<T2> &): Cannot determine the type of values vector.");
+
+        std::string name_suffix(".corbin");
+        size_t find = fname.find(name_suffix);
+        std::string fname2(fname);
+        if( find == std::string::npos ) // there is no suffix
+            fname2 = fname + name_suffix;
+
+        std::fstream fA;
+        fA.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+        fA.open(fname2, fA.binary | fA.trunc | fA.out);
+
+        if (!fA.is_open())
+            throw std::string("Utilities2::fwrite_matrix(const std::string &, std::vector<T> &, std::vector<size_t> &, std::vector<T2> &): Error while opening a binary file.");
+
+        size_t B[3]; // necessary data info
+
+        // info about matrix values
+        B[0] = (size_t)sizeof(T);
+        B[1] = var_type; // expected 2 or 3
+        
+        // info about matrix IDs
+        B[2] = var_type2; // expected 4 or 5
+        
+        size_t vals_size = vals.size();
+        size_t keys_size = keys.size();
+        size_t ids_size = ids.size();
+
+        fA.write( reinterpret_cast<const char *>(&B), 3 * sizeof(size_t) ); // 0. writing the data info
+
+        fA.write( reinterpret_cast<const char *>( &vals_size ), sizeof(size_t) ); // 1. writing size of values
+        fA.write( reinterpret_cast<const char *>( vals.data() ), vals_size * sizeof(T) ); // 2. writing all values
+
+        fA.write( reinterpret_cast<const char *>( &keys_size ), sizeof(size_t) ); // 3. writing size of keys
+        fA.write( reinterpret_cast<const char *>( keys.data() ), keys_size * sizeof(size_t) ); // 4. writing all keys
+
+        fA.write( reinterpret_cast<const char *>( &ids_size ), sizeof(size_t) ); // 5. writing size of ids
+        fA.write( reinterpret_cast<const char *>( ids.data() ), ids_size * sizeof(std::int64_t) ); // 6. writing all IDs
+
+        fA.close();
+    }
+    template void Utilities2::fwrite_matrix(const std::string &fname, std::vector<float> &vals, std::vector<size_t> &keys, std::vector<std::int64_t> &ids);
+    template void Utilities2::fwrite_matrix(const std::string &fname, std::vector<double> &vals, std::vector<size_t> &keys, std::vector<std::int64_t> &ids);
+    //===========================================================================================
+    template <typename T>
+    void Utilities2::fwrite_matrix(const std::string &fname, std::vector<T> &vals, std::vector<size_t> &keys, std::vector<std::string> &ids)
+    {
+        //int integer_var;
+        float float_var;
+        double double_var;
+
+        // determine type of the matrix, expectd: float or double
+        //const std::type_info &type_1 = typeid(integer_var);
+        const std::type_info &type_2 = typeid(float_var);
+        const std::type_info &type_3 = typeid(double_var);
+        const std::type_info &type_T = typeid(vals[0]);
+        
+        size_t var_type = 0; // type of matrix
+        size_t var_type2 = 4; // string type of IDs
+
+        if (type_T == type_2)
+            var_type = 2;
+        else if (type_T == type_3)
+            var_type = 3;
+        else
+            throw std::string("Utilities2::fwrite_matrix(const std::string &, std::vector<T> &, std::vector<size_t> &, std::vector<T2> &): Cannot determine the type of values vector.");
+
+        std::string name_suffix(".corbin");
+        size_t find = fname.find(name_suffix);
+        std::string fname2(fname);
+        if( find == std::string::npos ) // there is no suffix
+            fname2 = fname + name_suffix;
+
+        std::fstream fA;
+        fA.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+        fA.open(fname2, fA.binary | fA.trunc | fA.out);
+
+        if (!fA.is_open())
+            throw std::string("Utilities2::fwrite_matrix(const std::string &, std::vector<T> &, std::vector<size_t> &, std::vector<T2> &): Error while opening a binary file.");
+
+        size_t B[3]; // necessary data info
+
+        // info about matrix values
+        B[0] = (size_t)sizeof(T);
+        B[1] = var_type; // expected 2 or 3
+        
+        // info about matrix IDs
+        B[2] = var_type2; // expected 4
+        
+        size_t vals_size = vals.size();
+        size_t keys_size = keys.size();
+        size_t ids_size = ids.size();
+
+        fA.write( reinterpret_cast<const char *>(&B), 3 * sizeof(size_t) ); // 0. writing the data info
+
+        fA.write( reinterpret_cast<const char *>( &vals_size ), sizeof(size_t) ); // 1. writing size of values
+        fA.write( reinterpret_cast<const char *>( vals.data() ), vals_size * sizeof(T) ); // 2. writing all values
+
+        fA.write( reinterpret_cast<const char *>( &keys_size ), sizeof(size_t) ); // 3. writing size of keys
+        fA.write( reinterpret_cast<const char *>( keys.data() ), keys_size * sizeof(size_t) ); // 4. writing all keys
+
+        fA.write( reinterpret_cast<const char *>( &ids_size ), sizeof(size_t) ); // 5. writing size of ids
+        for (size_t i = 0; i < ids_size; i++)
+        {
+            std::string str = ids[i];
+            size_t str_size = str.size();
+            fA.write( reinterpret_cast<const char *>( &str_size ), sizeof(size_t) ); // 5. writing size of ids
+            fA.write( reinterpret_cast<const char *>( &str[0] ), str_size ); // 6. writing all IDs
+        }
+
+        fA.close();
+    }
+    template void Utilities2::fwrite_matrix(const std::string &fname, std::vector<float> &vals, std::vector<size_t> &keys, std::vector<std::string> &ids);
+    template void Utilities2::fwrite_matrix(const std::string &fname, std::vector<double> &vals, std::vector<size_t> &keys, std::vector<std::string> &ids);
+    //===========================================================================================
+    template <typename T>
+    void Utilities2::fread_matrix(const std::string &fname, std::vector<T> &vals, std::vector<size_t> &keys, std::vector<std::int64_t> &ids)
+    {
+        std::fstream fA;
+        fA.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+
+        std::string name_suffix(".corbin");
+        size_t find = fname.find(name_suffix);
+        std::string fname2(fname);
+        if( find == std::string::npos ) // there is no suffix
+            fname2 = fname + name_suffix;
+        
+        fA.open(fname2, fA.binary | fA.in);
+
+        if (!fA.is_open())
+            throw std::string("Utilities2::fread_matrix(const std::string &, std::vector<T> &, std::vector<size_t> &, std::vector<T2> &): Error while opening a binary file.");
+
+        size_t B[3];
+
+        fA.read( reinterpret_cast<char *>(&B), 3 * sizeof(size_t) ); // 0. reading a storage info
+
+        // info about matrix values
+        size_t var_inbytes = B[0];
+        size_t var_type = B[1]; // expected 2 or 3
+        
+        // info about matrix IDs
+        size_t var_type2 = B[2]; // expected 4 or 5
+
+        size_t vals_size;
+        size_t keys_size;
+        size_t ids_size;
+
+        fA.read( reinterpret_cast<char *>( &vals_size ), sizeof(size_t) ); // 1. reading size of values
+        vals.resize(vals_size);
+        fA.read( reinterpret_cast<char *>( vals.data() ), vals_size * var_inbytes ); // 2. reading all values
+
+        fA.read( reinterpret_cast<char *>( &keys_size ), sizeof(size_t) ); // 3. reading size of keys
+        keys.resize(keys_size);
+        fA.read( reinterpret_cast<char *>( keys.data() ), keys_size * sizeof(size_t) ); // 4. reading all keys
+
+        fA.read( reinterpret_cast<char *>( &ids_size ), sizeof(size_t) ); // 3. reading size of keys
+        ids.resize(ids_size);
+        fA.read( reinterpret_cast<char *>( ids.data() ), ids_size * sizeof(std::int64_t) ); // 4. reading all keys
+
+        fA.close();
+    }
+    template void Utilities2::fread_matrix(const std::string &fname, std::vector<float> &vals, std::vector<size_t> &keys, std::vector<std::int64_t> &ids);
+    template void Utilities2::fread_matrix(const std::string &fname, std::vector<double> &vals, std::vector<size_t> &keys, std::vector<std::int64_t> &ids);
+    //===========================================================================================
+    template <typename T>
+    void Utilities2::fread_matrix(const std::string &fname, std::vector<T> &vals, std::vector<size_t> &keys, std::vector<std::string> &ids)
+    {
+        std::fstream fA;
+        fA.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+
+        std::string name_suffix(".corbin");
+        size_t find = fname.find(name_suffix);
+        std::string fname2(fname);
+        if( find == std::string::npos ) // there is no suffix
+            fname2 = fname + name_suffix;
+
+        fA.open(fname2, fA.binary | fA.in);
+
+        if (!fA.is_open())
+            throw std::string("Utilities2::fread_matrix(const std::string &, std::vector<T> &, std::vector<size_t> &, std::vector<T2> &): Error while opening a binary file.");
+
+        size_t B[3];
+
+        fA.read( reinterpret_cast<char *>(&B), 3 * sizeof(size_t) ); // 0. reading a storage info
+
+        // info about matrix values
+        size_t var_inbytes = B[0];
+        size_t var_type = B[1]; // expected 2 or 3
+        
+        // info about matrix IDs
+        size_t var_type2 = B[2]; // expected 4 or 5
+
+        size_t vals_size;
+        size_t keys_size;
+        size_t ids_size;
+
+        fA.read( reinterpret_cast<char *>( &vals_size ), sizeof(size_t) ); // 1. reading size of values
+        vals.resize(vals_size);
+        fA.read( reinterpret_cast<char *>( vals.data() ), vals_size * var_inbytes ); // 2. reading all values
+
+        fA.read( reinterpret_cast<char *>( &keys_size ), sizeof(size_t) ); // 3. reading size of keys
+        keys.resize(keys_size);
+        fA.read( reinterpret_cast<char *>( keys.data() ), keys_size * sizeof(size_t) ); // 4. reading all keys
+
+        fA.read( reinterpret_cast<char *>( &ids_size ), sizeof(size_t) ); // 3. reading size of keys
+        ids.resize(ids_size);
+        for (size_t i = 0; i < ids_size; i++)
+        {
+            size_t str_size;
+            std::string str;
+            fA.read( reinterpret_cast<char *>( &str_size ), sizeof(size_t) ); // 5. writing size of ids
+            str.resize(str_size);
+            fA.read( reinterpret_cast<char *>( &str[0] ), str_size ); // 6. reading specific id
+            ids[i] = str;
+        }
+
+        fA.close();
+    }
+    template void Utilities2::fread_matrix(const std::string &fname, std::vector<float> &vals, std::vector<size_t> &keys, std::vector<std::string> &ids);
+    template void Utilities2::fread_matrix(const std::string &fname, std::vector<double> &vals, std::vector<size_t> &keys, std::vector<std::string> &ids);
+    //===========================================================================================
+    void Utilities2::fread_matrix_info(const std::string &fname, size_t &info)
+    {
+        std::fstream fA;
+        fA.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+
+        std::string name_suffix(".corbin");
+        size_t find = fname.find(name_suffix);
+        std::string fname2(fname);
+        if( find == std::string::npos ) // there is no suffix
+            fname2 = fname + name_suffix;
+
+        fA.open(fname2, fA.binary | fA.in);
+
+        if (!fA.is_open())
+            throw std::string("Utilities2::fread_matrix_info(const std::string &, size_t &): Error while opening a binary file.");
+
+        fA.read( reinterpret_cast<char *>(info), 3 * sizeof(size_t) ); // 0. reading a storage info
+
+        fA.close();
+    }
     //===============================================================================================================
 
     size_t Utilities2::fget_matrix_kind(const std::string &fname)

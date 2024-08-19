@@ -3080,7 +3080,7 @@ namespace evoped
     //===============================================================================================================
 
     template <typename T>
-    void Amat<T>::get_matrix(const std::string &name, std::vector<T> &arr, std::vector<std::int64_t> &out)
+    void Amat<T>::get_matrix(const std::string &name, const std::string &out_fname)
     {
         /* 
             This method is for Python interfacing;
@@ -3092,66 +3092,164 @@ namespace evoped
         */
         try
         {
-            if (name == "A")
+            Utilities2 u;
+
+            std::vector<T> values;
+            std::vector<size_t> keys;
+
+            if (name == "A") // we use iA as a container for A as well
             {
-                // we use iA as a container for A as well
-                iA.fread();
-                iA.to_vector(arr);
-                out = id_iA;
+                if ( IsEmpty.iA_s ) // was used dense pipeline
+                {
+                    // convert iA to vect, use id_iA for ids
+                    iA.fread();
+                    iA.to_vector(values);
+                    for (size_t i = 0; i < id_iA.size(); i++)
+                        for (size_t j = 0; j <= i; j++)
+                            keys.push_back(i*(i+1)/2 + j);
+                    iA.fwrite();
+                }
+                else
+                {
+                    // convert iA_s to vect, use id_iA for ids
+                    iA_s.fread();
+                    iA_s.to_vect(values, keys);
+                    iA_s.clear();
+                }
+                u.fwrite_matrix(out_fname, values, keys, id_iA);
             }
-            if (name == "rA")
+
+            if (name == "rA") // we use irA as a container for rA as well
             {
-                // we use irA as a container for rA as well
-                irA.fread();
-                irA.to_vector(arr);
-                out = id_irA;
+                if ( IsEmpty.irA_s ) // was used dense pipeline
+                {
+                    // convert irA to vect, use id_irA for ids
+                    irA.fread();
+                    irA.to_vector(values);
+                    for (size_t i = 0; i < id_irA.size(); i++)
+                        for (size_t j = 0; j <= i; j++)
+                            keys.push_back(i*(i+1)/2 + j);
+                    irA.fwrite();
+                }
+                else
+                {
+                    // convert irA_s to vect, use id_irA for ids
+                    irA_s.fread();
+                    irA_s.to_vect(values, keys);
+                    irA_s.clear();
+                }
+                u.fwrite_matrix(out_fname, values, keys, id_irA);
             }
+
             if (name == "iA")
             {
-                iA.fread();
-                iA.to_vector(arr);
-                out = id_iA;
+                if ( IsEmpty.iA_s ) // was used dense pipeline
+                {
+                    // convert iA to vect, use id_iA for ids
+                    iA.fread();
+                    iA.to_vector(values);
+                    for (size_t i = 0; i < id_iA.size(); i++)
+                        for (size_t j = 0; j <= i; j++)
+                            keys.push_back(i*(i+1)/2 + j);
+                    iA.fwrite();
+                }
+                else
+                {
+                    // convert iA_s to vect, use id_iA for ids
+                    iA_s.fread();
+                    iA_s.to_vect(values, keys);
+                    iA_s.clear();
+                }
+                u.fwrite_matrix(out_fname, values, keys, id_iA);
             }
+
             if (name == "irA")
             {
-                irA.fread();
-                irA.to_vector(arr);
-                out = id_irA;
+                if ( IsEmpty.irA_s ) // was used dense pipeline
+                {
+                    // convert irA to vect, use id_irA for ids
+                    irA.fread();
+                    irA.to_vector(values);
+                    for (size_t i = 0; i < id_irA.size(); i++)
+                        for (size_t j = 0; j <= i; j++)
+                            keys.push_back(i*(i+1)/2 + j);
+                    irA.fwrite();
+                }
+                else
+                {
+                    // convert irA_s to vect, use id_irA for ids
+                    irA_s.fread();
+                    irA_s.to_vect(values, keys);
+                    irA_s.clear();
+                }
+                u.fwrite_matrix(out_fname, values, keys, id_irA);
             }
+
             if (name == "iA22")
             {
-                iA22.fread();
-                iA22.to_vector(arr);
-                out = id_A22;
+                if ( IsEmpty.iA22_s ) // was used dense pipeline
+                {
+                    // convert iA22 to vect, use id_A22 for ids
+                    iA22.fread();
+                    iA22.to_vector(values);
+                    for (size_t i = 0; i < id_A22.size(); i++)
+                        for (size_t j = 0; j <= i; j++)
+                            keys.push_back(i*(i+1)/2 + j);
+                    iA22.fwrite();
+                }
+                else
+                {
+                    // convert iA22_s to vect, use id_A22 for ids
+                    iA22_s.fread();
+                    iA22_s.to_vect(values, keys);
+                    iA22_s.clear();
+                }
+                u.fwrite_matrix(out_fname, values, keys, id_A22);
             }
-            if (name == "A22")
+
+            if (name == "A22") // was used dense pipeline, this is assumed to be always dense
             {
-                A22.fread();
-                A22.to_vector(arr);
-                out = id_A22;
+                if ( IsEmpty.A22_s )
+                {
+                    // convert A22 to vect, use id_A22 for ids
+                    A22.fread();
+                    A22.to_vector(values);
+                    for (size_t i = 0; i < id_A22.size(); i++)
+                        for (size_t j = 0; j <= i; j++)
+                            keys.push_back(i*(i+1)/2 + j);
+                    A22.fwrite();
+                }
+                else
+                {
+                    // convert A22_s to vect, use id_A22 for ids
+                    A22_s.fread();
+                    A22_s.to_vect(values, keys);
+                    A22_s.clear();
+                }
+                u.fwrite_matrix(out_fname, values, keys, id_A22);
             }
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Amat<T>::get_matrix(const std::string &, std::vector<T> &, std::vector<std::int64_t> &)" << '\n';
+            std::cerr << "Exception in Amat<T>::get_matrix(const std::string &, const std::string &)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Amat<T>::get_matrix(const std::string &, std::vector<T> &, std::vector<std::int64_t> &)" << '\n';
+            std::cerr << "Exception in Amat<T>::get_matrix(const std::string &, const std::string &)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Amat<T>::get_matrix(const std::string &, std::vector<T> &, std::vector<std::int64_t> &)" << '\n';
+            std::cerr << "Exception in Amat<T>::get_matrix(const std::string &, const std::string &)" << '\n';
             throw;
         }
     }
 
-    template void Amat<float>::get_matrix(const std::string &name, std::vector<float> &arr, std::vector<std::int64_t> &out);
-    template void Amat<double>::get_matrix(const std::string &name, std::vector<double> &arr, std::vector<std::int64_t> &out);
+    template void Amat<float>::get_matrix(const std::string &name, const std::string &out_fname);
+    template void Amat<double>::get_matrix(const std::string &name, const std::string &out_fname);
 
     //===============================================================================================================
 

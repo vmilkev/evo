@@ -298,36 +298,42 @@ namespace evoped
      * 
      */
     template <typename T> void Gmat<T>::
-    get_matrix(std::vector<T> &arr, std::vector<std::int64_t> &ids)
+    get_matrix(const std::string &out_fname)
     {
         try
         {
-            if ( !G.is_ondisk() )
-                G.fwrite();
+            std::vector<T> values;
+            std::vector<size_t> keys;
 
-            G.to_vector(arr);
-            ids = gmatID;
+            G.to_vector(values);
+
+            for (size_t i = 0; i < gmatID.size(); i++)
+                for (size_t j = 0; j <= i; j++)
+                    keys.push_back(i*(i+1)/2 + j);
+
+            Utilities2 u;
+            u.fwrite_matrix(out_fname, values, keys, gmatID);
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Gmat<T>::get_matrix(std::vector<T> &, std::vector<std::int64_t>&)" << '\n';
+            std::cerr << "Exception in Gmat<T>::get_matrix(const std::string &)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Gmat<T>::get_matrix(std::vector<T> &, std::vector<std::int64_t>&)" << '\n';
+            std::cerr << "Exception in Gmat<T>::get_matrix(const std::string &)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Gmat<T>::get_matrix(std::vector<T> &, std::vector<std::int64_t>&)" << '\n';
+            std::cerr << "Exception in Gmat<T>::get_matrix(const std::string &)" << '\n';
             throw;
         }
     }
-    template void Gmat<float>::get_matrix(std::vector<float> &arr, std::vector<std::int64_t> &ids);
-    template void Gmat<double>::get_matrix(std::vector<double> &arr, std::vector<std::int64_t> &ids);
+    template void Gmat<float>::get_matrix(const std::string &out_fname);
+    template void Gmat<double>::get_matrix(const std::string &out_fname);
     //===============================================================================================================
     /**
      * @brief Constructs G matrix by reading a text file consisting of samples and snp variants.
@@ -345,9 +351,12 @@ namespace evoped
         {
             if ( is_plink_file(fname) ) // the pipeline for binary (.bad) plink-formated data
             {
+std::cout<<"Pass 1"<<"\n";
                 evolm::matrix<int> M;
                 get_m_matrix(fname, M);
+std::cout<<"Pass 2"<<"\n";
                 make_zmatrix(M); // scalling SNPs
+std::cout<<"Pass 3"<<"\n";
                 M.clear();
             }
             else // the pipeline for text (.ped) plink-formated data !!! not implemented yet
@@ -356,7 +365,9 @@ namespace evoped
                 make_zmatrix(); // scalling SNPs
                 snp_map.clear();
             }
+std::cout<<"Pass 4"<<"\n";
             make_matrix(); // making G matrix
+std::cout<<"Pass 5"<<"\n";
             Z.fclear();
             Z.clear();
         }
@@ -2183,10 +2194,15 @@ namespace evoped
     {
         try
         {
+std::cout<<"G = Z"<<"\n";
             G = Z;
+std::cout<<"Z.transpose()"<<"\n";
             Z.transpose();
+std::cout<<"G = G * Z"<<"\n";
             G = G * Z;
+std::cout<<"G.rectosym()"<<"\n";
             G.rectosym();
+std::cout<<"G.scale(1.0 / freq)"<<"\n";
             G.scale(1.0 / freq);
 
             //G = (Z ^ 2) * (1 / freq);

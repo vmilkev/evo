@@ -30,22 +30,21 @@ namespace evoped
                       const std::string &g_file);
         void make_all(const std::string &ped_file,
                       std::vector<std::int64_t> &g_ids);
-        void get_inbreeding(std::vector<T> &out);
+
+        void clear();
+        void set_sparsiity_threshold( double threshold );
+
+        // Getting results:
         
+        void get_inbreeding(std::vector<T> &out);        
         void get_matrix(const std::string &name,
                         evolm::matrix<T> &arr,
                         std::vector<std::int64_t> &out);
-
         void get_matrix(const std::string &name,
                         evolm::smatrix<T> &arr,
                         std::vector<std::int64_t> &out);
         void get_matrix(const std::string &name,
-                        std::vector<T> &arr,
-                        std::vector<std::int64_t> &out);
-        
-        void clear();
-        void set_sparsiity_threshold( double threshold );
-
+                        const std::string &out_fname);
     private:
 
         double data_sparsity;

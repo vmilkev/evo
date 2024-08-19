@@ -52,6 +52,18 @@ namespace evoped
         void sparse_to_dense(evolm::smatrix<T> &from, evolm::matrix<T> &to);
 
         size_t fget_matrix_kind(const std::string &fname);
+
+        template <typename T>
+        void fwrite_matrix(const std::string &fname, std::vector<T> &vals, std::vector<size_t> &keys, std::vector<std::int64_t> &ids);
+        template <typename T>
+        void fwrite_matrix(const std::string &fname, std::vector<T> &vals, std::vector<size_t> &keys, std::vector<std::string> &ids);
+
+        template <typename T>
+        void fread_matrix(const std::string &fname, std::vector<T> &vals, std::vector<size_t> &keys, std::vector<std::int64_t> &ids);
+        template <typename T>
+        void fread_matrix(const std::string &fname, std::vector<T> &vals, std::vector<size_t> &keys, std::vector<std::string> &ids);
+
+        void fread_matrix_info(const std::string &fname, size_t &info);
     };
 
 } // end of namespace evoped

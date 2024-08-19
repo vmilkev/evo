@@ -46,29 +46,27 @@ namespace evoped
                          std::vector<std::int64_t>& a_red_ids,
                          evolm::matrix<T>& g_matr,
                          std::vector<std::int64_t>& g_ids);
+        
+        void get_matrix(const std::string &out_fname);
+        void get_matrix(std::vector<T> &values,
+                        std::vector<size_t> &keys,
+                        std::vector<std::int64_t> &id);
 
-        void get_matrix(evolm::matrix<T>& arr,
+        /*void get_matrix(evolm::matrix<T>& arr,
                         std::vector<std::int64_t>& ids);
 
         void get_matrix(evolm::smatrix<T>& arr,
                         std::vector<std::int64_t>& ids);
 
         void save_matrix(const std::string & arr,
-                        const std::string & ids);
+                        const std::string & ids);*/
 
         void clear();
 
     private:
 
-        struct EmptyDataStatus
-        {
-            bool H;
-            bool H_s;
-        };
-        EmptyDataStatus IsEmpty;
-
-        evolm::matrix<T> H;
-        evolm::smatrix<T> H_s;
+        std::vector<T> h_values;
+        std::vector<size_t> h_keys;
         std::vector<std::int64_t> hmat_id;
     };
 

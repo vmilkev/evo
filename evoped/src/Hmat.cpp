@@ -6,8 +6,8 @@ namespace evoped
     template <typename T>
     Hmat<T>::Hmat()
     {
-        IsEmpty.H = true;
-        IsEmpty.H_s = true;
+        //IsEmpty.H = true;
+        //IsEmpty.H_s = true;
     }
     template Hmat<float>::Hmat();
     template Hmat<double>::Hmat();
@@ -47,8 +47,9 @@ namespace evoped
     {
         try
         {
-            H.fclear();
-            H.clear();
+            h_values.clear(); h_values.shrink_to_fit();
+            h_keys.clear(); h_keys.shrink_to_fit();
+            hmat_id.clear(); hmat_id.shrink_to_fit();
         }
         catch (const std::exception &e)
         {
@@ -214,6 +215,9 @@ namespace evoped
             if (g_ids.size() > a_ids.size())
                 throw std::string("The number of elements in the passed G(-1) maatrix is greater then the number of IDs in full A(-1) matrix!");
 
+            if (g_ids.size() != a_red_ids.size())
+                throw std::string("The number of elements in the passed G(-1) maatrix is not equal to the number of IDs in A22(-1) matrix!");
+
             Utilities2 u;
 
             if (!u.is_value_in_vect(a_red_ids, g_ids))
@@ -251,9 +255,7 @@ namespace evoped
 
             std::vector<size_t> pos_map;
             for (size_t i = 0; i < g_ids.size(); i++)
-            {
                 pos_map.push_back(u.find_invect(a_red_ids, g_ids[i]));
-            }
 
 #pragma omp parallel for
             for (size_t i = 0; i < g_ids.size(); i++)
@@ -281,11 +283,13 @@ namespace evoped
             for (size_t i = 0; i < g_ids.size(); i++)
                 pos_map.push_back(u.find_invect(a_ids, g_ids[i]));
 
-            H = a_matr;
-
-            a_matr.clear();
-
             hmat_id = a_ids;
+
+            // define size of h-vectors to resize
+            size_t h_size = a_ids.size() * ( a_ids.size() + 1 ) / 2;
+
+            h_values.resize(h_size);
+            h_keys.resize(h_size);
 
 #pragma omp parallel for
             for (size_t i = 0; i < g_ids.size(); i++)
@@ -297,16 +301,24 @@ namespace evoped
                     size_t col = pos_map[j];
 
                     if (row >= col)
-                        H(row, col) = H(row, col) + g_matr(i, j);
+                    {
+                        a_matr(row, col) = a_matr(row, col) + g_matr(i, j);
+                    }
                     else
-                        H(col, row) = H(col, row) + g_matr(i, j);
+                    {
+                        a_matr(col, row) = a_matr(col, row) + g_matr(i, j);
+                    }
                 }
             }
 
-            //H.fwrite();
+#pragma omp parallel for
+            for (size_t i = 0; i < a_matr.size(); i++)
+            {
+                h_values[i] = a_matr[i];
+                h_keys[i] = i;
+            }
 
-            IsEmpty.H = false;
-
+            a_matr.clear();
             g_matr.clear();
         }
         catch (const std::exception &e)
@@ -371,6 +383,9 @@ namespace evoped
             if (g_ids.size() > a_ids.size())
                 throw std::string("The number of elements in the passed G(-1) maatrix is greater then the number of IDs in full A(-1) matrix!");
 
+            if (g_ids.size() != a_red_ids.size())
+                throw std::string("The number of elements in the passed G(-1) maatrix is not equal to the number of IDs in A22(-1) matrix!");
+
             Utilities2 u;
 
             if (!u.is_value_in_vect(a_red_ids, g_ids))
@@ -404,9 +419,7 @@ namespace evoped
 
             std::vector<size_t> pos_map;
             for (size_t i = 0; i < g_ids.size(); i++)
-            {
                 pos_map.push_back(u.find_invect(a_red_ids, g_ids[i]));
-            }
 
 #pragma omp parallel for
             for (size_t i = 0; i < g_ids.size(); i++)
@@ -426,7 +439,34 @@ namespace evoped
 
             a_red_matr.clear();
 
-            // --------------------- A(-1) + G22(-1) -----------------------
+            // ----------------- H = A(-1) not in G22(-1) -----------------
+
+            std::vector<std::int64_t> a_id_notin_g;
+            u.check_id( g_ids, a_ids, a_id_notin_g ); // find ids of A(-1) which are not in G(-1)
+
+            size_t key = 0;
+            T a_value = (T)0;
+
+            for (size_t i = 0; i < a_ids.size(); i++)
+            {
+                for (size_t j = 0; j < a_id_notin_g.size(); j++)
+                {
+                    if ( j > i )
+                        continue;
+
+                    key = i * (i + 1) / 2 + j;
+
+                    a_value = a_matr.get_nonzero( key );
+
+                    if ( a_value != (T)0 )
+                    {
+                        h_values.push_back( a_matr[key] );
+                        h_keys.push_back( key );
+                    }
+                }
+            }
+
+            // ------------------- H = A(-1) + G22(-1) ---------------------
 
             pos_map.clear();
             pos_map.shrink_to_fit();
@@ -434,93 +474,33 @@ namespace evoped
             for (size_t i = 0; i < g_ids.size(); i++)
                 pos_map.push_back(u.find_invect(a_ids, g_ids[i]));
 
-            //--------------------------------------
-            /*
-            H_s.resize( a_ids.size() );
+            hmat_id = a_ids;
 
-            std::vector<std::int64_t> gmat_keys;
-            std::vector<std::int64_t> amat_in_gmat_keys; // whose keys which coincide with gmat_keys
-            std::vector<std::int64_t> amat_not_gmat_keys;
-            std::vector<std::int64_t> amat_keys;
-            
-            size_t key = 0;
+            key = 0;
+            a_value = (T)0;
+            size_t row = 0;
+            size_t col = 0;
 
             for (size_t i = 0; i < g_ids.size(); i++)
             {
-                size_t row = pos_map[i];
+                row = pos_map[i];
 
                 for (size_t j = 0; j <= i; j++)
                 {
-                    size_t col = pos_map[j];
+                    col = pos_map[j];
 
                     if (row >= col)
-                    {
                         key = row * (row + 1) / 2 + col;
-                        H_s[key] = g_matr(i, j);
-                    }
                     else
-                    {
                         key = col * (col + 1) / 2 + row;
-                        H_s[key] = g_matr(i, j);
-                    }
-                    gmat_keys.push_back(key);
+
+                    a_value = a_matr.get_nonzero( key );
+                    h_values.push_back( a_value + g_matr(i, j) );
+                    h_keys.push_back( key );
                 }
             }
-
-            a_matr.get_keyslist( amat_keys );
-            u.get_what_in_vect( gmat_keys, amat_keys, amat_in_gmat_keys);
-            u.get_missing_in_vect( amat_in_gmat_keys, amat_keys, amat_not_gmat_keys);
-
-            std::cout<<"amat_keys.size(): "<<amat_keys.size()<<"\n";
-            std::cout<<"gmat_keys.size(): "<<gmat_keys.size()<<"\n";
-            std::cout<<"amat_in_gmat_keys.size(): "<<amat_in_gmat_keys.size()<<"\n";
-            std::cout<<"amat_not_gmat_keys.size(): "<<amat_not_gmat_keys.size()<<"\n";
-
-            for (size_t i = 0; i < amat_in_gmat_keys.size(); i++)
-                H_s[ amat_in_gmat_keys[i] ] = a_matr[ amat_in_gmat_keys[i] ] + H_s[ amat_in_gmat_keys[i] ];
-
-            for (size_t i = 0; i < amat_not_gmat_keys.size(); i++)
-                H_s[ amat_not_gmat_keys[i] ] = a_matr[ amat_not_gmat_keys[i] ];
-
-            hmat_id = a_ids;
-            */
-            //--------------------------------------
-
-            /**/
-            H_s = a_matr;
 
             a_matr.clear();
-
-            hmat_id = a_ids;
-
-            size_t key = 0;
-
-            for (size_t i = 0; i < g_ids.size(); i++)
-            {
-                size_t row = pos_map[i];
-
-                for (size_t j = 0; j <= i; j++)
-                {
-                    size_t col = pos_map[j];
-
-                    if (row >= col)
-                    {
-                        key = row * (row + 1) / 2 + col;
-                        //H_s(row, col) = H_s(row, col) + g_matr(i, j);
-                    }
-                    else
-                    {
-                        key = col * (col + 1) / 2 + row;
-                        //H_s(col, row) = H_s(col, row) + g_matr(i, j);
-                    }
-                    H_s[key] = H_s[key] + g_matr(i, j);
-                }
-            }
-
-            //H_s.fwrite();
-
-            IsEmpty.H_s = false;
-
             g_matr.clear();
         }
         catch (const std::exception &e)
@@ -585,6 +565,9 @@ namespace evoped
             if (g_ids.size() > a_ids.size())
                 throw std::string("The number of elements in the passed G(-1) maatrix is greater then the number of IDs in full A(-1) matrix!");
 
+            if (g_ids.size() != a_red_ids.size())
+                throw std::string("The number of elements in the passed G(-1) maatrix is not equal to the number of IDs in A22(-1) matrix!");
+
             Utilities2 u;
 
             if (!u.is_value_in_vect(a_red_ids, g_ids))
@@ -614,9 +597,7 @@ namespace evoped
 
             std::vector<size_t> pos_map;
             for (size_t i = 0; i < g_ids.size(); i++)
-            {
                 pos_map.push_back(u.find_invect(a_red_ids, g_ids[i]));
-            }
 
             T zerro_val = (T)0;
 
@@ -642,7 +623,34 @@ namespace evoped
             }
 
             a_red_matr.clear();
-      
+
+            // ----------------- H = A(-1) not in G22(-1) -----------------
+
+            std::vector<std::int64_t> a_id_notin_g;
+            u.check_id( g_ids, a_ids, a_id_notin_g ); // find ids of A(-1) which are not in G(-1)
+
+            size_t key = 0;
+            T a_value = (T)0;
+
+            for (size_t i = 0; i < a_ids.size(); i++)
+            {
+                for (size_t j = 0; j < a_id_notin_g.size(); j++)
+                {
+                    if ( j > i )
+                        continue;
+
+                    key = i * (i + 1) / 2 + j;
+
+                    a_value = a_matr.get_nonzero( key );
+
+                    if ( a_value != (T)0 )
+                    {
+                        h_values.push_back( a_matr[key] );
+                        h_keys.push_back( key );
+                    }
+                }
+            }
+
             // --------------------- A(-1) + G22(-1) -----------------------
 
             pos_map.clear();
@@ -651,31 +659,33 @@ namespace evoped
             for (size_t i = 0; i < g_ids.size(); i++)
                 pos_map.push_back(u.find_invect(a_ids, g_ids[i]));
 
-            H_s = a_matr;
-
-            a_matr.clear();
-
             hmat_id = a_ids;
+
+            key = 0;
+            a_value = (T)0;
+            size_t row = 0;
+            size_t col = 0;
 
             for (size_t i = 0; i < g_ids.size(); i++)
             {
-                size_t row = pos_map[i];
+                row = pos_map[i];
 
                 for (size_t j = 0; j <= i; j++)
                 {
-                    size_t col = pos_map[j];
+                    col = pos_map[j];
 
                     if (row >= col)
-                        H_s(row, col) = H_s(row, col) + g_matr(i, j);
+                        key = row * (row + 1) / 2 + col;
                     else
-                        H_s(col, row) = H_s(col, row) + g_matr(i, j);
+                        key = col * (col + 1) / 2 + row;
+
+                    a_value = a_matr.get_nonzero( key );
+                    h_values.push_back( a_value + g_matr(i, j) );
+                    h_keys.push_back( key );
                 }
             }
 
-            //H_s.fwrite();
-
-            IsEmpty.H_s = false;
-
+            a_matr.clear();
             g_matr.clear();
         }
         catch (const std::exception &e)
@@ -740,6 +750,9 @@ namespace evoped
             if (g_ids.size() > a_ids.size())
                 throw std::string("The number of elements in the passed G(-1) maatrix is greater then the number of IDs in full A(-1) matrix!");
 
+            if (g_ids.size() != a_red_ids.size())
+                throw std::string("The number of elements in the passed G(-1) maatrix is not equal to the number of IDs in A22(-1) matrix!");
+
             Utilities2 u;
 
             if (!u.is_value_in_vect(a_red_ids, g_ids))
@@ -772,9 +785,7 @@ namespace evoped
 
             std::vector<size_t> pos_map;
             for (size_t i = 0; i < g_ids.size(); i++)
-            {
                 pos_map.push_back(u.find_invect(a_red_ids, g_ids[i]));
-            }
 
             T zerro_val = (T)0;
 
@@ -809,11 +820,16 @@ namespace evoped
             for (size_t i = 0; i < g_ids.size(); i++)
                 pos_map.push_back(u.find_invect(a_ids, g_ids[i]));
 
-            H = a_matr;
+            //H = a_matr;
 
-            a_matr.clear();
+            //a_matr.clear();
 
             hmat_id = a_ids;
+
+            size_t h_size = a_matr.size() * ( a_matr.size() + 1 )/2;
+
+            h_values.resize(h_size);
+            h_keys.resize(h_size);
 
 #pragma omp parallel for
             for (size_t i = 0; i < g_ids.size(); i++)
@@ -825,16 +841,20 @@ namespace evoped
                     size_t col = pos_map[j];
 
                     if (row >= col)
-                        H(row, col) = H(row, col) + g_matr(i, j);
+                        a_matr(row, col) = a_matr(row, col) + g_matr(i, j);
                     else
-                        H(col, row) = H(col, row) + g_matr(i, j);
+                        a_matr(col, row) = a_matr(col, row) + g_matr(i, j);
                 }
             }
 
-            //H.fwrite();
+#pragma omp parallel for
+            for (size_t i = 0; i < a_matr.size(); i++)
+            {
+                h_values[i] = a_matr[i];
+                h_keys[i] = i;
+            }
 
-            IsEmpty.H = false;
-
+            a_matr.clear();
             g_matr.clear();
         }
         catch (const std::exception &e)
@@ -870,6 +890,69 @@ namespace evoped
 
     //===============================================================================================================
     template <typename T>
+    void Hmat<T>::get_matrix(const std::string &out_fname)
+    {
+        // Note, we operate with L-stored format, hence return lower triangular part
+        try
+        {
+            Utilities2 u;
+            u.fwrite_matrix(out_fname, h_values, h_keys, hmat_id);
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Hmat<T>::get_matrix(const std::string &)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Hmat<T>::get_matrix(const std::string &)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Hmat<T>::get_matrix(const std::string &)" << '\n';
+            throw;
+        }
+    }
+    template void Hmat<float>::get_matrix(const std::string &out_fname);
+    template void Hmat<double>::get_matrix(const std::string &out_fname);
+
+    //===============================================================================================================
+    template <typename T>
+    void Hmat<T>::get_matrix(std::vector<T> &values, std::vector<size_t> &keys, std::vector<std::int64_t> &id)
+    {
+        // Note, we operate with L-stored format, hence return lower triangular part
+        try
+        {
+            values = h_values;
+            keys = h_keys;
+            id = hmat_id;
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Hmat<T>::get_matrix(std::vector<T> &, std::vector<size_t> &, std::vector<std::int64_t> &)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Hmat<T>::get_matrix(std::vector<T> &, std::vector<size_t> &, std::vector<std::int64_t> &)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Hmat<T>::get_matrix(std::vector<T> &, std::vector<size_t> &, std::vector<std::int64_t> &)" << '\n';
+            throw;
+        }
+    }
+    template void Hmat<float>::get_matrix(std::vector<float> &values, std::vector<size_t> &keys, std::vector<std::int64_t> &id);
+    template void Hmat<double>::get_matrix(std::vector<double> &values, std::vector<size_t> &keys, std::vector<std::int64_t> &id);
+
+    //===============================================================================================================
+    /*template <typename T>
     void Hmat<T>::get_matrix(evolm::matrix<T> &arr, std::vector<std::int64_t> &ids)
     {
         // Note, we operate with L-stored format, hence return lower triangular part
@@ -999,7 +1082,7 @@ namespace evoped
     }
     template void Hmat<float>::save_matrix(const std::string &arr, const std::string &ids);
     template void Hmat<double>::save_matrix(const std::string &arr, const std::string &ids);
-
+    */
     //===============================================================================================================
 
 

@@ -29,11 +29,11 @@ int main()
     evolm::smatrix<float> A22_sf;
     std::vector<std::int64_t> a22_id;
 
-    //std::string snp_file = "../evolm/tests/data/large_data/SNPS/YY_plink";
-    std::string snp_file = "YY_plink";
+    std::string snp_file = "../evolm/tests/data/large_data/SNPS/YY_plink";
+    //std::string snp_file = "YY_plink";
 
-    //std::string ped_file = "../evolm/tests/data/large_data/DMU/data/dmu_pedigree_yy_20240125.txt";
-    std::string ped_file = "dmu_pedigree_yy_20240125.txt";
+    std::string ped_file = "../evolm/tests/data/large_data/DMU/data/dmu_pedigree_yy_20240125.txt";
+    //std::string ped_file = "dmu_pedigree_yy_20240125.txt";
 
     std::string gid_file = "../evolm/tests/data/large_data/DMU/YY/yy.grm.id";
 
@@ -172,11 +172,12 @@ std::cout<<"Start testing:"<<"\n";
     }
 
     evoped::Hmat<float> h;
-    evolm::smatrix<float> H;
+    //evolm::smatrix<float> H;
     std::vector<std::int64_t> h_id;
 
     if ( test_H )
     {
+        /*
         double dim = 50000.0;
         //std::unordered_map<size_t, float> tmap;
         std::vector< std::vector<size_t> >keys;
@@ -187,15 +188,6 @@ std::cout<<"Start testing:"<<"\n";
         std::cout<<"sizeof(unsigned int): "<<sizeof(unsigned int)<<" UINT_MAX: "<<UINT_MAX<<"\n";
         std::cout<<"sizeof(size_t): "<<sizeof(size_t)<<" SIZE_MAX: "<<SIZE_MAX<<"\n";
         
-        /*size_t **v11 = new size_t *[dim];
-        float **v22 = new float *[dim];
-
-        for (size_t i = 0; i < dim; i++)
-        {
-            v11[i] = new size_t[i+1];
-            v22[i] = new float[i+1];
-        }*/
-
         for(size_t i = 0; i < (size_t)dim; i++)
         {
             std::vector<size_t> vect_keys;
@@ -227,7 +219,7 @@ std::cout<<"Start testing:"<<"\n";
 
         //while( 1 < 2 ){ std::cout<<"waiting ..."<<"\r"; }
         return 1;
-        /**/
+        */
 
 
         std::cout<<"Making G: "<<"\n";
@@ -364,20 +356,23 @@ std::cout<<"Start testing:"<<"\n";
 
         std::cout<<"Getting H:"<<"\n";
 
-        h.get_matrix(H,h_id);
+        //h.get_matrix(H,h_id);
+        h.get_matrix("H_matr");
+
+        h.clear();
 
         //H.fread();
 
-        std::cout<<"Expected size of H(-1): "<<H.size() * sizeof(float)<<"\n";
+        //std::cout<<"Expected size of H(-1): "<<H.size() * sizeof(float)<<"\n";
 
-        H.fwrite("H.smat");
-        H.clear();
+        //H.fwrite("H.smat");
+        //H.clear();
 
         stop = std::chrono::high_resolution_clock::now();
         duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
         std::cout <<"time spent (seconds): "<< (double)duration.count() / 1000.0 << std::endl;
 
-        std::cout<<"n IDs in H(-1): "<<h_id.size()<<"\n";
+        //std::cout<<"n IDs in H(-1): "<<h_id.size()<<"\n";
         std::cout<<"\n";
 
         std::cout<<"\n";
@@ -387,8 +382,8 @@ std::cout<<"Start testing:"<<"\n";
 
     if (test_H2)
     {
-        std::string g_file = "tests/data/big/gmat_050.dat";
-        std::string ped_file2 = "tests/data/big/id4trace.PED";
+        std::string g_file = "tests/data/sstep_050/data/gmat_050.dat";
+        std::string ped_file2 = "tests/data/sstep_050/data/id4trace.PED";
 
         //------------------------------------------------------
 
@@ -545,16 +540,17 @@ std::cout<<"Start testing:"<<"\n";
 
         start = std::chrono::high_resolution_clock::now();
 
-        h.get_matrix(H,h_id);
+        //h.get_matrix(H,h_id);
+        h.get_matrix("H_matr_small");
 
-        H.fwrite("H.smat");
-        H.clear();
+        //H.fwrite("H.smat");
+        //H.clear();
 
         stop = std::chrono::high_resolution_clock::now();
         duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
         std::cout <<"time spent (seconds): "<< (double)duration.count() / 1000.0 << std::endl;
 
-        std::cout<<"Expected size of H(-1): "<<(double)H.size() * sizeof(float) / (double)(1024*1024*1024)<<"\n";
+        //std::cout<<"Expected size of H(-1): "<<(double)H.size() * sizeof(float) / (double)(1024*1024*1024)<<"\n";
 
         std::cout<<"n IDs in H(-1): "<<h_id.size()<<"\n";
         std::cout<<"\n";

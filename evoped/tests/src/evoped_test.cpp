@@ -1199,6 +1199,307 @@ TEST_CASE("Testing Amat class")
         }        
     }
 
+    SECTION("14. Testing A, output to .corbin file: dense storage")
+    {
+        try
+        {
+            evoped::Amat<double> ap;
+            evolm::smatrix<double> A;
+            std::vector<std::int64_t> a_id;
+
+            ap.set_sparsiity_threshold(100.0); // ensure dense matrix processing
+            ap.make_matrix("tests/data/ped_bkg.dat", false);
+            ap.get_matrix("A", "matrix_A");
+
+            evoped::Utilities2 u;
+            std::vector<double> values;
+            std::vector<size_t> keys;
+
+            u.fread_matrix("matrix_A.corbin", values, keys, a_id);
+            
+            A.resize(a_id.size());
+            size_t counter = 0;
+            for (size_t i = 0; i < a_id.size(); i++)
+            {
+                for (size_t j = 0; j <= i; j++)
+                {
+                    A[keys[counter]] = values[counter];
+                    //std::cout<<"value: "<<values[counter]<<" keys: "<<keys[counter]<<"\n";
+                    counter++;
+                }
+            }
+
+            //A.print("A_from_.corbin");
+
+            std::vector<double> Avect;
+            for (size_t i = 0; i < a_id.size(); i++)
+            {
+                for (size_t j = 0; j <= i; j++)
+                {
+                    if ( A.get_nonzero(i,j) != 0.0 )
+                    {
+                        Avect.push_back( a_id[i] );
+                        Avect.push_back( a_id[j] );
+                        Avect.push_back( A(i,j) );
+                    }
+                }
+            }
+
+            CHECK( Acorr.size() == Avect.size() );
+
+            for (size_t i = 0; i < Avect.size();)
+            {
+                CHECK( Acorr[i] == Avect[i] );
+                CHECK( Acorr[i+1] == Avect[i+1] );
+                CHECK( Acorr[i+2] == Catch::Approx(Avect[i+2]) );
+                i = i + 3;
+            }
+
+            A.clean();
+            ap.clear();
+
+            std::cout<<"A: passed 14"<<"\n";
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << e.what() << '\n';
+        }
+        catch(const std::string& e)
+        {
+            std::cerr << e << '\n';
+        }        
+    }
+
+    SECTION("15. Testing A, output to .corbin file: sparse storage")
+    {
+        try
+        {
+            evoped::Amat<double> ap;
+            evolm::smatrix<double> A;
+            std::vector<std::int64_t> a_id;
+
+            ap.set_sparsiity_threshold(-1.0); // ensure sparse calculations
+            ap.make_matrix("tests/data/ped_bkg.dat", false);
+            ap.get_matrix("A", "sp_matrix_A");
+
+            evoped::Utilities2 u;
+            std::vector<double> values;
+            std::vector<size_t> keys;
+
+            u.fread_matrix("sp_matrix_A.corbin", values, keys, a_id);
+            
+            A.resize(a_id.size());
+            for (size_t i = 0; i < keys.size(); i++)
+            {
+                    //std::cout<<"value: "<<values[i]<<" keys: "<<keys[i]<<"\n";
+                    A[keys[i]] = values[i];                    
+            }
+
+            //A.print("sp_A_from_.corbin");
+
+            std::vector<double> Avect;
+            for (size_t i = 0; i < a_id.size(); i++)
+            {
+                for (size_t j = 0; j <= i; j++)
+                {
+                    if ( A.nonzero(i,j) )
+                    {
+                        Avect.push_back( a_id[i] );
+                        Avect.push_back( a_id[j] );
+                        Avect.push_back( A(i,j) );
+                    }
+                }
+            }
+
+            CHECK( Acorr.size() == Avect.size() );
+
+            for (size_t i = 0; i < Avect.size();)
+            {
+                CHECK( Acorr[i] == Avect[i] );
+                CHECK( Acorr[i+1] == Avect[i+1] );
+                CHECK( Acorr[i+2] == Catch::Approx(Avect[i+2]) );
+                i = i + 3;
+            }
+
+            ap.clear();
+            A.clean();
+
+            std::cout<<"A: passed 15"<<"\n";
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << e.what() << '\n';
+        }
+        catch(const std::string& e)
+        {
+            std::cerr << e << '\n';
+        }        
+    }
+
+    SECTION("16. Making All: sparse storage")
+    {
+        try
+        {
+            evoped::Amat<double> ap;
+            evolm::smatrix<double> iA;
+            std::vector<std::int64_t> a_id;
+            evolm::smatrix<double> irA;
+            std::vector<std::int64_t> ra_id;
+            evolm::smatrix<double> iA22;
+            std::vector<std::int64_t> ai22_id;
+            evolm::smatrix<double> A22;
+            std::vector<std::int64_t> a22_id;
+
+            ap.set_sparsiity_threshold(-1.0); // ensure sparse calculations
+            ap.make_all("tests/data/ped_bkg.dat", "tests/data/typed2");
+
+            //ap.get_matrix("iA", iA, a_id);
+            //ap.get_matrix("irA", irA, ra_id);
+            //ap.get_matrix("iA22", iA22, ai22_id);
+            //ap.get_matrix("A22", A22, a22_id);
+
+            ap.get_matrix("iA", "iA");
+            ap.get_matrix("irA", "irA");
+            ap.get_matrix("iA22", "iA22");
+            ap.get_matrix("A22", "A22");
+
+            evoped::Utilities2 u;
+            std::vector<double> values;
+            std::vector<size_t> keys;
+
+            u.fread_matrix("iA.corbin", values, keys, a_id);            
+            iA.resize(a_id.size());
+            for (size_t i = 0; i < keys.size(); i++)
+            {
+                    //std::cout<<"value: "<<values[i]<<" keys: "<<keys[i]<<"\n";
+                    iA[keys[i]] = values[i];                    
+            }
+            values.clear();
+            keys.clear();
+            
+            u.fread_matrix("irA.corbin", values, keys, ra_id);            
+            irA.resize(ra_id.size());
+            for (size_t i = 0; i < keys.size(); i++)
+            {
+                    //std::cout<<"value: "<<values[i]<<" keys: "<<keys[i]<<"\n";
+                    irA[keys[i]] = values[i];                    
+            }
+            values.clear();
+            keys.clear();
+
+            u.fread_matrix("iA22.corbin", values, keys, ai22_id);            
+            iA22.resize(ai22_id.size());
+            for (size_t i = 0; i < keys.size(); i++)
+            {
+                    //std::cout<<"value: "<<values[i]<<" keys: "<<keys[i]<<"\n";
+                    iA22[keys[i]] = values[i];                    
+            }
+            values.clear();
+            keys.clear();
+
+            u.fread_matrix("A22.corbin", values, keys, a22_id);            
+            A22.resize(a22_id.size());
+            for (size_t i = 0; i < keys.size(); i++)
+            {
+                    //std::cout<<"value: "<<values[i]<<" keys: "<<keys[i]<<"\n";
+                    A22[keys[i]] = values[i];                    
+            }
+            values.clear();
+            keys.clear();
+
+            //-------------------------
+
+            std::vector<double> iAvect;
+            for (size_t i = 0; i < a_id.size(); i++)
+            {
+                for (size_t j = 0; j <= i; j++)
+                {
+                    if ( iA.get_nonzero(i,j) != 0.0 )
+                    {
+                        iAvect.push_back( a_id[i] );
+                        iAvect.push_back( a_id[j] );
+                        iAvect.push_back( iA(i,j) );
+                    }
+                }
+            }
+
+            CHECK( iAcorr.size() == iAvect.size() );
+
+            for (size_t i = 0; i < iAvect.size();)
+            {
+                CHECK( iAcorr[i] == iAvect[i] );
+                CHECK( iAcorr[i+1] == iAvect[i+1] );
+                CHECK( iAcorr[i+2] == Catch::Approx(iAvect[i+2]) );
+                i = i + 3;
+            }
+
+            std::vector<double> irAvect;
+            for (size_t i = 0; i < ra_id.size(); i++)
+            {
+                for (size_t j = 0; j <= i; j++)
+                {
+                    if ( irA.get_nonzero(i,j) != 0.0 )
+                    {
+                        irAvect.push_back( ra_id[i] );
+                        irAvect.push_back( ra_id[j] );
+                        irAvect.push_back( irA(i,j) );
+                    }
+                }
+            }
+
+            CHECK( irAcorr.size() == irAvect.size() );
+
+            for (size_t i = 0; i < irAvect.size();)
+            {
+                CHECK( irAcorr[i] == irAvect[i] );
+                CHECK( irAcorr[i+1] == irAvect[i+1] );
+                CHECK( irAcorr[i+2] == Catch::Approx(irAvect[i+2]) );
+                i = i +3;
+            }
+
+            std::vector<double> A22vect;
+            for (size_t i = 0; i < a22_id.size(); i++)
+            {
+                for (size_t j = 0; j <= i; j++)
+                {
+                    A22vect.push_back( A22(i,j) );
+                }
+            }
+
+            CHECK( A22corr.size() == A22vect.size() );
+
+            for (size_t i = 0; i < A22vect.size(); i++)
+                CHECK( A22corr[i] == Catch::Approx(A22vect[i]) );
+
+            std::vector<double> iA22vect;
+            for (size_t i = 0; i < ai22_id.size(); i++)
+            {
+                for (size_t j = 0; j <= i; j++)
+                {
+                    iA22vect.push_back( iA22(i,j) );
+                }
+            }
+
+            CHECK( iA22corr.size() == iA22vect.size() );
+
+            for (size_t i = 0; i < iA22vect.size(); i++)
+                CHECK( iA22corr[i] == Catch::Approx(iA22vect[i]) );
+
+            ap.clear();
+
+            std::cout<<"A: passed 16"<<"\n";
+
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << e.what() << '\n';
+        }
+        catch(const std::string& e)
+        {
+            std::cerr << e << '\n';
+        }        
+    }
+
 }
 
 TEST_CASE( "Testing Gmat class" )
@@ -1380,7 +1681,7 @@ TEST_CASE( "Testing Gmat class" )
 
     // ------------------------------------
 
-    SECTION( "14. Making G, use genotype ASCII file" )
+    SECTION( "17. Making G, use genotype ASCII file" )
     {
         try
         {
@@ -1417,7 +1718,7 @@ TEST_CASE( "Testing Gmat class" )
                 i = i + 3;
             }
 
-            std::cout<<"G: passed 14"<<"\n";
+            std::cout<<"G: passed 17"<<"\n";
         }
         catch(const std::exception& e)
         {
@@ -1429,7 +1730,7 @@ TEST_CASE( "Testing Gmat class" )
         }                
     }
 
-    SECTION( "15. Reading G, use constructed G from an ASCII file" )
+    SECTION( "18. Reading G, use constructed G from an ASCII file" )
     {
         try
         {
@@ -1466,7 +1767,7 @@ TEST_CASE( "Testing Gmat class" )
                 i = i + 3;
             }
 
-            std::cout<<"G: passed 15"<<"\n";
+            std::cout<<"G: passed 18"<<"\n";
         }
         catch(const std::exception& e)
         {
@@ -1478,7 +1779,7 @@ TEST_CASE( "Testing Gmat class" )
         }                
     }
 
-    SECTION( "16. Scalling G by A22, then do non-sparse (APY) inversion" )
+    SECTION( "19. Scalling G by A22, then do non-sparse (APY) inversion" )
     {
         try
         {
@@ -1535,7 +1836,7 @@ TEST_CASE( "Testing Gmat class" )
             G.fclear();
             G.clear();
 
-            std::cout<<"G: passed 16"<<"\n";
+            std::cout<<"G: passed 19"<<"\n";
         }
         catch(const std::exception& e)
         {
@@ -1547,7 +1848,7 @@ TEST_CASE( "Testing Gmat class" )
         }                
     }
 
-    SECTION( "17. Sparse inverse (APY) of pre-constructed (read + scaled) G" )
+    SECTION( "20. Sparse inverse (APY) of pre-constructed (read + scaled) G" )
     {
         try
         {
@@ -1586,7 +1887,7 @@ TEST_CASE( "Testing Gmat class" )
             G.fclear();
             G.clear();
 
-            std::cout<<"G: passed 17"<<"\n";
+            std::cout<<"G: passed 20"<<"\n";
         }
         catch(const std::exception& e)
         {
@@ -1598,7 +1899,7 @@ TEST_CASE( "Testing Gmat class" )
         }                
     }
 
-    SECTION( "18. Make, scale, then sparsely invert" )
+    SECTION( "21. Make, scale, then sparsely invert" )
     {
         try
         {
@@ -1637,7 +1938,7 @@ TEST_CASE( "Testing Gmat class" )
             G.fclear();
             G.clear();
 
-            std::cout<<"G: passed 18"<<"\n";
+            std::cout<<"G: passed 21"<<"\n";
         }
         catch(const std::exception& e)
         {
@@ -1649,7 +1950,7 @@ TEST_CASE( "Testing Gmat class" )
         }                
     }
 
-    SECTION( "19. Make, scale, then sparsely invert (with FLOAT type)" )
+    SECTION( "22. Make, scale, then sparsely invert (with FLOAT type)" )
     {
         try
         {
@@ -1688,7 +1989,7 @@ TEST_CASE( "Testing Gmat class" )
             G.fclear();
             G.clear();
 
-            std::cout<<"G: passed 19"<<"\n";
+            std::cout<<"G: passed 22"<<"\n";
         }
         catch(const std::exception& e)
         {
@@ -1700,7 +2001,69 @@ TEST_CASE( "Testing Gmat class" )
         }                
     }
 
-    SECTION( "20. Sparse inverse of H, all matrices are dense" )
+    SECTION( "23. Testing get_matrix(const std::string &): reading G, use constructed G from an ASCII file" )
+    {
+        try
+        {
+            evoped::Gmat<double> gmat;
+            evolm::matrix<double> G;
+            std::vector<std::int64_t> g_id;
+
+            gmat.read_matrix("tests/data/g_mat");
+            gmat.get_matrix("g_matr");
+
+            evoped::Utilities2 u;
+            std::vector<double> values;
+            std::vector<size_t> keys;
+
+            u.fread_matrix("g_matr", values, keys, g_id);
+            
+            G.resize(g_id.size());
+            size_t counter = 0;
+            for (size_t i = 0; i < keys.size(); i++)
+            {
+                    G[keys[i]] = values[i];
+                    //std::cout<<"value: "<<values[counter]<<" keys: "<<keys[counter]<<"\n";
+                    //counter++;
+            }
+
+            std::vector<double> Gvect;
+            for (size_t i = 0; i < g_id.size(); i++)
+            {
+                for (size_t j = 0; j <= i; j++)
+                {
+                    if ( G(i,j) != 0.0 )
+                    {
+                        Gvect.push_back( g_id[i] );
+                        Gvect.push_back( g_id[j] );
+                        Gvect.push_back( G(i,j) );
+                    }
+                }
+            }
+
+            CHECK( G_true.size() == Gvect.size() );
+
+            for (size_t i = 0; i < Gvect.size();)
+            {
+                CHECK( G_true[i] == Gvect[i] );
+                CHECK( G_true[i+1] == Gvect[i+1] );
+                CHECK( G_true[i+2] == Catch::Approx(Gvect[i+2]) );
+                i = i + 3;
+            }
+
+            std::cout<<"G: passed 23"<<"\n";
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << e.what() << '\n';
+        }
+        catch(const std::string& e)
+        {
+            std::cerr << e << '\n';
+        }                
+    }
+
+    SECTION( "24. Sparse inverse of H, all matrices are dense" )
     {
         try
         {
@@ -1743,7 +2106,21 @@ TEST_CASE( "Testing Gmat class" )
             std::vector<std::int64_t> h_id;
             h.make_matrix(iA, a_id, iA22, ai22_id, G, g_id);
             
-            h.get_matrix(H,h_id);
+            //-------------------------
+            //h.get_matrix(H,h_id);
+            h.get_matrix("h_matr");
+            evoped::Utilities2 u;
+            std::vector<double> h_vals;
+            std::vector<size_t> h_keys;
+            u.fread_matrix("h_matr", h_vals, h_keys, h_id);
+            H.resize(h_id.size());
+            size_t counter = 0;
+            for (size_t i = 0; i < h_keys.size(); i++)
+            {
+                    H[ h_keys[i] ] = h_vals[ i ];
+                    //std::cout<<"value: "<<values[counter]<<" keys: "<<keys[counter]<<"\n";
+            }
+            //-------------------------
 
             std::vector<double> Hvect;
             for (size_t i = 0; i < h_id.size(); i++)
@@ -1783,7 +2160,7 @@ TEST_CASE( "Testing Gmat class" )
             H.fclear();
             H.clear();
 
-            std::cout<<"H: passed 20"<<"\n";
+            std::cout<<"H: passed 24"<<"\n";
         }
         catch(const std::exception& e)
         {
@@ -1795,7 +2172,7 @@ TEST_CASE( "Testing Gmat class" )
         }                
     }
 
-    SECTION( "21. Sparse inverse of H, all A matrices are sparse" )
+    SECTION( "25. Sparse inverse of H, all A matrices are sparse" )
     {
         try
         {
@@ -1845,7 +2222,21 @@ TEST_CASE( "Testing Gmat class" )
 
             h.make_matrix(iA, a_id, iA22, ai22_id, G, g_id);
 
-            h.get_matrix(H,h_id);
+            //-------------------------
+            //h.get_matrix(H,h_id);
+            h.get_matrix("h_matr");
+            evoped::Utilities2 u;
+            std::vector<double> h_vals;
+            std::vector<size_t> h_keys;
+            u.fread_matrix("h_matr", h_vals, h_keys, h_id);
+            H.resize(h_id.size());
+            size_t counter = 0;
+            for (size_t i = 0; i < h_keys.size(); i++)
+            {
+                    H[ h_keys[i] ] = h_vals[ i ];
+                    //std::cout<<"value: "<<values[counter]<<" keys: "<<keys[counter]<<"\n";
+            }
+            //-------------------------
 
             std::vector<double> Hvect;
             for (size_t i = 0; i < h_id.size(); i++)
@@ -1885,7 +2276,7 @@ TEST_CASE( "Testing Gmat class" )
             H.fclear();
             H.clear();
 
-            std::cout<<"H: passed 21"<<"\n";
+            std::cout<<"H: passed 25"<<"\n";
         }
         catch(const std::exception& e)
         {
@@ -1897,7 +2288,7 @@ TEST_CASE( "Testing Gmat class" )
         }                
     }
 
-    SECTION( "22. Sparse inverse of H, only A(-1) is sparse" )
+    SECTION( "26. Sparse inverse of H, only A(-1) is sparse" )
     {
         try
         {
@@ -1947,7 +2338,22 @@ TEST_CASE( "Testing Gmat class" )
 
             h.make_matrix(iA, a_id, iA22, ai22_id, G, g_id);
 
-            h.get_matrix(H,h_id);
+            //-------------------------
+            //h.get_matrix(H,h_id);
+            h.get_matrix("h_matr");
+            evoped::Utilities2 u;
+            std::vector<double> h_vals;
+            std::vector<size_t> h_keys;
+            u.fread_matrix("h_matr", h_vals, h_keys, h_id);
+            H.resize(h_id.size());
+            size_t counter = 0;
+            for (size_t i = 0; i < h_keys.size(); i++)
+            {
+                    H[ h_keys[i] ] = h_vals[ i ];
+                    //std::cout<<"value: "<<values[counter]<<" keys: "<<keys[counter]<<"\n";
+            }
+            //H.print("H");
+            //-------------------------
 
             std::vector<double> Hvect;
             for (size_t i = 0; i < h_id.size(); i++)
@@ -1987,7 +2393,7 @@ TEST_CASE( "Testing Gmat class" )
             H.fclear();
             H.clear();
 
-            std::cout<<"H: passed 22"<<"\n";
+            std::cout<<"H: passed 26"<<"\n";
         }
         catch(const std::exception& e)
         {

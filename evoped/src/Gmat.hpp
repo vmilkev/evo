@@ -56,7 +56,7 @@ namespace evoped
 
         // Python specific interfaces
         void scale_matrix(std::vector<T>& scale_matr, T scaling_weight);
-        void get_matrix(std::vector<T>& arr, std::vector<std::int64_t>& ids);
+        void get_matrix(const std::string &out_fname);
 
 #ifdef UTEST
         void get_alpha_beta(T &alpha,
