@@ -727,7 +727,7 @@ namespace evolm
 
         double rows_per_memory = ( available_memory - 2.0 * data_size - runtime_data_size ) / row_size_upper_bound;
 
-        if (rows_per_memory == 0.0)
+        if (rows_per_memory <= 0.0)
             throw std::string("Not enough memory, leading to rows_per_memory == 0. In order to fix the issue: increase a memory limit or decrease the number of available cpu.");
         
         for (size_t i_trate = 0; i_trate < n_trait; i_trate++)

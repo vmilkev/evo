@@ -382,8 +382,10 @@ std::cout<<"Start testing:"<<"\n";
 
     if (test_H2)
     {
-        std::string g_file = "tests/data/sstep_050/data/gmat_050.dat";
-        std::string ped_file2 = "tests/data/sstep_050/data/id4trace.PED";
+        //std::string g_file = "tests/data/sstep_050/data/gmat_050.dat";
+        //std::string ped_file2 = "tests/data/sstep_050/data/id4trace.PED";
+        std::string g_file = "tests/data/big/gmat_050.dat";
+        std::string ped_file2 = "tests/data/big/id4trace.PED";
 
         //------------------------------------------------------
 

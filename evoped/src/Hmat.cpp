@@ -416,7 +416,7 @@ namespace evoped
             shapeofg.clear();
 
             // ----------------- G22(-1) = G(-1) - A22(-1) -----------------
-
+std::cout<<"G(-1) - A22(-1)"<<"\n";
             std::vector<size_t> pos_map;
             for (size_t i = 0; i < g_ids.size(); i++)
                 pos_map.push_back(u.find_invect(a_red_ids, g_ids[i]));
@@ -440,33 +440,81 @@ namespace evoped
             a_red_matr.clear();
 
             // ----------------- H = A(-1) not in G22(-1) -----------------
-
+std::cout<<"A(-1) not in G22(-1)"<<"\n";
             std::vector<std::int64_t> a_id_notin_g;
             u.check_id( g_ids, a_ids, a_id_notin_g ); // find ids of A(-1) which are not in G(-1)
 
-            size_t key = 0;
-            T a_value = (T)0;
+            std::vector<size_t> matr_keys; // keys which are not part of genotyped
+            a_matr.get_keyslist(matr_keys);
 
-            for (size_t i = 0; i < a_ids.size(); i++)
+            std::vector<size_t> matr_keys_in_g; // keys which are part of genotyped
+
+            std::vector<T> t_values(matr_keys.size());
+            std::vector<std::int64_t> t_keys(matr_keys.size(), -2);
+            std::vector<std::int64_t> t_matr_keys_in_g(matr_keys.size(), -2);
+
+#pragma omp parallel for
+            for (size_t i = 0; i < matr_keys.size(); i++) // write keys and values for non-genotyped
             {
-                for (size_t j = 0; j < a_id_notin_g.size(); j++)
+                size_t irow = a_matr.row_insym(matr_keys[i]);
+                size_t icol = a_matr.col_insym(matr_keys[i], irow);
+                size_t real_row = a_ids[irow];
+                size_t real_col = a_ids[icol];
+                int found_row_pos = u.find_invect( a_id_notin_g, (std::int64_t)real_row );
+                int found_col_pos = u.find_invect( a_id_notin_g, (std::int64_t)real_col );
+                if ( found_col_pos != -1 ) // all ids which are not genotyped
                 {
-                    if ( j > i )
-                        continue;
-
-                    key = i * (i + 1) / 2 + j;
-
-                    a_value = a_matr.get_nonzero( key );
-
-                    if ( a_value != (T)0 )
-                    {
-                        h_values.push_back( a_matr[key] );
-                        h_keys.push_back( key );
-                    }
+                    //h_values.push_back(a_matr[ matr_keys[i] ]);
+                    //h_keys.push_back(matr_keys[i]);
+                    t_values[i] = a_matr[ matr_keys[i] ];
+                    t_keys[i] = matr_keys[i];
+                }
+                else if ( found_row_pos == -1 && found_col_pos == -1) // store all genotyped ids
+                {
+                    //matr_keys_in_g.push_back(matr_keys[i]);
+                    t_matr_keys_in_g[i] = matr_keys[i];
                 }
             }
 
+            for (size_t i = 0; i < t_values.size(); i++)
+            {
+                if ( t_keys[i] != -2 )
+                {
+                    h_values.push_back(t_values[i]);
+                    h_keys.push_back(t_keys[i]);
+                }
+
+                if ( t_matr_keys_in_g[i] != -2 )
+                    matr_keys_in_g.push_back(t_matr_keys_in_g[i]);
+            }
+
+            t_values.clear(); t_values.shrink_to_fit();
+            t_keys.clear(); t_keys.shrink_to_fit();
+            t_matr_keys_in_g.clear(); t_matr_keys_in_g.shrink_to_fit();
+
+std::cout<<"sizes: "<<h_values.size()<<" "<<h_keys.size()<<" "<<matr_keys_in_g.size()<<"\n";
             // ------------------- H = A(-1) + G22(-1) ---------------------
+std::cout<<"A(-1) + G22(-1)"<<"\n";
+           
+            for (size_t i = 0; i < matr_keys_in_g.size(); i++) // correct genotyped values by related A-matrix values
+            {
+                size_t ikey = matr_keys_in_g[i];
+                size_t irow = a_matr.row_insym(ikey);
+                size_t icol = a_matr.col_insym(ikey, irow);
+                size_t real_row = a_ids[irow];
+                size_t real_col = a_ids[icol];
+
+                size_t g_row = u.find_invect( g_ids, (std::int64_t)real_row );
+                size_t g_col = u.find_invect( g_ids, (std::int64_t)real_col );
+                if (g_row >= g_col)
+                {
+                    g_matr(g_row, g_col) = a_matr[ikey] + g_matr(g_row, g_col);
+                }
+                else
+                {
+                    g_matr(g_col, g_row) = a_matr[ikey] + g_matr(g_col, g_row);
+                }
+            }
 
             pos_map.clear();
             pos_map.shrink_to_fit();
@@ -476,12 +524,12 @@ namespace evoped
 
             hmat_id = a_ids;
 
-            key = 0;
-            a_value = (T)0;
+            size_t key = 0;
+            T a_value = (T)0;
             size_t row = 0;
             size_t col = 0;
 
-            for (size_t i = 0; i < g_ids.size(); i++)
+            for (size_t i = 0; i < g_ids.size(); i++) // write keys and values for all genotyped including corrected
             {
                 row = pos_map[i];
 
@@ -494,12 +542,12 @@ namespace evoped
                     else
                         key = col * (col + 1) / 2 + row;
 
-                    a_value = a_matr.get_nonzero( key );
-                    h_values.push_back( a_value + g_matr(i, j) );
+                    h_values.push_back( g_matr(i, j) );
                     h_keys.push_back( key );
                 }
             }
 
+std::cout<<"end"<<"\n";
             a_matr.clear();
             g_matr.clear();
         }

@@ -351,12 +351,11 @@ namespace evoped
         {
             if ( is_plink_file(fname) ) // the pipeline for binary (.bad) plink-formated data
             {
-std::cout<<"Pass 1"<<"\n";
                 evolm::matrix<int> M;
                 get_m_matrix(fname, M);
-std::cout<<"Pass 2"<<"\n";
+
                 make_zmatrix(M); // scalling SNPs
-std::cout<<"Pass 3"<<"\n";
+
                 M.clear();
             }
             else // the pipeline for text (.ped) plink-formated data !!! not implemented yet
@@ -365,9 +364,9 @@ std::cout<<"Pass 3"<<"\n";
                 make_zmatrix(); // scalling SNPs
                 snp_map.clear();
             }
-std::cout<<"Pass 4"<<"\n";
+
             make_matrix(); // making G matrix
-std::cout<<"Pass 5"<<"\n";
+
             Z.fclear();
             Z.clear();
         }
@@ -2194,15 +2193,10 @@ std::cout<<"Pass 5"<<"\n";
     {
         try
         {
-std::cout<<"G = Z"<<"\n";
             G = Z;
-std::cout<<"Z.transpose()"<<"\n";
             Z.transpose();
-std::cout<<"G = G * Z"<<"\n";
             G = G * Z;
-std::cout<<"G.rectosym()"<<"\n";
             G.rectosym();
-std::cout<<"G.scale(1.0 / freq)"<<"\n";
             G.scale(1.0 / freq);
 
             //G = (Z ^ 2) * (1 / freq);

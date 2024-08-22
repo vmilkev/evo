@@ -1116,7 +1116,7 @@ namespace evoped
             // -----------------------------------------------------
             std::vector<std::int64_t> pedID;
             std::map<PedPair, PedPair> pedigree_from_file;
-            
+std::cout<<"        trace_pedigree(..)"<<"\n";            
             fread_pedigree(ped_file, pedigree_from_file, pedID);
 
             if (pedID.empty())
@@ -1138,7 +1138,7 @@ namespace evoped
 
             if (genotypedID.empty())
                 throw std::string("Cannot trace the reduced pedigree: ID's vector is empty!");
-
+std::cout<<"        trace_pedigree(..)"<<"\n";
             trace_pedigree(pedigree_from_file, r_pedigree, genotypedID); // tracing reduced pedigree for genotyped individuals
 
             if (traced_pedID.empty())
@@ -1153,7 +1153,7 @@ namespace evoped
                 inbrF.erase(inbrF.begin(), inbrF.end());
 
             std::map<PedPair, T> r_ainv;
-
+std::cout<<"        get_ainv(..)"<<"\n";
             get_ainv(r_pedigree, r_ainv, true); // making reduced A(-1)
 
             pedigree_from_file.clear();
@@ -1164,10 +1164,10 @@ namespace evoped
                 throw std::string("The number of elements in calculated reduced A(-1) matrix is higher than the number of traced IDs!!");
 
             data_sparsity = ( 1.0 - (double)r_ainv.size() / (double)limit ) * 100.0;
-            
+std::cout<<"        map_to_matr(..), data_sparsity "<<data_sparsity<<" sparsity_threshold "<<sparsity_threshold<<"\n";            
             if ( data_sparsity >= sparsity_threshold )
                 use_sparse = true;
-
+std::cout<<"        map_to_matr(..)"<<"\n";
             if ( use_ainv )
             {
                 if (use_sparse)
@@ -1200,7 +1200,7 @@ namespace evoped
                 if ( !IsEmpty.irA_s ) // irA_s is not empty (was processed through a sparse pathway)
                 {
                     irA_s.fread();
-
+std::cout<<"       is irA_s"<<"\n";
                     get_iA22(irA_s, id_irA, genotypedID);
 
                     irA_s.fwrite();
@@ -1214,6 +1214,7 @@ namespace evoped
                 else
                 {
                     irA.fread();
+std::cout<<"         is not irA_s"<<"\n";
                     get_iA22(irA, id_irA, genotypedID);
                     irA.fwrite();
 
@@ -1525,9 +1526,6 @@ namespace evoped
                 throw std::string("There are IDs in the selected IDs array which are not part of the passed matrix!");
 
             // --------------------------------
-            if (!A_s.empty())
-                A_s.resize();
-
             // Create the list of IDs which are in matr_ids but not in selected_ids vectors
 
             std::vector<std::int64_t> not_selected_ids;
@@ -1546,18 +1544,26 @@ namespace evoped
                 throw std::string("The sum of IDs from from two vectors is not equal to number of IDs in the matrix!");
 
             // ------------------------------------------------
-
             // Next steps: A22(-1) = A22 - A21 * A11(-1) * A12;
 
+            /*
             evolm::smatrix<T> a22; // in order to differrentiate from the 'global' A22
             evolm::smatrix<T> A11;
             evolm::smatrix<T> A21;
             evolm::smatrix<T> A12;
             evolm::matrix<T> dense_A11; // this is the temporal storage for making inverse
-
+            */
             // -------------------- A11 -----------------------
+std::cout<<"       makeing A11"<<"\n";
 
-            dense_A11.resize(not_selected_ids.size());
+            //dense_A11.resize(not_selected_ids.size());
+
+            evolm::matrix<T> a22; // in order to differrentiate from the 'global' A22
+            evolm::matrix<T> A11;
+            evolm::matrix<T> A21;
+            evolm::matrix<T> A12;
+
+            A11.resize(not_selected_ids.size());
 
             std::vector<size_t> non_selected_pos;
             for (size_t i = 0; i < not_selected_ids.size(); i++)
@@ -1572,7 +1578,7 @@ namespace evoped
             {
                 size_t pos_i = non_selected_pos[i];
                 T value = (T)0;
-                T zerro_value = (T)0;
+                //T zerro_value = (T)0;
 
                 for (size_t j = 0; j <= i; j++)
                 {
@@ -1582,23 +1588,35 @@ namespace evoped
                     {
                         value = full_matr.get_nonzero(pos_i, pos_j);
 
-                        if (value != zerro_value)
+                        /*if (value != zerro_value)
                             dense_A11(i, j) = value;
                         else
-                            dense_A11(i, j) = zerro_value;
+                            dense_A11(i, j) = zerro_value;*/
+                        
+                        /*if (value != zerro_value)
+                            A11(i, j) = value;
+                        else
+                            A11(i, j) = zerro_value;*/
                     }
                     else
                     {
                         value = full_matr.get_nonzero(pos_j, pos_i);
 
-                        if (value != zerro_value)
+                        /*if (value != zerro_value)
                             dense_A11(i, j) = value;
                         else
-                            dense_A11(i, j) = zerro_value;
+                            dense_A11(i, j) = zerro_value;*/
+                        
+                        /*if (value != zerro_value)
+                            A11(i, j) = value;
+                        else
+                            A11(i, j) = zerro_value;*/
                     }
+
+                    A11(i, j) = value;
                 }
             }
-
+            /*
             dense_A11.symtorec();
 
             dense_A11.invert();
@@ -1624,7 +1642,7 @@ namespace evoped
             // ------------------------------------------------
             //
             // -------------------- A21 -----------------------
-
+std::cout<<"       makeing A21"<<"\n";
             A21.resize(selected_ids.size(), not_selected_ids.size());
 
             for (size_t i = 0; i < selected_ids.size(); i++)
@@ -1657,7 +1675,7 @@ namespace evoped
             // ------------------------------------------------
             //
             // -------------------- A12 -----------------------
-
+std::cout<<"       makeing A12"<<"\n";
             A12 = A21;
 
             A12.transpose();
@@ -1667,11 +1685,13 @@ namespace evoped
             // ------------------------------------------------
             //
             // --------------- A21 * A11(-1) * A12 ------------
-                       
+std::cout<<"       makeing A21 * A11(-1) * A12"<<"\n";
             A11.fread();
             
             evolm::smatrix<T> res;
-
+std::cout<<"       makeing A21 * A11, A21.size() "<<A21.size()<<" A11.size() "<<A11.size()<<"\n";
+std::cout<<"       dim A11 "<<A11.nrows()<<" "<<A11.ncols()<<"\n";
+std::cout<<"       dim A21 "<<A21.nrows()<<" "<<A21.ncols()<<"\n";
             res = A21 * A11;
 
             A11.fclear();
@@ -1681,18 +1701,18 @@ namespace evoped
             A21.clear();
 
             A12.fread();
-
+std::cout<<"       makeing res * A12, res.size() "<<res.size()<<"\n"; 
             res = res * A12;
 
             A12.fclear();
             A12.clear();
-
+std::cout<<"       makeing res.rectosym()"<<"\n"; 
             res.rectosym();
 
             // ------------------------------------------------
             //
             // -------------------- A22 -----------------------
-
+std::cout<<"       makeing A22"<<"\n"; 
             a22.resize(selected_ids.size());
 
             for (size_t i = 0; i < selected_ids.size(); i++)
@@ -1730,6 +1750,10 @@ namespace evoped
             // ------------------------------------------------
             //
             // ------------------ A22 - res -------------------
+std::cout<<"       makeing A22 - res"<<"\n";
+
+            if (!A_s.empty())
+                A_s.resize();
 
             A_s = a22 - res;
 
@@ -1740,6 +1764,145 @@ namespace evoped
             res.clear();
 
             // ------------------------------------------------
+            */
+            A11.symtorec();
+
+            A11.invert();
+
+            A11.fwrite();
+
+            // ------------------------------------------------
+            //
+            // -------------------- A21 -----------------------
+std::cout<<"       makeing A21"<<"\n";
+            A21.resize(selected_ids.size(), not_selected_ids.size());
+
+#pragma omp parallel for
+            for (size_t i = 0; i < selected_ids.size(); i++)
+            {
+                size_t pos_i = selected_pos[i];
+                T value = (T)0;
+                //T zerro_value = (T)0;
+
+                for (size_t j = 0; j < not_selected_ids.size(); j++)
+                {
+                    size_t pos_j = non_selected_pos[j];
+
+                    if (pos_i >= pos_j)
+                    {
+                        value = full_matr.get_nonzero(pos_i, pos_j);
+
+                        /*if (value != zerro_value)
+                            A21(i, j) = value;*/
+                    }
+                    else
+                    {
+                        value = full_matr.get_nonzero(pos_j, pos_i);
+
+                        /*if (value != zerro_value)
+                            A21(i, j) = value;*/
+                    }
+                    A21(i, j) = value;
+                }
+            }
+            // ------------------------------------------------
+            //
+            // -------------------- A12 -----------------------
+
+            A12 = A21;
+
+            A12.transpose();
+
+            A12.fwrite();
+            // ------------------------------------------------
+            //
+            // --------------- A21 * A11(-1) * A12 ------------
+
+            A11.fread();
+            evolm::matrix<T> res;
+
+            res = A21 * A11;
+
+            A11.fclear();
+            A11.clear();
+
+            A21.fclear();
+            A21.clear();
+
+            A12.fread();
+
+            res = res * A12;
+
+            A12.fclear();
+            A12.clear();
+
+            // ------------------------------------------------
+            //
+            // -------------------- A22 -----------------------
+std::cout<<"       makeing A22"<<"\n"; 
+            a22.resize(selected_ids.size());
+
+#pragma omp parallel for
+            for (size_t i = 0; i < selected_ids.size(); i++)
+            {
+                size_t pos_i = selected_pos[i];
+                T value = (T)0;
+                //T zerro_value = (T)0;
+
+                for (size_t j = 0; j <= i; j++)
+                {
+                    size_t pos_j = selected_pos[j];
+
+                    if (pos_i >= pos_j)
+                    {
+                        value = full_matr.get_nonzero(pos_i, pos_j);
+
+                        /*if (value != zerro_value)
+                            a22(i, j) = value;*/
+                    }
+                    else
+                    {
+                        value = full_matr.get_nonzero(pos_j, pos_i);
+
+                        /*if (value != zerro_value)
+                            a22(i, j) = value;*/
+                    }
+                    a22(i, j) = value;
+                }
+            }
+
+            non_selected_pos.clear();
+            non_selected_pos.shrink_to_fit();
+            selected_pos.clear();
+            selected_pos.shrink_to_fit();
+
+            // ------------------------------------------------
+            //
+            // ------------------ A22 - res -------------------
+std::cout<<"       makeing A22 - res"<<"\n"; 
+            evolm::matrix<size_t> shapeofa22;
+            shapeofa22 = a22.shape();
+
+            res.rectosym();
+
+#pragma omp parallel for
+            for (size_t i = 0; i < a22.size(); i++)
+                res[i] = a22[i] - res[i];
+
+            a22.fclear();
+            a22.clear();
+
+            //A = res; // 1
+            A_s.resize(shapeofa22[0]);
+            for(size_t i = 0; i < res.size(); i++)
+                if( res[i] != (T)0 )
+                    A_s[i] = res[i];
+
+std::cout<<"       sparsity of A_s "<<1.0 - (double)A_s.size()/(double)(shapeofa22[0]*(shapeofa22[0]+1)/2 + shapeofa22[0])<<"\n"; 
+            res.fclear();
+            res.clear();
+            // ------------------------------------------------
+
         }
         catch (const std::exception &e)
         {

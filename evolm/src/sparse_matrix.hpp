@@ -131,14 +131,14 @@ namespace evolm
 
         const size_t matrix_type = 2002;
 
-        size_t col_insym(size_t key, size_t row); /* returns col of symmetric matrix knowing the index (key) and the specific row */
-        size_t row_insym(size_t key, size_t col); /* ... the same but for row */
-        size_t row_insym(size_t key);
-        size_t col_inrec(size_t key, size_t row); /* ... the same as previous but for rectangular matrix */
-        size_t row_inrec(size_t key, size_t col);
-        size_t row_inrec(size_t key);
-        size_t key_insym(size_t row, size_t col); /* position (index, key) of an value in a symmetric matrix based on the specific raw and col */
-        size_t key_inrec(size_t row, size_t col); /* position (index, key) of an value in a rectangular matrix based on the specific raw and col */
+        //size_t col_insym(size_t key, size_t row); /* returns col of symmetric matrix knowing the index (key) and the specific row */
+        //size_t row_insym(size_t key, size_t col); /* ... the same but for row */
+        //size_t row_insym(size_t key);
+        //size_t col_inrec(size_t key, size_t row); /* ... the same as previous but for rectangular matrix */
+        //size_t row_inrec(size_t key, size_t col);
+        //size_t row_inrec(size_t key);
+        //size_t key_insym(size_t row, size_t col); /* position (index, key) of an value in a symmetric matrix based on the specific raw and col */
+        //size_t key_inrec(size_t row, size_t col); /* position (index, key) of an value in a rectangular matrix based on the specific raw and col */
         
         size_t find_invect(std::vector<size_t> &where, size_t what); /* finds the specific value in a vector */
         size_t find_inrange(std::vector<size_t> &where, size_t what); /* find the position in vector of the values less then what */
@@ -206,6 +206,15 @@ namespace evolm
         void extend_by(smatrix &rhs_matr);
         void element_wise_dot(smatrix &rhs_matr);
         void to_vect(std::vector<T> &values, std::vector<size_t> &keys);
+
+        size_t col_insym(size_t key, size_t row); /* returns col of symmetric matrix knowing the index (key) and the specific row */
+        size_t row_insym(size_t key, size_t col); /* ... the same but for row */
+        size_t row_insym(size_t key);
+        size_t col_inrec(size_t key, size_t row); /* ... the same as previous but for rectangular matrix */
+        size_t row_inrec(size_t key, size_t col);
+        size_t row_inrec(size_t key);
+        size_t key_insym(size_t row, size_t col); /* position (index, key) of an value in a symmetric matrix based on the specific raw and col */
+        size_t key_inrec(size_t row, size_t col); /* position (index, key) of an value in a rectangular matrix based on the specific raw and col */
     };
         
 } // end of namespace evolm

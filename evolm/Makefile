@@ -12,11 +12,14 @@ EXTSRC2 := ../libplinkio/src
 EXTLIBNAME := plinkio
 
 # Mac
-LIBRARY_PATH := /Users/au383883/Documents/MY/codebase/evo/libplinkio/release_lib
+#LIBRARY_PATH := /Users/au383883/Documents/MY/codebase/evo/libplinkio/release_lib
+#LIBRARY_PATH_2 := /Users/au383883/Documents/MY/codebase/evo/evolm/release2
 # Debian
-#LIBRARY_PATH := /usr/home/qgg/vimi/codebase/evo/libplinkio/release_lib
+LIBRARY_PATH := /usr/home/qgg/vimi/codebase/evo/libplinkio/release_lib
+LIBRARY_PATH_2 := /usr/home/qgg/vimi/codebase/evo/evolm/release2
 # Ubuntu
 #LIBRARY_PATH := /home/vimi/Documents/codebase/evo/libplinkio/release_lib
+#LIBRARY_PATH_2 := /home/vimi/Documents/codebase/evo/evolm/release2
 
 # determine OS and source of BLAS lib
 UNAME_OS := $(shell uname -s)
@@ -27,7 +30,7 @@ ifeq ($(UNAME_OS),Darwin)
 	CXX := clang++
 else
 	SHELL := /bin/bash
-	export LD_LIBRARY_PATH := $(LD_LIBRARY_PATH):$(LIBRARY_PATH)
+	export LD_LIBRARY_PATH := $(LD_LIBRARY_PATH):$(LIBRARY_PATH):$(LIBRARY_PATH_2)
 	ifdef SOURSE_BLAS_IS_INTEL
 		CXX := icpx
 	else
@@ -50,7 +53,9 @@ ifeq ($(UNAME_OS),Darwin) # using apple's Accelerate
 
 	LIBFLAGS := -undefined dynamic_lookup -shared -lpthread -lm -lomp -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -L/opt/homebrew/opt/libomp/lib -L/opt/homebrew/opt/openblas/lib -lopenblas
 	LIBFLAGS_TEST := -undefined dynamic_lookup -lpthread -lm -lomp -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -L/opt/homebrew/opt/libomp/lib -L/opt/homebrew/opt/openblas/lib -lopenblas
-	EXTRA_LIBFLAGS :=  -L$(BDIR_CLIB) -l$(APPNAME) -L$(LIBRARY_PATH) -l$(EXTLIBNAME)
+#	EXTRA_LIBFLAGS :=  -L$(BDIR_CLIB) -l$(APPNAME) -L$(LIBRARY_PATH) -l$(EXTLIBNAME)
+	EXTRA_LIBFLAGS := -L$(LIBRARY_PATH) -l$(EXTLIBNAME)
+	EXTRA_LIBFLAGS_TEST := -L$(BDIR_CLIB) -l$(APPNAME)
 else
 	ifeq ($(UNAME_OS),Linux)
 #		ifeq ( $(SOURSE_BLAS_IS_INTEL), 1) # using Intel's MKL
@@ -61,7 +66,8 @@ else
 			CFLAGS_CLIB := -O3 -qopenmp -I$(EXTSRC2) -DMKL_ILP64 -I${MKLROOT}/include -fPIC -std=c++17
 			
 			EXTRA_CFLAGS := -D UTEST -D intelmkl -Wall -pthread
-			EXTRA_LIBFLAGS := -L$(BDIR_CLIB) -l$(APPNAME) -L$(LIBRARY_PATH) -l$(EXTLIBNAME)
+			EXTRA_LIBFLAGS := -L$(LIBRARY_PATH) -l$(EXTLIBNAME)
+			EXTRA_LIBFLAGS_TEST := -L$(BDIR_CLIB) -l$(APPNAME)
 			EXTRA_LIBFLAGS_2 :=
 			
 			LIBFLAGS := -shared -qopenmp -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_ilp64.a ${MKLROOT}/lib/intel64/libmkl_core.a ${MKLROOT}/lib/intel64/libmkl_intel_thread.a -Wl,--end-group -lpthread -lm
@@ -74,6 +80,7 @@ else
 			LIBFLAGS_TEST := -lpthread -lm -lgomp /opt/openBLAS/lib/libopenblas.a
 
 			EXTRA_LIBFLAGS := -L$(LIBRARY_PATH) -l$(EXTLIBNAME)
+			EXTRA_LIBFLAGS_TEST := -L$(BDIR_CLIB) -l$(APPNAME)
 		endif
 	endif
 endif
@@ -108,7 +115,7 @@ $(TARGET_PYLIB): $(OBJECT_PYL)
 # build catch2 test
 $(TARGET_TEST): $(OBJECT_TST)
 	@echo " Linking tests ..."
-	$(CXX) $^ $(LIBFLAGS_TEST) $(EXTRA_LIBFLAGS) $(EXTRA_LIBFLAGS_2) -o $(TARGET_TEST)
+	$(CXX) $^ $(LIBFLAGS_TEST) $(EXTRA_LIBFLAGS) $(EXTRA_LIBFLAGS_TEST) -o $(TARGET_TEST)
 
 # build shared c++ lib
 $(TARGET_CLIB): $(OBJECT_LIB)

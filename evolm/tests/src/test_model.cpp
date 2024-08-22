@@ -1201,7 +1201,7 @@ TEST_CASE("Testing on model 1")
     {
         try
         {
-            std::cout<<"   ===> Testing 14 ..."<<"\n";
+            //std::cout<<"   ===> Testing 14 ..."<<"\n";
             evolm::model_sparse model;
             evolm::sparse_pcg solver;
 
@@ -1231,9 +1231,8 @@ TEST_CASE("Testing on model 1")
 
             solver.append_model(model);
 
-            solver.set_memory_limit(0.0000005);
+            solver.set_memory_limit(0.000005);
             solver.set_cpu_limit(2);
-
             size_t n_all_levels_checking = solver.test_num_all_levels();
 
             CHECK(n_all_levels_checking == n_all_levels);
@@ -1246,7 +1245,6 @@ TEST_CASE("Testing on model 1")
                 CHECK(ordered_random_levels_checking[i] == ordered_random_levels[i]);
 
             std::vector<std::vector<size_t>> rcov_offsets_checking = solver.test_cov_offsets();
-
             CHECK(rcov_offsets_checking.size() == rcov_offsets.size());
             CHECK(rcov_offsets_checking[0].size() == rcov_offsets[0].size());
 
@@ -1257,9 +1255,7 @@ TEST_CASE("Testing on model 1")
                     CHECK(rcov_offsets_checking[i][j] == rcov_offsets[i][j]);
                 }
             }
-
             std::vector<std::vector<float>> A = solver.test_A();
-
             CHECK(A.size() == CoeffMatrix.size());
             CHECK(A[0].size() == CoeffMatrix[0].size());
 
@@ -1270,9 +1266,7 @@ TEST_CASE("Testing on model 1")
                     CHECK(A[i][j] == Catch::Approx(CoeffMatrix[i][j]).margin(0.001).epsilon(1e-3));
                 }
             }
-
             solver.solve();
-
             std::vector<float> sol = solver.get_solution();
 
             solver.get_solution("sparse_solution_model_1_v2.dat");
@@ -2005,8 +1999,8 @@ TEST_CASE("Testing on big model 4")
 
             model.set_sparsity_threshold(0.2);
 
-std::cout<<"        ==> Testing model 4 on sparse solver..."<<"\n";
-auto start = std::chrono::high_resolution_clock::now();
+//std::cout<<"        ==> Testing model 4 on sparse solver..."<<"\n";
+//auto start = std::chrono::high_resolution_clock::now();
 
             std::vector<float> iR{0.01};
 
@@ -2015,9 +2009,9 @@ auto start = std::chrono::high_resolution_clock::now();
             model.append_residual(iR, 1);
 
             model.append_observation("tests/data/model_4/obs_1000.dat"); // obs := 0
-std::cout<<"            ==> appending eff_snp ..."<<"\n";
+//std::cout<<"            ==> appending eff_snp ..."<<"\n";
             model.append_effect(eff_snp, in.size(), in[0].size()); // eff := 0
-std::cout<<"            ==> appending eff_fixed ..."<<"\n";
+//std::cout<<"            ==> appending eff_fixed ..."<<"\n";
             model.append_effect(eff_fixed, in2.size(), in2[0].size());         // eff := 1
 
             std::vector<int> corr_eff{0};
@@ -2049,12 +2043,12 @@ std::cout<<"            ==> appending eff_fixed ..."<<"\n";
             // }
             // out_a.close();
 
-std::cout<<"            ==> solving ..."<<"\n";
+//std::cout<<"            ==> solving ..."<<"\n";
             solver.solve();
 
-auto stop = std::chrono::high_resolution_clock::now();
-auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-std::cout <<"model 4 on sparse solver (milliseconds): "<< duration.count() << std::endl;
+//auto stop = std::chrono::high_resolution_clock::now();
+//auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+//std::cout <<"model 4 on sparse solver (milliseconds): "<< duration.count() << std::endl;
 
             // std::vector<float> sol = solver.get_solution();
 
