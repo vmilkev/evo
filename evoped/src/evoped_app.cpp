@@ -13,8 +13,8 @@ int main()
 {
     bool test_A = false;
     bool test_G = false;
-    bool test_H = false;
-    bool test_H2 = true;
+    bool test_H = true;
+    bool test_H2 = false;
 
     evoped::Amat<float> ap;
 
@@ -347,10 +347,10 @@ std::cout<<"Start testing:"<<"\n";
 
     if (test_H2)
     {
-        std::string g_matr_file = "tests/data/sstep_050/data/gmat_050.gmatrix";
-        std::string ped_file2 = "tests/data/sstep_050/data/id4trace.PED";
-        //std::string g_file = "tests/data/big/gmat_050.gmatrix";
-        //std::string ped_file2 = "tests/data/big/id4trace.PED";
+        //std::string g_matr_file = "tests/data/sstep_050/data/gmat_050.gmatrix";
+        //std::string ped_file2 = "tests/data/sstep_050/data/id4trace.PED";
+        std::string g_matr_file = "tests/data/big/gmat_050.gmatrix";
+        std::string ped_file2 = "tests/data/big/id4trace.PED";
 
         auto start = std::chrono::high_resolution_clock::now();
 
