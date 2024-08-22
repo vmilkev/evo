@@ -13,8 +13,8 @@ int main()
 {
     bool test_A = false;
     bool test_G = false;
-    bool test_H = true;
-    bool test_H2 = false;
+    bool test_H = false;
+    bool test_H2 = true;
 
     evoped::Amat<float> ap;
 
@@ -177,51 +177,15 @@ std::cout<<"Start testing:"<<"\n";
 
     if ( test_H )
     {
-        /*
-        double dim = 50000.0;
-        //std::unordered_map<size_t, float> tmap;
-        std::vector< std::vector<size_t> >keys;
-        std::vector< std::vector<float> >vals;
-        size_t key = 0;
-        size_t max_key = (dim*dim-dim)/2.0;
-        std::cout<<"dimension: "<<dim/1000.0<<" e3, max key: "<<(double)max_key/1000000.0<<" e6, expected size, GB: "<<(double)max_key*(sizeof(float)+sizeof(size_t)) / (1024.0*1024.0*1024.0)<<"\n";
-        std::cout<<"sizeof(unsigned int): "<<sizeof(unsigned int)<<" UINT_MAX: "<<UINT_MAX<<"\n";
-        std::cout<<"sizeof(size_t): "<<sizeof(size_t)<<" SIZE_MAX: "<<SIZE_MAX<<"\n";
-        
-        for(size_t i = 0; i < (size_t)dim; i++)
-        {
-            std::vector<size_t> vect_keys;
-            std::vector<float> vect_vals;
-            for (size_t j = 0; j <=i; j++)
-            {
-                ++key;
-                vect_keys.push_back(key);
-                vect_vals.push_back((float)i);
-                //tmap[key] = tmap[key] + (float)i;
-                //v11[i][j] = key;
-                //v22[i][j] = (float)i;
+        auto start = std::chrono::high_resolution_clock::now();
 
-                if ( !(key%500) )
-                    std::cout<<"completed, %: "<<((double)key/(double)max_key)*100.0<<"\r";
-            }
-            keys.push_back(vect_keys);
-            vals.push_back(vect_vals);
-        }
+        h.make_matrix(snp_file, ped_file, "h_matrix_big");
 
-        for (size_t i = 0; i < (size_t)dim; i++)
-        {
-            for (size_t j = 0; j <=i; j++)
-            {
-                //v22[i][j] = v22[i][j] + 1.0f;
-                vals[i][j] = vals[i][j] + 1.0f;
-            }
-        }
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+        std::cout <<"time spent for H matrix (seconds): "<< (double)duration.count() / 1000.0 << std::endl;
 
-        //while( 1 < 2 ){ std::cout<<"waiting ..."<<"\r"; }
-        return 1;
-        */
-
-
+/*
         std::cout<<"Making G: "<<"\n";
 
         auto start = std::chrono::high_resolution_clock::now();
@@ -377,190 +341,24 @@ std::cout<<"Start testing:"<<"\n";
 
         std::cout<<"\n";
         std::cout<<"Done with Hmat."<<"\n";
-        std::cout<<"\n";        
+        std::cout<<"\n";  
+    */      
     }
 
     if (test_H2)
     {
-        //std::string g_file = "tests/data/sstep_050/data/gmat_050.dat";
-        //std::string ped_file2 = "tests/data/sstep_050/data/id4trace.PED";
-        std::string g_file = "tests/data/big/gmat_050.dat";
-        std::string ped_file2 = "tests/data/big/id4trace.PED";
-
-        //------------------------------------------------------
-
-        std::cout<<"Reading G: "<<"\n";
+        std::string g_matr_file = "tests/data/sstep_050/data/gmat_050.gmatrix";
+        std::string ped_file2 = "tests/data/sstep_050/data/id4trace.PED";
+        //std::string g_file = "tests/data/big/gmat_050.gmatrix";
+        //std::string ped_file2 = "tests/data/big/id4trace.PED";
 
         auto start = std::chrono::high_resolution_clock::now();
 
-        gmat.read_matrix(g_file);
+        h.make_matrix(g_matr_file, ped_file2, "h_matrix");
 
         auto stop = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-        std::cout <<"time spent (seconds): "<< (double)duration.count() / 1000.0 << std::endl;
-
-        std::cout<<"Done."<<"\n";
-
-        std::cout<<"Scaling diagonal of G."<<"\n";
-
-        gmat.scale_diag(0.01);
-
-        std::cout<<"Done."<<"\n";
-
-        gmat.get_ids(g_id); // here we need just IDs
-        std::cout<<"num of ids in G: "<<g_id.size()<<"\n";
-        std::cout<<"expected size of G (GB): "<<( 0.5*g_id.size()*g_id.size()-0.5*g_id.size() )/1000000000.0<<"\n";
-        //------------------------------------------------------
-
-        std::cout<<"Constructing A22"<<"\n";
-        evoped::Amat<float> ap2;
-
-        evolm::matrix<float> A22;
-        std::vector<int64_t> a22_id;
-
-        evolm::smatrix<float> iA;
-        std::vector<int64_t> iA_id;
-
-        evolm::matrix<float> iA22;
-        std::vector<int64_t> iA22_id;
-
-        start = std::chrono::high_resolution_clock::now();
-
-        ap2.make_matrix_forgenotyped(ped_file2,g_id,false);
-
-        std::cout<<"Done"<<"\n";
-
-        stop = std::chrono::high_resolution_clock::now();
-        duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-        std::cout <<"time spent (seconds): "<< (double)duration.count() / 1000.0 << std::endl;
-
-        ap2.get_matrix("A22", A22, a22_id);
-        A22.fread();
-
-        std::cout<<"expected size of A22 (GB): "<<( 0.5*a22_id.size()*a22_id.size()-0.5*a22_id.size() )/1000000000.0<<"\n";
-        //------------------------------------------------------
-
-        std::cout<<"Scalling G by A22, then clear ap2 and A22:"<<"\n";
-
-        start = std::chrono::high_resolution_clock::now();
-
-        gmat.scale_matrix(A22,0.25);
-
-        A22.clear();
-        ap2.clear();
-
-        std::cout<<"Done"<<"\n";
-
-        stop = std::chrono::high_resolution_clock::now();
-        duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-        std::cout <<"time spent (seconds): "<< (double)duration.count() / 1000.0 << std::endl;
-
-        //------------------------------------------------------
-
-        std::cout<<"Inverting big G"<<"\n";
-
-        start = std::chrono::high_resolution_clock::now();
-        
-        gmat.invert_matrix(true); // inverting as a full-store
-        
-        std::cout<<"Done."<<"\n";
-
-        stop = std::chrono::high_resolution_clock::now();
-        duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-        std::cout <<"time spent (milliseconds): "<< (double)duration.count() / 1000.0 << std::endl;
-
-        std::cout<<"Saving iG and ids, then clear gmat class."<<"\n";
-
-        gmat.save_matrix("iG.dmat");
-        gmat.save_ids("g_ids.vect");
-        
-        gmat.clear();
-
-        //------------------------------------------------------
-
-        std::cout<<"Making A matrices for H:"<<"\n";
-
-        start = std::chrono::high_resolution_clock::now();
-
-        ap2.make_matrix(ped_file2, true); // A(-1)
-
-        std::cout<<"Completed A(-1)"<<"\n";
-
-        ap2.make_matrix_forgenotyped(ped_file2, g_id, true); // A22(-1)
-        
-        std::cout<<"Completed A22(-1)"<<"\n";
-
-        stop = std::chrono::high_resolution_clock::now();
-        duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-        std::cout <<"time spent (seconds): "<< (double)duration.count() / 1000.0 << std::endl;
-
-        std::cout<<"Getting matrices."<<"\n";
-        
-        start = std::chrono::high_resolution_clock::now();
-
-        ap2.get_matrix("iA", iA, iA_id);
-        
-        stop = std::chrono::high_resolution_clock::now();
-        duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-        std::cout <<"time spent for getting iA (seconds): "<< (double)duration.count() / 1000.0 << std::endl;
-
-        start = std::chrono::high_resolution_clock::now();
-
-        ap2.get_matrix("iA22", iA22, iA22_id);
-
-        stop = std::chrono::high_resolution_clock::now();
-        duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-        std::cout <<"time spent for getting iA22 (seconds): "<< (double)duration.count() / 1000.0 << std::endl;
-
-        std::cout<<"num of IDs in A matrices: "<<iA_id.size()<<" "<<iA22_id.size()<<"\n";
-
-        iA22.fread();
-        iA.fread();
-
-        std::cout<<"Read iG:"<<"\n";
-
-        iG.fread("iG.dmat");
-        
-        std::cout<<"expected size of G (GB): "<<( 0.5*g_id.size()*g_id.size()-0.5*g_id.size() )/1000000000.0<<"\n";
-        std::cout<<"expected size of A matrices (GB): "<<iA.size()*3.0/1000000000.0<<" "<<( 0.5*iA22_id.size()*iA22_id.size()-0.5*iA22_id.size() )/1000000000.0<<"\n";
-        //------------------------------------------------------
-
-        std::cout<<"Making H:"<<"\n";
-
-        start = std::chrono::high_resolution_clock::now();
-
-        h.make_matrix(iA, iA_id, iA22, iA22_id, iG, g_id);
-        //h.make_matrix(iA, iA_id, A22, a22_id, iG, g_id);
-
-        std::cout<<"Done."<<"\n";
-
-        stop = std::chrono::high_resolution_clock::now();
-        duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-        std::cout <<"time spent (seconds): "<< (double)duration.count() / 1000.0 << std::endl;
-
-        std::cout<<"Getting H:"<<"\n";
-
-        start = std::chrono::high_resolution_clock::now();
-
-        //h.get_matrix(H,h_id);
-        h.get_matrix("H_matr_small");
-
-        //H.fwrite("H.smat");
-        //H.clear();
-
-        stop = std::chrono::high_resolution_clock::now();
-        duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-        std::cout <<"time spent (seconds): "<< (double)duration.count() / 1000.0 << std::endl;
-
-        //std::cout<<"Expected size of H(-1): "<<(double)H.size() * sizeof(float) / (double)(1024*1024*1024)<<"\n";
-
-        std::cout<<"n IDs in H(-1): "<<h_id.size()<<"\n";
-        std::cout<<"\n";
-
-        std::cout<<"\n";
-        std::cout<<"Done with Hmat."<<"\n";
-        std::cout<<"\n";        
-
+        std::cout <<"time spent for H matrix (seconds): "<< (double)duration.count() / 1000.0 << std::endl;
     }
 
     return 0;

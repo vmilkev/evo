@@ -12,11 +12,11 @@ EXTSRC2 := ../libplinkio/src
 EXTLIBNAME := plinkio
 
 # Mac
-#LIBRARY_PATH := /Users/au383883/Documents/MY/codebase/evo/libplinkio/release_lib
-#LIBRARY_PATH_2 := /Users/au383883/Documents/MY/codebase/evo/evolm/release2
+LIBRARY_PATH := /Users/au383883/Documents/MY/codebase/evo/libplinkio/release_lib
+LIBRARY_PATH_2 := /Users/au383883/Documents/MY/codebase/evo/evolm/release2
 # Debian
-LIBRARY_PATH := /usr/home/qgg/vimi/codebase/evo/libplinkio/release_lib
-LIBRARY_PATH_2 := /usr/home/qgg/vimi/codebase/evo/evolm/release2
+#LIBRARY_PATH := /usr/home/qgg/vimi/codebase/evo/libplinkio/release_lib
+#LIBRARY_PATH_2 := /usr/home/qgg/vimi/codebase/evo/evolm/release2
 # Ubuntu
 #LIBRARY_PATH := /home/vimi/Documents/codebase/evo/libplinkio/release_lib
 #LIBRARY_PATH_2 := /home/vimi/Documents/codebase/evo/evolm/release2

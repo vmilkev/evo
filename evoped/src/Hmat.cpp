@@ -1,4 +1,6 @@
 #include "Hmat.hpp"
+#include "Gmat.hpp"
+#include "Amat.hpp"
 
 namespace evoped
 {
@@ -40,6 +42,172 @@ namespace evoped
     }
     template Hmat<float>::~Hmat();
     template Hmat<double>::~Hmat();
+    //===============================================================================================================
+    template <typename T>
+    void Hmat<T>::make_matrix(const std::string &g_file, const std::string &ped_file, const std::string &out_file)
+    {
+        try
+        {
+            // check extension of g_file to determine if it is ready-to-use matrix or SNP file
+            std::string f_suffix(".gmatrix");
+            size_t found_suffix = g_file.find(f_suffix);
+            bool is_gmatrix = false;
+            if (found_suffix != std::string::npos)
+                is_gmatrix = true;
+            
+            Gmat<T> g;
+            evolm::matrix<T> iG;
+            std::vector<std::int64_t> g_id;
+            
+            Amat<T> a;
+            evolm::matrix<T> A22;
+            std::vector<int64_t> a22_id;
+            evolm::smatrix<T> iA;
+            std::vector<int64_t> iA_id;
+            evolm::matrix<T> iA22;
+            std::vector<int64_t> iA22_id;
+
+            if ( is_gmatrix )          // read G matrix from ASCII file with IDs
+                g.read_matrix(g_file);
+            else                       // build G matrix from ASCII SNP file with IDs
+                g.make_matrix(g_file);
+
+            g.scale_diag(0.01);
+            g.get_ids(g_id); // here we need just IDs
+
+            a.make_matrix_forgenotyped( ped_file, g_id, false );
+            a.get_matrix("A22", A22, a22_id);
+            A22.fread();
+            
+            g.scale_matrix(A22,0.25);
+
+            A22.clear();
+            a.clear();
+
+            g.invert_matrix(true); // inverting as a full-store            
+            g.save_matrix("iG.dmat");            
+            g.clear();
+
+            a.make_matrix( ped_file, true ); // A(-1)
+            a.make_matrix_forgenotyped( ped_file, g_id, true ); // A22(-1)            
+            a.get_matrix("iA", iA, iA_id);            
+            a.get_matrix("iA22", iA22, iA22_id);
+
+            iA22.fread();
+            iA.fread();
+
+            iG.fread("iG.dmat");
+
+            make_matrix(iA, iA_id, iA22, iA22_id, iG, g_id);            
+            get_matrix(out_file);
+
+            iA.fclear(); iA.clear();
+            iA_id.clear(); iA_id.shrink_to_fit();
+            iA22.fclear(); iA22.clear();
+            iA22_id.clear(); iA22_id.shrink_to_fit();
+            iG.fclear("iG.dmat"); iG.fclear(); iG.clear();
+            g_id.clear(); g_id.shrink_to_fit();
+
+            clear();
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Hmat<T>::make_matrix(const std::string &, const std::string &, const std::string &)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Hmat<T>::make_matrix(const std::string &, const std::string &, const std::string &)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Hmat<T>::make_matrix(const std::string &, const std::string &, const std::string &)" << '\n';
+            throw;
+        }
+    }
+    template void Hmat<float>::make_matrix(const std::string &g_file, const std::string &ped_file, const std::string &out_file);
+    template void Hmat<double>::make_matrix(const std::string &g_file, const std::string &ped_file, const std::string &out_file);
+
+    //===============================================================================================================
+    template <typename T>
+    void Hmat<T>::make_matrix(const std::string &g_file, const std::string &g_id_file, const std::string &ped_file, const std::string &out_file)
+    {
+        try
+        {
+            Gmat<T> g;
+            evolm::matrix<T> iG;
+            std::vector<std::int64_t> g_id;
+            
+            Amat<T> a;
+            evolm::matrix<T> A22;
+            std::vector<int64_t> a22_id;
+            evolm::smatrix<T> iA;
+            std::vector<int64_t> iA_id;
+            evolm::matrix<T> iA22;
+            std::vector<int64_t> iA22_id;
+
+            g.make_matrix(g_file, g_id_file); // build G matrix from ASCII SNP file with IDs in sepaarate file
+            g.scale_diag(0.01);
+            g.get_ids(g_id); // here we need just IDs
+
+            a.make_matrix_forgenotyped( ped_file, g_id, false );
+            a.get_matrix("A22", A22, a22_id);
+            A22.fread();
+            
+            g.scale_matrix(A22,0.25);
+
+            A22.clear();
+            a.clear();
+
+            g.invert_matrix(true); // inverting as a full-store            
+            g.save_matrix("iG.dmat");            
+            g.clear();
+
+            a.make_matrix( ped_file, true ); // A(-1)
+            a.make_matrix_forgenotyped( ped_file, g_id, true ); // A22(-1)            
+            a.get_matrix("iA", iA, iA_id);            
+            a.get_matrix("iA22", iA22, iA22_id);
+
+            iA22.fread();
+            iA.fread();
+
+            iG.fread("iG.dmat");
+
+            make_matrix(iA, iA_id, iA22, iA22_id, iG, g_id);            
+            get_matrix(out_file);
+
+            iA.fclear(); iA.clear();
+            iA_id.clear(); iA_id.shrink_to_fit();
+            iA22.fclear(); iA22.clear();
+            iA22_id.clear(); iA22_id.shrink_to_fit();
+            iG.fclear("iG.dmat"); iG.fclear(); iG.clear();
+            g_id.clear(); g_id.shrink_to_fit();
+
+            clear();
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Hmat<T>::make_matrix(const std::string &, const std::string &, const std::string &, const std::string &)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Hmat<T>::make_matrix(const std::string &, const std::string &, const std::string &, const std::string &)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Hmat<T>::make_matrix(const std::string &, const std::string &, const std::string &, const std::string &)" << '\n';
+            throw;
+        }
+    }
+    template void Hmat<float>::make_matrix(const std::string &g_file, const std::string &g_id_file, const std::string &ped_file, const std::string &out_file);
+    template void Hmat<double>::make_matrix(const std::string &g_file, const std::string &g_id_file, const std::string &ped_file, const std::string &out_file);
 
     //===============================================================================================================
     template <typename T>
