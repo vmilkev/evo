@@ -90,12 +90,11 @@ namespace evolm
         void find_corr_vars_in_effects(std::vector<std::vector<std::string>> &corr_vars);
         void load_corbin_file(std::string &cor_matr_file, std::string &cor_variable, compact_storage<float> &corr_storage);
 
-        void clear();
-
     public:
         model_parser();
         ~model_parser();
         void process_expression(const std::string &expr);
+        void clear();
 
         // for debugging
         void print();

@@ -14,7 +14,40 @@ namespace evolm
     // -------------------------------------------------------------
     void model_parser::clear()
     {
-        // ???
+        special_corr_vars.clear();
+        special_corr_vars.shrink_to_fit();
+
+        extra_effects.clear();
+        extra_effects.shrink_to_fit();
+
+        extra_effects_names.clear();
+        extra_effects_names.shrink_to_fit();
+
+        observations.clear();
+        observations.shrink_to_fit();
+
+        observations_names.clear();
+        observations_names.shrink_to_fit();
+
+        obs_in_extra_storage.clear();
+        obs_in_extra_storage.shrink_to_fit();
+
+        random_and_fixed_effects.clear();
+        random_and_fixed_effects.shrink_to_fit();
+
+        random_and_fixed_effects_names.clear();
+        random_and_fixed_effects_names.shrink_to_fit();
+
+        random_and_fixed_in_extra_storage.clear();
+        random_and_fixed_in_extra_storage.shrink_to_fit();
+
+        corr_vars_index_in_effects.clear();
+        corr_vars_index_in_effects.shrink_to_fit();
+
+        corr_matr_index_in_extra_vars.clear();
+        corr_matr_index_in_extra_vars.shrink_to_fit();
+
+        identifier_to_eff_name.clear();
     }
     // -------------------------------------------------------------
     void model_parser::process_expression(const std::string &expr)
