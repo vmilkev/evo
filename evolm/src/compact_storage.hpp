@@ -130,6 +130,10 @@ namespace evolm
 
         void make_rows_list();
         void clear_rows_list();
+
+        void permute(std::vector<size_t> &perm_map);
+        void permute_and_reduce(std::vector<std::int64_t> &perm_map);
+        void sym_to_rec();
     };
 
     //===========================================================================================    
@@ -2162,6 +2166,300 @@ namespace evolm
         row_first_key.shrink_to_fit();
         row_last_key.clear();
         row_last_key.shrink_to_fit();
+    }
+    //===========================================================================================
+    template <typename T>
+    void compact_storage<T>::permute(std::vector<size_t> &perm_map)
+    {
+        if ( is_sparse() )
+        {
+            std::vector<size_t> t_keys( vals.size() );
+
+            if (symmetric)
+            {
+#pragma omp parallel for
+                for ( size_t i = 0; i < keys.size(); i++ )
+                {
+                    size_t row = row_insym(keys[i]);
+                    size_t col = col_insym(keys[i], row);
+
+                    size_t new_row = perm_map[row];
+                    size_t new_col = perm_map[col];
+
+                    size_t new_key = 0;
+                    if (new_row >= new_col)
+                        new_key = key_insym(new_row, new_col);
+                    else
+                        new_key = key_insym(new_col, new_row);
+                    
+                    t_keys[i] = new_key;
+                }
+            }
+            else
+            {
+#pragma omp parallel for
+                for ( size_t i = 0; i < keys.size(); i++ )
+                {
+                    size_t row = row_inrec(keys[i]);
+                    size_t col = col_inrec(keys[i], row);
+
+                    size_t new_row = perm_map[row];
+                    size_t new_col = perm_map[col];
+
+                    size_t new_key = key_inrec(new_row, new_col);
+                    
+                    t_keys[i] = new_key;
+                }
+            }
+
+            keys.clear();
+            keys = t_keys;
+            t_keys.clear();
+            t_keys.shrink_to_fit();
+        }
+        else
+        {
+            std::vector<T> t_vals( vals.size() );
+            keys.resize( vals.size() );
+
+            if (symmetric)
+            {
+#pragma omp parallel for
+                for ( size_t i = 0; i < vals.size(); i++ )
+                {
+                    size_t row = row_insym(i);
+                    size_t col = col_insym(i, row);
+
+                    size_t new_row = perm_map[row];
+                    size_t new_col = perm_map[col];
+
+                    size_t new_key = 0;
+                    if (new_row >= new_col)
+                        new_key = key_insym(new_row, new_col);
+                    else
+                        new_key = key_insym(new_col, new_row);
+
+                    t_vals[i] = vals[i];
+                    keys[i] = new_key;
+                }
+            }
+            else
+            {
+#pragma omp parallel for
+                for ( size_t i = 0; i < vals.size(); i++ )
+                {
+                    size_t row = row_inrec(i);
+                    size_t col = col_inrec(i, row);
+
+                    size_t new_row = perm_map[row];
+                    size_t new_col = perm_map[col];
+
+                    size_t new_key = key_inrec(new_row, new_col);
+
+                    t_vals[i] = vals[i];
+                    keys[i] = new_key;
+                }
+            }
+
+            vals.clear();
+            vals = t_vals;
+            t_vals.clear();
+            t_vals.shrink_to_fit();
+
+            optimize();
+        }
+    }
+    //===========================================================================================
+    template <typename T>
+    void compact_storage<T>::permute_and_reduce(std::vector<std::int64_t> &perm_map)
+    {
+        if ( perm_map.size() != nRows )
+            throw std::string("The size of permulation vector is lower than the number of rows in the permuted matrix!");
+        
+        size_t reduced_dim = 0;
+        for (size_t i = 0; i < perm_map.size(); i++)
+            if ( perm_map[i] != -1 )
+                reduced_dim++;
+
+        compact_storage<T> reduced_storage;
+
+        if (symmetric)
+            reduced_storage.resize(reduced_dim);
+        else
+            reduced_storage.resize(reduced_dim, reduced_dim);
+
+        std::vector<size_t> t_keys;
+        std::vector<T> t_vals;
+
+        if ( is_sparse() )
+        {
+            if (symmetric)
+            {
+                for ( size_t i = 0; i < keys.size(); i++ )
+                {
+                    size_t row = row_insym(keys[i]);
+                    size_t col = col_insym(keys[i], row);
+
+                    size_t new_row = perm_map[row];
+                    size_t new_col = perm_map[col];
+
+                    if ( perm_map[row] == -1 || perm_map[col] == -1 )
+                        continue;
+
+                    size_t new_key = 0;
+                    if (new_row >= new_col)
+                        new_key = reduced_storage.key_insym(new_row, new_col);
+                    else
+                        new_key = reduced_storage.key_insym(new_col, new_row);
+                    
+                    t_keys.push_back(new_key);
+                    t_vals.push_back(vals[i]);
+                }
+            }
+            else
+            {
+                for ( size_t i = 0; i < keys.size(); i++ )
+                {
+                    size_t row = row_inrec(keys[i]);
+                    size_t col = col_inrec(keys[i], row);
+
+                    size_t new_row = perm_map[row];
+                    size_t new_col = perm_map[col];
+
+                    if ( perm_map[row] == -1 || perm_map[col] == -1 )
+                        continue;
+
+                    size_t new_key = reduced_storage.key_inrec(new_row, new_col);
+                    
+                    t_keys.push_back(new_key);
+                    t_vals.push_back(vals[i]);
+                }
+            }
+        }
+        else
+        {
+            if (symmetric)
+            {
+                for ( size_t i = 0; i < vals.size(); i++ )
+                {
+                    if ( vals[i] != (T)0 )
+                    {
+                        size_t row = row_insym(i);
+                        size_t col = col_insym(i, row);
+
+                        size_t new_row = perm_map[row];
+                        size_t new_col = perm_map[col];
+
+                        if ( perm_map[row] == -1 || perm_map[col] == -1 )
+                            continue;
+
+                        size_t new_key = 0;
+                        if (new_row >= new_col)
+                            new_key = reduced_storage.key_insym(new_row, new_col);
+                        else
+                            new_key = reduced_storage.key_insym(new_col, new_row);
+
+                        t_keys.push_back(new_key);
+                        t_vals.push_back(vals[i]);
+                    }
+                }
+            }
+            else
+            {
+                for ( size_t i = 0; i < vals.size(); i++ )
+                {
+                    if ( vals[i] != (T)0 )
+                    {
+                        size_t row = row_inrec(i);
+                        size_t col = col_inrec(i, row);
+
+                        size_t new_row = perm_map[row];
+                        size_t new_col = perm_map[col];
+
+                        if ( perm_map[row] == -1 || perm_map[col] == -1 )
+                            continue;
+
+                        size_t new_key = reduced_storage.key_inrec(new_row, new_col);
+
+                        t_keys.push_back(new_key);
+                        t_vals.push_back(vals[i]);
+                     }
+                }
+            }
+        }
+
+        if (symmetric)
+            resize(reduced_dim);
+        else
+            resize(reduced_dim, reduced_dim);
+        
+        append_with_keys(t_vals, t_keys);
+
+        t_keys.clear();
+        t_keys.shrink_to_fit();
+        t_vals.clear();
+        t_vals.shrink_to_fit();
+    }
+    //===========================================================================================
+    template <typename T>
+    void compact_storage<T>::sym_to_rec()
+    {
+        if ( !symmetric )
+            return;
+        
+        compact_storage<T> s( nRows, nCols );
+        std::vector<T> t_vals;
+        std::vector<size_t> t_keys;
+        
+        if ( is_sparse() )
+        {
+            for ( size_t i = 0; i < keys.size(); i++ )
+            {
+                size_t row = row_insym(keys[i]);
+                size_t col = col_insym(keys[i], row);
+                
+                size_t new_key = s.key_inrec(row, col);
+                
+                t_keys.push_back(new_key);
+                t_vals.push_back(vals[i]);
+                
+                if ( row != col )
+                {
+                    new_key = s.key_inrec(col, row);
+                    t_keys.push_back(new_key);
+                    t_vals.push_back(vals[i]);
+                }
+            }
+        }
+        else
+        {
+            for ( size_t i = 0; i < vals.size(); i++ )
+            {
+                if ( vals[i] != (T)0 )
+                {
+                    size_t row = row_insym(i);
+                    size_t col = col_insym(i, row);
+                    
+                    size_t new_key = s.key_inrec(row, col);
+                    
+                    t_keys.push_back(new_key);
+                    t_vals.push_back(vals[i]);
+                    
+                    if ( row != col )
+                    {
+                        new_key = s.key_inrec(col, row);
+                        t_keys.push_back(new_key);
+                        t_vals.push_back(vals[i]);
+                    }
+                }
+            }
+        }
+
+        resize(nRows, nCols);
+        append_with_keys(t_vals, t_keys);
+
+        t_vals.clear();
+        t_keys.clear();
     }
     //===========================================================================================
     

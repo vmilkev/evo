@@ -16,7 +16,9 @@ namespace evolm
     private:
         // Data:
         std::string data_file_name;
-        float obs_missing_value = 0.0f;
+        float obs_missing_value = -999.0f;
+
+        std::vector<std::vector<std::string>> special_corr_vars; // strings of name = value for corr matrices (.corbin), to be processed separately
         
         std::vector<evolm::effects_storage> extra_effects; // effects/matrices provided by a name-value expression
         std::vector<std::string> extra_effects_names; // var names for the effects/matrices provided by a name-value expression
@@ -29,18 +31,10 @@ namespace evolm
         std::vector<std::string> random_and_fixed_effects_names;
         std::vector<int> random_and_fixed_in_extra_storage; // -1 if not in extra storage
 
-        std::vector<std::vector<int>> corr_vars_index_in_effects;
-        std::vector<std::vector<int>> corr_matr_index_in_extra_vars; // -1 means I (identity matrix)
+        std::vector<std::vector<int>> corr_vars_index_in_effects; // points to a random effect
+        std::vector<std::vector<int>> corr_matr_index_in_extra_vars; // where to find correlation matrix for random effect, -1 means I (identity matrix)
 
-        std::unordered_map<std::string, std::string> identifier_to_eff_name;
-
-        /*std::vector<evolm::effects_storage> fixed_effects; // fixed effects container
-        std::vector<std::string> fixed_effects_names;
-        std::vector<int> fixed_in_extra_storage;
-
-        std::vector<evolm::effects_storage> random_effects; // random effects container
-        std::vector<std::string> random_effects_names;
-        std::vector<int> random_in_extra_storage;*/
+        std::unordered_map<std::string, std::string> identifier_to_eff_name; // aliases for random effects, if used
 
         // Methods:
         void get_obsvars(std::string &expr, std::vector<std::string> &out_vars);
@@ -93,6 +87,8 @@ namespace evolm
                                        std::string delim_opened,
                                        std::string delim_closed,
                                        std::vector<std::string> &out_vars);
+        void find_corr_vars_in_effects(std::vector<std::vector<std::string>> &corr_vars);
+        void load_corbin_file(std::string &cor_matr_file, std::string &cor_variable, compact_storage<float> &corr_storage);
 
         void clear();
 
@@ -103,6 +99,7 @@ namespace evolm
 
         // for debugging
         void print();
+        void report();
     };
 
 } // end of namespace evolm

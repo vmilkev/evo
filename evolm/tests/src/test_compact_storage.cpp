@@ -1942,7 +1942,6 @@ TEST_CASE("Compact storage, checking class constructors, type = double")
         //s.to_dense(m);
         //m.print("testing rows_list");
 
-
         for (size_t i = 0; i < dim; i++)
         {
             for (size_t j = 0; j < dim; j++)
@@ -1962,4 +1961,486 @@ TEST_CASE("Compact storage, checking class constructors, type = double")
         }
     }
 
+    SECTION("36. permute(std::vector<size_t> &): dense summetric")
+    {
+        //std::cout<<"HERE test 36 ..."<<"\n";
+        std::vector<double> values;
+        std::vector<size_t> rows;
+        std::vector<size_t> cols;
+        evolm::compact_storage<double> s(5);
+        evolm::compact_storage<double> s_perm(5);
+        evolm::smatrix<double> sm;
+        evolm::smatrix<double> sm2;
+
+        s.append(0.1, 0, 0);
+        s.append(2, 1, 1);
+        s.append(4, 2, 1);
+        s.append(5, 2, 2);
+        s.append(6, 3, 0);
+        s.append(8, 3, 2);
+        s.append(9, 3, 3);
+        s.append(11, 4, 1);
+        s.append(14, 4, 4);
+
+        s_perm.append(0.1, 3, 3);
+        s_perm.append(2, 4, 4);
+        s_perm.append(4, 4, 0);
+        s_perm.append(5, 0, 0);
+        s_perm.append(6, 3, 2);
+        s_perm.append(8, 2, 0);
+        s_perm.append(9, 2, 2);
+        s_perm.append(11, 4, 1);
+        s_perm.append(14, 1, 1);
+
+        s_perm.optimize();
+
+        s.to_sparse(sm);
+        sm.clear();
+        s_perm.to_sparse(sm);
+
+        std::vector<size_t> perm {3,4,0,2,1};
+
+        s.permute(perm);
+
+        s.to_sparse(sm2);
+
+        CHECK( sm.size() == sm2.size() );
+
+        for (size_t i = 0; i < sm.size(); i++)
+            CHECK( sm[i] == sm2[i] );
+    }
+
+    SECTION("37. permute(std::vector<size_t> &): dense rectangular")
+    {
+        //std::cout<<"HERE test 36 ..."<<"\n";
+        std::vector<double> values;
+        std::vector<size_t> rows;
+        std::vector<size_t> cols;
+        evolm::compact_storage<double> s(5,5);
+        evolm::compact_storage<double> s_perm(5,5);
+        evolm::smatrix<double> sm;
+        evolm::smatrix<double> sm2;
+
+        s.append(0.1, 0, 0);
+        s.append(2, 1, 1);
+        s.append(4, 2, 1);
+        s.append(5, 2, 2);
+        s.append(6, 3, 0);
+        s.append(8, 3, 2);
+        s.append(9, 3, 3);
+        s.append(11, 4, 1);
+        s.append(14, 4, 4);
+
+        s_perm.append(0.1, 3, 3);
+        s_perm.append(2, 4, 4);
+        s_perm.append(4, 0, 4);
+        s_perm.append(5, 0, 0);
+        s_perm.append(6, 2, 3);
+        s_perm.append(8, 2, 0);
+        s_perm.append(9, 2, 2);
+        s_perm.append(11, 1, 4);
+        s_perm.append(14, 1, 1);
+
+        s_perm.optimize();
+
+        s.to_sparse(sm);
+        sm.clear();
+        s_perm.to_sparse(sm);
+
+        std::vector<size_t> perm {3,4,0,2,1};
+
+        s.permute(perm);
+
+        s.to_sparse(sm2);
+
+        CHECK( sm.size() == sm2.size() );
+
+        for (size_t i = 0; i < sm.size(); i++)
+            CHECK( sm[i] == sm2[i] );
+    }
+
+    SECTION("38. permute(std::vector<size_t> &): sparse summetric")
+    {
+        //std::cout<<"HERE test 36 ..."<<"\n";
+        std::vector<double> values;
+        std::vector<size_t> rows;
+        std::vector<size_t> cols;
+        evolm::compact_storage<double> s(5);
+        evolm::compact_storage<double> s_perm(5);
+
+        s.set_sparsity_threshold(0.1);
+        s_perm.set_sparsity_threshold(0.1);
+
+        evolm::smatrix<double> sm;
+        evolm::smatrix<double> sm2;
+
+        s.append(0.1, 0, 0);
+        s.append(2, 1, 1);
+        s.append(4, 2, 1);
+        s.append(5, 2, 2);
+        s.append(6, 3, 0);
+        s.append(8, 3, 2);
+        s.append(9, 3, 3);
+        s.append(11, 4, 1);
+        s.append(14, 4, 4);
+
+        s_perm.append(0.1, 3, 3);
+        s_perm.append(2, 4, 4);
+        s_perm.append(4, 4, 0);
+        s_perm.append(5, 0, 0);
+        s_perm.append(6, 3, 2);
+        s_perm.append(8, 2, 0);
+        s_perm.append(9, 2, 2);
+        s_perm.append(11, 4, 1);
+        s_perm.append(14, 1, 1);
+
+        s_perm.optimize();
+
+        s.to_sparse(sm);
+        sm.clear();
+        s_perm.to_sparse(sm);
+
+        std::vector<size_t> perm {3,4,0,2,1};
+
+        s.permute(perm);
+
+        s.to_sparse(sm2);
+
+        CHECK( sm.size() == sm2.size() );
+
+        for (size_t i = 0; i < sm.size(); i++)
+            CHECK( sm[i] == sm2[i] );
+    }
+
+    SECTION("39. permute(std::vector<size_t> &): sparse rectangular")
+    {
+        //std::cout<<"HERE test 36 ..."<<"\n";
+        std::vector<double> values;
+        std::vector<size_t> rows;
+        std::vector<size_t> cols;
+        evolm::compact_storage<double> s(5,5);
+        evolm::compact_storage<double> s_perm(5,5);
+
+        s.set_sparsity_threshold(0.1);
+        s_perm.set_sparsity_threshold(0.1);
+
+        evolm::smatrix<double> sm;
+        evolm::smatrix<double> sm2;
+
+        s.append(0.1, 0, 0);
+        s.append(2, 1, 1);
+        s.append(4, 2, 1);
+        s.append(5, 2, 2);
+        s.append(6, 3, 0);
+        s.append(8, 3, 2);
+        s.append(9, 3, 3);
+        s.append(11, 4, 1);
+        s.append(14, 4, 4);
+
+        s_perm.append(0.1, 3, 3);
+        s_perm.append(2, 4, 4);
+        s_perm.append(4, 0, 4);
+        s_perm.append(5, 0, 0);
+        s_perm.append(6, 2, 3);
+        s_perm.append(8, 2, 0);
+        s_perm.append(9, 2, 2);
+        s_perm.append(11, 1, 4);
+        s_perm.append(14, 1, 1);
+
+        s_perm.optimize();
+
+        s.to_sparse(sm);
+        //sm.print("s");
+        sm.clear();
+        s_perm.to_sparse(sm);
+        //sm.print("s_perm");
+
+        std::vector<size_t> perm {3,4,0,2,1};
+
+        s.permute(perm);
+
+        s.to_sparse(sm2);
+        //sm2.print("permuted s");
+
+        CHECK( sm.size() == sm2.size() );
+
+        for (size_t i = 0; i < sm.size(); i++)
+            CHECK( sm[i] == sm2[i] );
+    }
+
+    SECTION("40. sym_to_rec(): dense summetric")
+    {
+        //std::cout<<"HERE test 36 ..."<<"\n";
+        std::vector<double> values;
+        std::vector<size_t> rows;
+        std::vector<size_t> cols;
+        evolm::compact_storage<double> s(5);        
+        evolm::compact_storage<double> s_rec(5,5);
+
+        s.set_sparsity_threshold(1);
+        s_rec.set_sparsity_threshold(1);
+
+        evolm::smatrix<double> sm;
+        evolm::smatrix<double> sm2;
+
+        s.append(0.1, 0, 0);
+        s.append(2, 1, 1);
+        s.append(4, 2, 1);
+        s.append(5, 2, 2);
+        s.append(6, 3, 0);
+        s.append(8, 3, 2);
+        s.append(9, 3, 3);
+        s.append(11, 4, 1);
+        s.append(14, 4, 4);
+
+        s_rec.append(0.1, 0, 0);
+        s_rec.append(2, 1, 1);
+        s_rec.append(4, 2, 1);
+        s_rec.append(4, 1, 2);
+        s_rec.append(5, 2, 2);
+        s_rec.append(6, 3, 0);
+        s_rec.append(6, 0, 3);
+        s_rec.append(8, 3, 2);
+        s_rec.append(8, 2, 3);
+        s_rec.append(9, 3, 3);
+        s_rec.append(11, 4, 1);
+        s_rec.append(11, 1, 4);
+        s_rec.append(14, 4, 4);
+
+        s_rec.optimize();
+
+        s.to_sparse(sm);
+        sm.clear();
+        s_rec.to_sparse(sm);
+
+        s.sym_to_rec();
+
+        s.to_sparse(sm2);
+
+        CHECK( sm.size() == sm2.size() );
+
+        for (size_t i = 0; i < sm.size(); i++)
+            CHECK( sm[i] == sm2[i] );
+    }
+
+    SECTION("41. sym_to_rec(): sparse summetric")
+    {
+        //std::cout<<"HERE test 36 ..."<<"\n";
+        std::vector<double> values;
+        std::vector<size_t> rows;
+        std::vector<size_t> cols;
+        evolm::compact_storage<double> s(5);        
+        evolm::compact_storage<double> s_rec(5,5);
+
+        s.set_sparsity_threshold(0.1);
+        s_rec.set_sparsity_threshold(0.1);
+
+        evolm::smatrix<double> sm;
+        evolm::smatrix<double> sm2;
+
+        s.append(0.1, 0, 0);
+        s.append(2, 1, 1);
+        s.append(4, 2, 1);
+        s.append(5, 2, 2);
+        s.append(6, 3, 0);
+        s.append(8, 3, 2);
+        s.append(9, 3, 3);
+        s.append(11, 4, 1);
+        s.append(14, 4, 4);
+
+        s_rec.append(0.1, 0, 0);
+        s_rec.append(2, 1, 1);
+        s_rec.append(4, 2, 1);
+        s_rec.append(4, 1, 2);
+        s_rec.append(5, 2, 2);
+        s_rec.append(6, 3, 0);
+        s_rec.append(6, 0, 3);
+        s_rec.append(8, 3, 2);
+        s_rec.append(8, 2, 3);
+        s_rec.append(9, 3, 3);
+        s_rec.append(11, 4, 1);
+        s_rec.append(11, 1, 4);
+        s_rec.append(14, 4, 4);
+
+        s_rec.optimize();
+
+        s.to_sparse(sm);
+        sm.clear();
+        s_rec.to_sparse(sm);
+
+        s.sym_to_rec();
+
+        s.to_sparse(sm2);
+
+        CHECK( sm.size() == sm2.size() );
+
+        for (size_t i = 0; i < sm.size(); i++)
+            CHECK( sm[i] == sm2[i] );
+    }
+
+    SECTION("42. permute_and_reduce(std::vector<size_t> &): sparse rectangular")
+    {
+        //std::cout<<"HERE test 36 ..."<<"\n";
+        std::vector<double> values;
+        std::vector<size_t> rows;
+        std::vector<size_t> cols;
+        evolm::compact_storage<double> s(7,7);
+        evolm::compact_storage<double> s_perm(5,5);
+
+        s.set_sparsity_threshold(0.1);
+        s_perm.set_sparsity_threshold(0.1);
+
+        evolm::smatrix<double> sm;
+        evolm::smatrix<double> sm2;
+
+        s.append(15, 5, 5);
+        s.append(16, 6, 6);
+        s.append(0.1, 0, 0);
+        s.append(2, 1, 1);
+        s.append(4, 2, 1);
+        s.append(5, 2, 2);
+        s.append(6, 3, 0);
+        s.append(8, 3, 2);
+        s.append(9, 3, 3);
+        s.append(11, 4, 1);
+        s.append(14, 4, 4);
+        s.append(17, 6, 5);
+
+        s_perm.append(0.1, 3, 3);
+        s_perm.append(2, 4, 4);
+        s_perm.append(4, 0, 4);
+        s_perm.append(5, 0, 0);
+        s_perm.append(6, 2, 3);
+        s_perm.append(8, 2, 0);
+        s_perm.append(9, 2, 2);
+        s_perm.append(11, 1, 4);
+        s_perm.append(14, 1, 1);
+
+        s_perm.optimize();
+
+        s.to_sparse(sm);
+        //sm.print("s");
+        sm.clear();
+        s_perm.to_sparse(sm);
+        //sm.print("s_perm");
+
+        std::vector<std::int64_t> perm {3,4,0,2,1,-1,-1};
+
+        s.permute_and_reduce(perm);
+
+        s.to_sparse(sm2);
+        //sm2.print("permuted s");
+
+        CHECK( sm.size() == sm2.size() );
+
+        for (size_t i = 0; i < sm.size(); i++)
+            CHECK( sm[i] == sm2[i] );
+    }
+
+    SECTION("43. permute_and_reduce(std::vector<size_t> &): sparse summetric")
+    {
+        //std::cout<<"HERE test 36 ..."<<"\n";
+        std::vector<double> values;
+        std::vector<size_t> rows;
+        std::vector<size_t> cols;
+        evolm::compact_storage<double> s(7);
+        evolm::compact_storage<double> s_perm(5);
+
+        s.set_sparsity_threshold(0.1);
+        s_perm.set_sparsity_threshold(0.1);
+
+        evolm::smatrix<double> sm;
+        evolm::smatrix<double> sm2;
+
+        s.append(15, 5, 5);
+        s.append(16, 6, 6);
+        s.append(0.1, 0, 0);
+        s.append(2, 1, 1);
+        s.append(4, 2, 1);
+        s.append(5, 2, 2);
+        s.append(6, 3, 0);
+        s.append(8, 3, 2);
+        s.append(9, 3, 3);
+        s.append(11, 4, 1);
+        s.append(14, 4, 4);
+        s.append(17, 6, 5);
+
+        s_perm.append(0.1, 3, 3);
+        s_perm.append(2, 4, 4);
+        s_perm.append(4, 4, 0);
+        s_perm.append(5, 0, 0);
+        s_perm.append(6, 3, 2);
+        s_perm.append(8, 2, 0);
+        s_perm.append(9, 2, 2);
+        s_perm.append(11, 4, 1);
+        s_perm.append(14, 1, 1);
+
+        s_perm.optimize();
+
+        s.to_sparse(sm);
+        sm.clear();
+        s_perm.to_sparse(sm);
+
+        std::vector<std::int64_t> perm {3,4,0,2,1,-1,-1};
+
+        s.permute_and_reduce(perm);
+
+        s.to_sparse(sm2);
+
+        CHECK( sm.size() == sm2.size() );
+
+        for (size_t i = 0; i < sm.size(); i++)
+            CHECK( sm[i] == sm2[i] );
+    }
+
+    SECTION("44. permute_and_reduce(std::vector<size_t> &): dense summetric")
+    {
+        std::vector<double> values;
+        std::vector<size_t> rows;
+        std::vector<size_t> cols;
+        evolm::compact_storage<double> s(7);
+        evolm::compact_storage<double> s_perm(5);
+        evolm::smatrix<double> sm;
+        evolm::smatrix<double> sm2;
+
+        s.append(15, 5, 5);
+        s.append(16, 6, 6);
+        s.append(0.1, 0, 0);
+        s.append(2, 1, 1);
+        s.append(4, 2, 1);
+        s.append(5, 2, 2);
+        s.append(6, 3, 0);
+        s.append(8, 3, 2);
+        s.append(9, 3, 3);
+        s.append(11, 4, 1);
+        s.append(14, 4, 4);
+        s.append(17, 6, 5);
+
+        s_perm.append(0.1, 3, 3);
+        s_perm.append(2, 4, 4);
+        s_perm.append(4, 4, 0);
+        s_perm.append(5, 0, 0);
+        s_perm.append(6, 3, 2);
+        s_perm.append(8, 2, 0);
+        s_perm.append(9, 2, 2);
+        s_perm.append(11, 4, 1);
+        s_perm.append(14, 1, 1);
+
+        s_perm.optimize();
+
+        s.to_sparse(sm);
+        sm.clear();
+        s_perm.to_sparse(sm);
+
+        std::vector<std::int64_t> perm {3,4,0,2,1,-1,-1};
+
+        s.permute_and_reduce(perm);
+
+        s.to_sparse(sm2);
+
+        CHECK( sm.size() == sm2.size() );
+
+        for (size_t i = 0; i < sm.size(); i++)
+            CHECK( sm[i] == sm2[i] );
+    }
 }

@@ -192,9 +192,33 @@ int main(int argc, char *argv[])
 		std::cout << "Show pop:"<<"\n";
 		pop.show_pop();
 
-		std::cout<<"The conteent of pop:"<<"\n";
+		std::cout<<"Tracking 1: The conteent of pop:"<<"\n";
 		for (size_t i =0; i < pop.size(); i++)
-			std::cout<<"pop ids: "<<pop.id_at(i)<<", active: "<<pop.alive_at(i)<<"\n";
+			std::cout<<"pop ids: position "<<i<<", "<<pop.id_at(i)<<", active: "<<pop.alive_at(i)<<"\n";
+        
+        std::cout<<"pop size: "<<pop.size()<<", capacity: "<<pop.capacity()<<"\n";
+        
+        std::cout<<"disabling 0, 1, and 2 ..."<<'\n';
+        
+        pop.alive_at(0, false);
+        pop.alive_at(1, false);
+        pop.alive_at(2, false);
+
+		std::cout<<"Tracking 2: The conteent of pop:"<<"\n";
+		for (size_t i =0; i < pop.size(); i++)
+			std::cout<<"pop ids: position "<<i<<", "<<"pop ids: "<<pop.id_at(i)<<", active: "<<pop.alive_at(i)<<"\n";
+
+        std::cout<<"pop size: "<<pop.size()<<", capacity: "<<pop.capacity()<<"\n";
+
+        std::cout << "Tracking 3: reshaping"<<"\n";
+
+        pop.reshape();
+
+		std::cout<<"Tracking 3: After reshaping:"<<"\n";
+		for (size_t i =0; i < pop.size(); i++)
+			std::cout<<"pop ids: position "<<i<<", "<<"pop ids: "<<pop.id_at(i)<<", active: "<<pop.alive_at(i)<<"\n";
+
+        std::cout<<"pop size: "<<pop.size()<<", capacity: "<<pop.capacity()<<"\n";
 
 		std::cout << "Show pop2:"<<"\n";
 		pop2.show_pop();

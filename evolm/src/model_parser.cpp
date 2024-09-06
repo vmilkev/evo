@@ -23,14 +23,14 @@ namespace evolm
         {
             // detect multiple expressions in the string separated by ";"
             std::vector<std::string> all_expressions;
-            std::vector<size_t> type_1_expressions; // model
-            std::vector<size_t> type_2_expressions; // name-value (file)
-            std::vector<size_t> type_3_expressions; // name-value (matrix)
-            std::vector<size_t> type_4_expressions; // variance
+            std::vector<size_t> type_1_expressions; // obs = model_expression
+            std::vector<size_t> type_2_expressions; // var_name = file_value
+            std::vector<size_t> type_3_expressions; // var_name = matrix_value
+            std::vector<size_t> type_4_expressions; // var = variance_expression
 
-            split_str2(";", expr, all_expressions); // keep spaces
+            split_str2(";", expr, all_expressions); // keep spaces for a while, needed to parse matrix_value expression
 
-            if (all_expressions.size() == 1)
+            if (all_expressions.size() == 1) // only one name-value expression submitted
                 eval_expr(all_expressions[0]);
             else
             {
@@ -104,16 +104,18 @@ namespace evolm
         {
             // for type 2: name-value
             std::vector<std::string> name_value_pair; // container for type 2 expression variables
+            
             // these four for type 1: model
             std::vector<std::string> obs_vars; // observations variables
             std::vector<std::vector<std::string>> fixedvars; // processed fixed variables
             std::vector<std::vector<std::vector<std::string>>> lhs_randomvars; // processed random variables
             std::vector<std::vector<std::vector<std::string>>> rhs_randomvars; // processed random variables
+            
             // vector of identifiers (optional) for random variables
             std::vector<std::string> random_vars_identifiers;
 
             int expression_type = detect_expression_type(expression);
-std::cout<<"the_type: "<<expression_type<<" for: "<<expression<<"\n";
+
             switch (expression_type)
             {
             case 1: // process model equation, for example: obs ~ 1 + x1 + (1|z)                                
@@ -126,9 +128,7 @@ std::cout<<"the_type: "<<expression_type<<" for: "<<expression<<"\n";
                 lhs_randomvars.clear(); lhs_randomvars.shrink_to_fit();
                 rhs_randomvars.clear(); rhs_randomvars.shrink_to_fit();
                 random_vars_identifiers.clear(); random_vars_identifiers.shrink_to_fit();
-
-                for (auto const & m: identifier_to_eff_name)
-                    std::cout<<"eff alias: "<<m.first<<" var name: "<<m.second<<"\n";
+                
                 break;
             case 2: // process name-value expression, for example: var1 = var1_file.dat                
                 separate_name_file_values(expression, name_value_pair);
@@ -173,7 +173,7 @@ std::cout<<"the_type: "<<expression_type<<" for: "<<expression<<"\n";
     {
         try
         {
-            // handle the keywords: data, obs_missing_value, var
+            // handle the keywords: data, obs_missing_value, and suffix .corbin
 
             if (name_value_pair[0] == "data")
             {
@@ -184,6 +184,15 @@ std::cout<<"the_type: "<<expression_type<<" for: "<<expression<<"\n";
             if (name_value_pair[0] == "obs_missing_value")
             {
                 obs_missing_value = std::stof(name_value_pair[1]);
+                return;
+            }
+
+            if ( is_str_in_expr(name_value_pair[1], ".corbin") ) // check if there is suffix .corbin in name_value_pair[1]
+            {
+                std::vector<std::string> cor_var;
+                cor_var.push_back(name_value_pair[0]); // var name
+                cor_var.push_back(name_value_pair[1]); // .corbin file name
+                special_corr_vars.push_back(cor_var);
                 return;
             }
 
@@ -304,6 +313,24 @@ std::cout<<"the_type: "<<expression_type<<" for: "<<expression<<"\n";
             vectors_in_matr_str.clear();
             vectors_in_matr_str.shrink_to_fit();
 
+            remove_space( name_value_pair[0] ); // because, unlike the other types, the spaces were not removed at the beggining
+
+            if ( name_value_pair[0] == "obs_missing_value" )
+            {
+                if ( var_data.size() != 1 )
+                    throw std::string("The missing value constant should be a floating-point scalar but not a vector or matrix!");
+                
+                if ( var_data[0].size() != 1 )
+                    throw std::string("The missing value constant should be a floating-point scalar but not a vector or matrix!");
+                
+                obs_missing_value = var_data[0][0];
+
+                var_data.clear();
+                var_data.shrink_to_fit();
+
+                return;
+            }
+
             evolm::compact_storage<float> cs(var_data.size(), var_data[0].size());
 
             for (size_t i = 0; i < var_data.size(); i++)
@@ -322,7 +349,7 @@ std::cout<<"the_type: "<<expression_type<<" for: "<<expression<<"\n";
 
             extra_effects.push_back(eff);
 
-            remove_space( name_value_pair[0] ); // because, unlike the other types, the spaces were not removed at the beggining
+            //remove_space( name_value_pair[0] ); // because, unlike the other types, the spaces were not removed at the beggining
 
             extra_effects_names.push_back(name_value_pair[0]);
 
@@ -371,29 +398,31 @@ std::cout<<"the_type: "<<expression_type<<" for: "<<expression<<"\n";
     {
         try
         {
+            // var = (cor_var_1, cor_var_2) * cor_matrix * var_matr + (cor_var_3) * I * var_matr2 + R
+
             std::string mdf_expr = expr; // copy to be able to modify
             
-            std::vector<std::string> corr_vars;
-            std::vector<std::vector<std::string>> correlated_vars; // list of correlated variables/effects
+            std::vector<std::string> corr_vars; // temporal, to be cleared soon
+            std::vector<std::vector<std::string>> correlated_vars; // list of correlated variables/effects: cor_var_1 & cor_var_2; cor_var_3
 
-            extract_expr_btw_brackets(mdf_expr, "(", ")", corr_vars);
+            extract_expr_btw_brackets(mdf_expr, "(", ")", corr_vars); // extracts: cor_var_1 & cor_var_2; cor_var_3
 
-            for (size_t i = 0; i < corr_vars.size(); i++)
+            for (size_t i = 0; i < corr_vars.size(); i++) // split corr vars for each random effect
             {
                 std::vector<std::string> t_vars;
                 split_str(",", corr_vars[i], t_vars);
-                correlated_vars.push_back(t_vars);
+                correlated_vars.push_back(t_vars); // correlated variables
             }
 
             corr_vars.clear();
             corr_vars.shrink_to_fit();
 
-            std::vector<std::string> corr_groups;
-            std::vector<std::vector<std::string>> correlated_groups; // list of pairs: corr matrix variable, var matrix variable
+            std::vector<std::string> corr_groups; // temporal, to be cleared soon
+            std::vector<std::vector<std::string>> correlated_groups; // list of pairs: corr matrix variable, var matrix variable. Group1: cor_matrix, var_matr. Group2: I, var_matr2. Group3: R.
 
-            split_str("+", mdf_expr, corr_groups);
+            split_str("+", mdf_expr, corr_groups); // split and extract: cor_matrix * var_matr; I * var_matr2; R
 
-            for (size_t i = 0; i < corr_groups.size(); i++)
+            for (size_t i = 0; i < corr_groups.size(); i++) // split pairs: cor_matrix & var_matr; I & var_matr2; R
             {
                 std::vector<std::string> t_vars;
                 split_str("*", corr_groups[i], t_vars);
@@ -409,6 +438,7 @@ std::cout<<"the_type: "<<expression_type<<" for: "<<expression<<"\n";
                 throw std::string("Incorrect expression for the model variance: correlated_vars.size() != correlated_groups.size()-1");
 
 //----------------
+/*
 std::cout<<"\n";
 // list of extra_vars variables
 std::cout<<"extra var names: "<<"\n";
@@ -420,25 +450,82 @@ std::cout<<"effects var names: "<<"\n";
 for (auto const &v: random_and_fixed_effects_names)
     std::cout<<v<<"\n";
 std::cout<<"\n";
-
+*/
 //----------------
-            // check if the correlated_groupss matrices are added
+
+            find_corr_vars_in_effects(correlated_vars); // for each correlated var find index (position) in effects vector
+
+            correlated_vars.clear();
+            correlated_vars.shrink_to_fit();
+
             evolm::IOInterface in;
+
+            // check if the correlated_groups matrices are added
             size_t n_terms = 0;
-            for (size_t i = 0; i < correlated_groups.size(); i++)
+            for (size_t i = 0; i < correlated_groups.size(); i++) // loop over all groups (number of random effects and residual)
             {
                 std::vector<int> indeces;
 
-                for (size_t j = 0; j < correlated_groups[i].size(); j++)
+                for (size_t j = 0; j < correlated_groups[i].size(); j++) // loop over variables (correlations and variances) in a group
                 {
                     n_terms++;
 
-                    int index = in.find_value(extra_effects_names, correlated_groups[i][j]);
-std::cout<<"cov matrix var: "<< correlated_groups[i][j] <<" index: "<< index <<"\n";
-                    if ( index == -1 && correlated_groups[i][j] != "I" )
-                        throw std::string("Cannot find the variable " + correlated_groups[i][j]);
-                    
-                    indeces.push_back(index);
+                    int index = in.find_value(extra_effects_names, correlated_groups[i][j]); // look at extra_effects_names for already submitted matrix
+
+                    if ( index == -1 && correlated_groups[i][j] != "I" ) // variable is not in extra. vars container and not identity matrix
+                    {                        
+                        for (size_t l = 0; l < special_corr_vars.size(); l++) // then, need to check in the special_corr_vars for .corbin file
+                        {
+                            std::vector<std::string> t_str;
+                            t_str.push_back(special_corr_vars[l][0]); // this is just to be able to call the find_value(...) method
+                            
+                            index = in.find_value(t_str, correlated_groups[i][j]);
+                            
+                            if (index != -1) // found, variable have .corbin file
+                            {
+                                // here we need to read correlation matrix, process it and add it to extra vars
+
+                                std::string cor_matr_name = correlated_groups[i][j];
+                                std::string cor_matr_file = special_corr_vars[l][1];
+                                
+                                size_t pos_in_effects = corr_vars_index_in_effects[i][0]; // index for correlated variable in effects list
+
+                                std::string cor_variable = random_and_fixed_effects_names[pos_in_effects]; // var name to look at a data file for num of levels
+                                
+                                if ( is_str_in_expr(cor_variable, "1|") ) // because we need to find num levels in data file, check if variable consist '1|' sub-string
+                                    cor_variable.erase(0,2); // remove '1|' since this should not be in a file's header
+                                
+//std::cout<<"var needed processing: "<<cor_matr_name<<" in file: "<<cor_matr_file<<" aligne for effect: "<<cor_variable<<" pos_in_effects "<<pos_in_effects<<"\n";
+                                
+                                compact_storage<float> corr_storage;
+
+                                load_corbin_file(cor_matr_file, cor_variable, corr_storage);
+
+                                // add corr_storage to extra_vars storage
+
+                                evolm::effects_storage eff;
+                                eff.set(corr_storage);
+
+                                corr_storage.clear();
+
+                                extra_effects.push_back(eff);
+                                extra_effects_names.push_back(cor_matr_name);
+
+                                eff.clear();
+
+                                index = extra_effects.size() - 1;
+
+                                break;
+                            }
+
+                            t_str.clear();
+                        }
+
+                        if (index == -1) // Cannot find in special_corr_vars
+                            throw std::string("Cannot find the variable " + correlated_groups[i][j] + " variable.");
+                    }
+//std::cout<<"cov matrix var: "<< correlated_groups[i][j] <<" index: "<< index <<"\n";                    
+                    indeces.push_back(index); // interpretation: positive - index in extra vars; -1 - identity matrix.
                 }
 
                 corr_matr_index_in_extra_vars.push_back(indeces);
@@ -447,48 +534,8 @@ std::cout<<"cov matrix var: "<< correlated_groups[i][j] <<" index: "<< index <<"
             if ( n_terms != (2 * correlated_groups.size() - 1) )
                 throw std::string("Incorrect number of terms in the model variance expression!");
 
-            for (size_t i = 0; i < correlated_vars.size(); i++)
-            {
-                std::vector<int> indeces;
-
-                for (size_t j = 0; j < correlated_vars[i].size(); j++)
-                {
-std::cout<<"processing correlated var: "<< correlated_vars[i][j] <<"\n";
-                    // (1) check the map
-                    std::unordered_map<std::string,std::string>::const_iterator it;
-                    it = identifier_to_eff_name.find(correlated_vars[i][j]);
-                    if ( it != identifier_to_eff_name.end() ) // if there is an identifier exist
-                    {
-                        int index = in.find_value(random_and_fixed_effects_names, it->second);
-                        if ( index == -1 ) // variable not found
-                            throw std::string("Cannot find correlated variable " + it->second);
-std::cout<<"                         correlated var: "<< it->second <<" index: "<< index <<"\n";
-                        indeces.push_back(index);
-                        continue;
-                    }
-                    // (2) there is no special identifier, check names as it is
-                    std::string t_var = "1|" + correlated_vars[i][j];
-                    int index = in.find_value(random_and_fixed_effects_names, t_var);
-                    if ( index == -1 )
-                    {
-                        index = in.find_value(random_and_fixed_effects_names, correlated_vars[i][j]);                        
-                        if ( index == -1 ) // variable not found
-                            throw std::string("Cannot find correlated variable " + correlated_vars[i][j]);
-                    }
-std::cout<<"                        correlated var: "<< correlated_vars[i][j] <<" index: "<< index <<"\n";                        
-                    indeces.push_back(index);
-                }
-                corr_vars_index_in_effects.push_back(indeces);
-            }
-
             correlated_groups.clear();
             correlated_groups.shrink_to_fit();
-
-            correlated_vars.clear();
-            correlated_vars.shrink_to_fit();
-
-            // (1) rearrange correlation matrices according to correlated effects
-            // (2) extend/adjust correlated effects acording to the dimension of the related correlation matrix (extend llevels)
         }
         catch (const std::string &e)
         {
@@ -505,6 +552,264 @@ std::cout<<"                        correlated var: "<< correlated_vars[i][j] <<
         catch (...)
         {
             std::cerr << "Exception in model_parser::process_model_variance_expression(std::string &)"<< "\n";
+            throw;
+        }
+    }
+    // -------------------------------------------------------------
+    void model_parser::find_corr_vars_in_effects(std::vector<std::vector<std::string>> &corr_vars)
+    {
+        // for each random (correlated) variable find index (position) in effects vector
+        try
+        {
+            evolm::IOInterface in;
+
+            for (size_t i = 0; i < corr_vars.size(); i++)
+            {
+                std::vector<int> indeces;
+
+                for (size_t j = 0; j < corr_vars[i].size(); j++)
+                {
+                    // std::cout<<"processing correlated var: "<< corr_vars[i][j] <<"\n";
+
+                    // (1) check the aliases map
+                    std::unordered_map<std::string,std::string>::const_iterator it;
+                    it = identifier_to_eff_name.find(corr_vars[i][j]);
+                    if ( it != identifier_to_eff_name.end() ) // if the identifier exist
+                    {
+                        int index = in.find_value(random_and_fixed_effects_names, it->second); // find by original var name
+                        if ( index == -1 ) // variable not found
+                            throw std::string("Cannot find correlated variable " + it->second);
+                        indeces.push_back(index);
+                        continue;
+                    }
+                    
+                    // (2) if there is no special identifier provided, check the name as it is
+                    std::string t_var = "1|" + corr_vars[i][j];
+                    int index = in.find_value(random_and_fixed_effects_names, t_var);
+                    if ( index == -1 ) // if not found
+                    {
+                        index = in.find_value(random_and_fixed_effects_names, corr_vars[i][j]); // check var without '1|' notation
+                        if ( index == -1 ) // variable not found, report error
+                            throw std::string("Cannot find correlated variable " + corr_vars[i][j]);
+                    }
+                    
+                    indeces.push_back(index);
+                }
+
+                corr_vars_index_in_effects.push_back(indeces); // push indeces to the global scope container
+            }
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in model_parser::find_corr_vars_in_effects(std::vector<std::vector<std::string>> &)"<< "\n";
+            std::cerr << "Reason => " << e << "\n";
+            throw e;
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in model_parser::find_corr_vars_in_effects(std::vector<std::vector<std::string>> &)"<< "\n";
+            std::cerr << "Reason => " << e.what() << "\n";
+            throw e;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in model_parser::find_corr_vars_in_effects(std::vector<std::vector<std::string>> &)"<< "\n";
+            throw;
+        }
+    }
+    // -------------------------------------------------------------
+    void model_parser::load_corbin_file(std::string &cor_matr_file, std::string &cor_variable, compact_storage<float> &corr_storage)
+    {
+        try
+        {
+            if( data_file_name.empty() )
+                throw std::string("The data file name is empty!");
+
+            IOInterface in;
+            in.set_fname(data_file_name);
+            
+            std::vector<int> int_levels;
+            std::vector<std::string> str_levels;
+
+            in.fget_var_levels(cor_variable, obs_missing_value, int_levels, str_levels);
+
+            if ( int_levels.empty() && str_levels.empty() )
+                throw std::string("The carrelated variable " + cor_variable + " is found to be a continious variable with one level (vector). The .corbin file format does not support such variables. Use custom matrices to express correlations.");
+
+            if ( !int_levels.empty() && !str_levels.empty() )
+                throw std::string("The carrelated variable " + cor_variable + " is found to be a two-type variable: !int_levels.empty() && !str_levels.empty().");
+
+            size_t cor_matr_info[3]; // info storage for a data in .cprbin file
+            in.fread_matrix_info( cor_matr_file, cor_matr_info ); // get info
+
+            std::vector<float> f_vals;
+            std::vector<double> d_vals;
+            std::vector<std::int64_t> i_ids;
+            std::vector<int> int_ids;
+            std::vector<std::string> s_ids;
+            std::vector<size_t> keys;
+
+            std::vector<size_t> pos_map; // permutation vector
+            std::vector<std::int64_t> pos_map_red; // permutation vector, in the case of corr matrix needs to be reduced
+            
+            if( !int_levels.empty() ) // Check if keys type corresponds to determined levels type
+            {                                    
+                if ( cor_matr_info[2] != 5 ) // expected type int64 of ids
+                    throw std::string("expected type int64 of ids: cor_matr_info[2] != 5");
+                
+                if ( cor_matr_info[1] == 2 ) // get cor matrix of type float and int64 ids
+                {
+                    in.fread_matrix(cor_matr_file, f_vals, keys, i_ids);
+                }
+                else if ( cor_matr_info[1] == 3 ) // get cor matrix of type double and int64 ids
+                {
+                    in.fread_matrix(cor_matr_file, d_vals, keys, i_ids);
+                    
+                    f_vals.resize(d_vals.size());
+                    std::copy( d_vals.begin(), d_vals.end(), f_vals.begin() ); // need convertion to float
+                    d_vals.clear();
+                    d_vals.shrink_to_fit();
+                }
+                else
+                    throw std::string("Undefined type of correlation matrix. Expected float or double.");
+                
+                int_ids.resize(i_ids.size()); // type int
+                std::copy( i_ids.begin(), i_ids.end(), int_ids.begin() ); // need convertion from int64 to int
+                
+                i_ids.clear();
+                i_ids.shrink_to_fit();
+
+                if ( int_ids.size() < int_levels.size() )
+                    throw std::string("The number of rows in the correlation matrix " + cor_variable + " stored in the file " + cor_matr_file + " is lowe than the number of levels in the effect!");
+
+                if ( int_ids.size() > int_levels.size() ) // require permutation and reduction
+                {
+                    size_t num_of_found = 0;
+                    for (size_t i = 0; i < int_ids.size(); i++) // make permutation vector
+                    {
+                        int found = in.find_value(int_levels, int_ids[i]);
+                        pos_map_red.push_back(found);
+                        if ( found != -1 )
+                            num_of_found++;                                            
+                    }
+                    if ( num_of_found != int_levels.size() )
+                        throw std::string("There are IDs in the correlation matrix which are not in Effect matrix!");
+                }
+                else // require only permutation
+                {
+                    for (size_t i = 0; i < int_ids.size(); i++) // make permutation vector
+                    {
+                        int found = in.find_value(int_levels, int_ids[i]);
+                        if ( found != -1 )
+                            pos_map.push_back(found);
+                        else
+                            throw std::string("The following ID " + std::to_string(int_ids[i]) + " from correlation matrix is not in Effect matrix!");
+                    }
+                }
+
+                corr_storage.resize( int_ids.size() ); // expected symmeric matrix in .corbin
+
+                int_ids.clear();
+                int_ids.shrink_to_fit();
+            }
+
+            int_levels.clear();
+            int_levels.shrink_to_fit();
+
+            if ( !str_levels.empty() )
+            {                
+                if ( cor_matr_info[2] != 4 ) // expected type std::string of ids
+                    throw std::string("expected type std::string of ids: cor_matr_info[2] != 4");
+                
+                if ( cor_matr_info[1] == 2 )
+                {
+                    in.fread_matrix(cor_matr_file, f_vals, keys, s_ids);
+                }
+                else if ( cor_matr_info[1] == 3 )
+                {
+                    in.fread_matrix(cor_matr_file, d_vals, keys, s_ids);
+
+                    f_vals.resize(d_vals.size());
+                    std::copy( d_vals.begin(), d_vals.end(), f_vals.begin() ); // need convertion to float
+                    d_vals.clear();
+                    d_vals.shrink_to_fit();
+                }
+                else
+                    throw std::string("Undefined type of correlation matrix. Expected float or double.");
+
+                if ( s_ids.size() < str_levels.size() )
+                    throw std::string("The number of rows in the correlation matrix " + cor_variable + " stored in the file " + cor_matr_file + " is lowe than the number of levels in the effect!");
+
+                if ( s_ids.size() > str_levels.size() ) // require permutation and reduction
+                {
+                    size_t num_of_found = 0;
+                    for (size_t i = 0; i < s_ids.size(); i++) // make permutation vector
+                    {
+                        int found = in.find_value(str_levels, s_ids[i]);
+                        pos_map_red.push_back(found);
+                        if ( found != -1 )
+                            num_of_found++;                                            
+                    }
+                    if ( num_of_found != str_levels.size() )
+                        throw std::string("There are IDs in the correlation matrix which are not in Effect matrix!");
+                }
+                else // require only permutation
+                {
+                    for (size_t i = 0; i < s_ids.size(); i++) // make permutation vector
+                    {
+                        int found = in.find_value(str_levels, s_ids[i]);
+                        if ( found != -1 )
+                            pos_map.push_back(found);
+                        else
+                            throw std::string("The following ID " + s_ids[i] + " from correlation matrix is not in Effect matrix!");
+                    }
+                }
+
+                corr_storage.resize( s_ids.size() );
+
+                s_ids.clear();
+                s_ids.shrink_to_fit();
+            }
+
+            str_levels.clear();
+            str_levels.shrink_to_fit();
+
+            corr_storage.append_with_keys(f_vals, keys);
+
+            f_vals.clear();
+            f_vals.shrink_to_fit();
+            keys.clear();
+            keys.shrink_to_fit();
+
+            if ( !pos_map.empty() )
+                corr_storage.permute(pos_map); // rearrange matrix according to effect ids list
+            else
+                corr_storage.permute_and_reduce(pos_map_red); // rearrange and reduce matrix according to effect ids list
+            
+            pos_map.clear();
+            pos_map.shrink_to_fit();
+            pos_map_red.clear();
+            pos_map_red.shrink_to_fit();
+            
+            corr_storage.sym_to_rec(); // make it rectangular
+
+            //std::cout<<"int levels: "<<int_levels.size()<<" str levels: "<<str_levels.size()<<"\n";
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in model_parser::load_corbin_file(std::string &, std::string &, compact_storage<float> &)"<< "\n";
+            std::cerr << "Reason => " << e << "\n";
+            throw e;
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in model_parser::load_corbin_file(std::string &, std::string &, compact_storage<float> &)"<< "\n";
+            std::cerr << "Reason => " << e.what() << "\n";
+            throw e;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in model_parser::load_corbin_file(std::string &, std::string &, compact_storage<float> &)"<< "\n";
             throw;
         }
     }
@@ -537,7 +842,7 @@ std::cout<<"                        correlated var: "<< correlated_vars[i][j] <<
                 if ( data_file_name.empty() )
                     throw std::string("The data file name is empty!");
 
-                in.fgetvar(observ_vars[i], s); // convert string obs[i] to vector data observations[i]
+                in.fgetvar(observ_vars[i], obs_missing_value, s); // convert string obs[i] to vector data observations[i]
 
                 std::vector<size_t> obs_shape = s.shape();
 
@@ -723,6 +1028,11 @@ std::cout<<"                        correlated var: "<< correlated_vars[i][j] <<
                 i_lhs_eff.element_wise_dot(i_rhs_eff); // do final BAR operation
                 lhs_effect_name = lhs_effect_name + "|" + rhs_effect_name;
 
+                //---------------------------------------
+                if ( !rand_vars_identifiers[i].empty() )
+                    lhs_effect_name = lhs_effect_name + "_" + rand_vars_identifiers[i];
+                //---------------------------------------
+
                 random_and_fixed_effects.push_back(i_lhs_eff); // stack the processed effect
                 random_and_fixed_effects_names.push_back(lhs_effect_name);
 
@@ -762,7 +1072,7 @@ std::cout<<"                        correlated var: "<< correlated_vars[i][j] <<
             if ( var_find_res != -1 )
                 out_s = extra_effects[var_find_res];
             else
-                in_data.fgetvar(in_var_vect[0], out_s); // very first var
+                in_data.fgetvar(in_var_vect[0], obs_missing_value, out_s); // very first var
 
             std::vector<size_t> var_shape = out_s.shape();
 
@@ -780,7 +1090,7 @@ std::cout<<"                        correlated var: "<< correlated_vars[i][j] <<
                 if ( var_find_res != -1 )
                     s2 = extra_effects[var_find_res];
                 else
-                    in_data.fgetvar(in_var_vect[j], s2); // convert var string to data matrix
+                    in_data.fgetvar(in_var_vect[j], obs_missing_value, s2); // convert var string to data matrix
 
                 var_shape = s2.shape();
 
@@ -1677,6 +1987,7 @@ std::cout<<"                        correlated var: "<< correlated_vars[i][j] <<
         try
         {
             std::vector<int> printed_from_extra_storage;
+
             // print observations
             for (size_t i = 0; i < observations.size(); i++)
             {
@@ -1730,6 +2041,86 @@ std::cout<<"                        correlated var: "<< correlated_vars[i][j] <<
         catch (...)
         {
             std::cerr << "Exception in model_parser::print()"<< "\n";
+            throw;
+        }
+    }
+
+    // -------------------------------------------------------------
+    void model_parser::report()
+    {
+        try
+        {
+            std::cout<<"list of all extra_vars variables:"<<"\n";
+            std::cout<<"extra var names: "<<"\n";
+            size_t index = 0;
+            for (auto const &v: extra_effects_names)
+            {
+                std::cout<<v<<", position "<<index<<"\n";
+                index++;
+            }
+            std::cout<<"\n";
+            
+            std::cout<<"list of all effects var names: "<<"\n";
+            index = 0;
+            for (auto const &v: random_and_fixed_effects_names)
+            {
+                std::cout<<v<<", position "<<index<<"\n";
+                index++;
+            }
+            std::cout<<"\n";
+
+            std::cout<<"observations:"<<"\n";
+            for (size_t i = 0; i < observations.size(); i++)
+                if (obs_in_extra_storage[i] == -1) // is not in extra storage
+                    std::cout<<observations_names[i]<<", position: "<<i<<"\n";
+                else
+                    std::cout<<observations_names[i]<<", position in extra: "<<obs_in_extra_storage[i]<<"\n";
+            std::cout<<"\n";
+
+            std::cout<<"effects:"<<"\n";
+            for (size_t i = 0; i < random_and_fixed_effects.size(); i++)
+                if (random_and_fixed_in_extra_storage[i] == -1) // is not in extra storage
+                    std::cout<<random_and_fixed_effects_names[i]<<", position: "<<i<<"\n";
+                else
+                    std::cout<<random_and_fixed_effects_names[i]<<", position in extra: "<<random_and_fixed_in_extra_storage[i]<<"\n";
+            std::cout<<"\n";
+
+            std::cout<<"model variance:"<<"\n";
+            for (size_t i = 0; i < corr_vars_index_in_effects.size(); i++) // loop over all model correlations
+            {
+                std::cout<<"corr: ( ";
+                for (size_t j = 0; j < corr_vars_index_in_effects[i].size(); j++)
+                    std::cout<<random_and_fixed_effects_names[ corr_vars_index_in_effects[i][j] ]<<", pos: "<<corr_vars_index_in_effects[i][j]<<" ";
+                std::cout<<"), matr: ";
+                if (corr_matr_index_in_extra_vars[i][0] >= 0)
+                    std::cout<<extra_effects_names[ corr_matr_index_in_extra_vars[i][0] ]<<", pos in extra: "<<corr_matr_index_in_extra_vars[i][0]<<", var_matr: ";
+                else
+                    std::cout<<corr_matr_index_in_extra_vars[i][0]<<" == I"<<", var_matr: ";
+                if (corr_matr_index_in_extra_vars[i][1] >= 0)
+                    std::cout<<extra_effects_names[ corr_matr_index_in_extra_vars[i][1] ]<<", pos in extra: "<<corr_matr_index_in_extra_vars[i][1]<<"\n";
+                else
+                    std::cout<<corr_matr_index_in_extra_vars[i][1]<<"\n";
+            }
+            std::cout<<"\n";
+            std::cout<<"residual:"<<"\n";
+            std::cout<<extra_effects_names[ corr_matr_index_in_extra_vars[corr_matr_index_in_extra_vars.size()-1][0] ]<<", position in extra: "<<corr_matr_index_in_extra_vars[corr_matr_index_in_extra_vars.size()-1][0]<<"\n";
+
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in model_parser::report()"<< "\n";
+            std::cerr << "Reason => " << e << "\n";
+            throw e;
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in model_parser::report()"<< "\n";
+            std::cerr << "Reason => " << e.what() << "\n";
+            throw e;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in model_parser::report()"<< "\n";
             throw;
         }
     }

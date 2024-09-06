@@ -43,7 +43,7 @@ namespace evoped
         void get_matrix(const std::string &name,
                         evolm::smatrix<T> &arr,
                         std::vector<std::int64_t> &out);
-        void get_matrix(const std::string &name,
+        void save_matrix(const std::string &name,
                         const std::string &out_fname);
     private:
 
@@ -140,6 +140,13 @@ namespace evoped
         void get_iA22(evolm::smatrix<T> &full_matr,
                       std::vector<std::int64_t> &matr_ids,
                       std::vector<std::int64_t> &selected_ids);
+        
+        void making_iA22_d(evolm::smatrix<T> &full_matr,
+                           std::vector<std::int64_t> &matr_ids,
+                           std::vector<std::int64_t> &selected_ids);
+        void making_iA22_s(evolm::smatrix<T> &full_matr,
+                           std::vector<std::int64_t> &matr_ids,
+                           std::vector<std::int64_t> &selected_ids);
         
         // multithreading
         void thread_loads(std::vector<std::int64_t> &in,

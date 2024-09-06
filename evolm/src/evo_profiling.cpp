@@ -30,14 +30,13 @@ int main(void)
         // 1102 82.12 10     110.0  4       tomato  false
         //--------------------------------------------------
 
-        std::string model_expression("obs_f~ x1 + (1+var_f2|id)a +(1|var_cat)random2 +(1|x1)random_3; data = tests/data/diverse_data.dat; x1 = tests/data/data_matr.dat");
-        //std::string model_expression("obs_f,var_f2 ~ 1 + (1+var_f2|id) + var_cat + var_i1 + var_str*var_str2 + id + var_cat : var_str + (1|var_cat) + var_i1 * var_str2 * var_cat + x1 + (1|x2)");
+        //std::string model_expression("obs_f~ x1 + (1+var_f2|id)a +(1|var_cat)random2 +(1|x1)random_3; data = tests/data/diverse_data.dat; x1 = tests/data/data_matr.dat");
+        std::string model_expression("weight ~ 1 + herd + pen + (1|id) + (1|id)b + (1|dam); data = tests/data/model_2/model_2_data.dat; obs_missing_value = [-9.0]");
         //std::string model_expression("obs_f,var_f2 , , ,~ 1 + (1+var_f2|id) + x1+ x2 +(1+f|x3*x4) - x4 +(1 + x1:x2|x4) + x1+x2:x3 + (1|var_cat) + x4*x5*x6 - x4:x5:x6");
 
         std::string extra_vars_expression(
-                                "data=tests/data/diverse_data.dat;"
                                 "x2 = tests/data/x3_9_obs.dat;"
-                                "obs_missing_value = -9.0;"
+                                "obs_missing_value = [-9.0];"
                                 "Z1_snp = tests/data/snp_with_id_9_20.dat;"
                                 "Z2_snp = tests/data/snp_no_id_9_20.dat");
 
@@ -45,7 +44,7 @@ int main(void)
 
         std::string extra_vars_expression3("G = [1 2 3, 4 5.0 6, 7 8 9, 10 11 12.0 ]");
 
-        std::string variance_expression("var = (var_cat, x1)*A1*G1 + (a)*I*G2 + R; A1 = tests/data/x3_9_obs.dat; G1 = [0.5 0.1, 0.1 0.7]; G2 = [2.0]; R = [3.0]");
+        std::string variance_expression("var = (id, b)*A1*G1 + (dam)*I*G2 + R; A1 = tests/data/model_2/A1.corbin; G1 = [150 -40, -40 90]; G2 = [40]; R = [350]");
 
         m_parser.process_expression(extra_vars_expression);
         m_parser.process_expression(model_expression);
@@ -53,6 +52,8 @@ int main(void)
         m_parser.process_expression(variance_expression);
 
         m_parser.print();
+
+        m_parser.report();
 
         std::cout << "Completed model parsing ..."<< "\n";
 
@@ -167,7 +168,7 @@ std::cout <<"model 4 on sparse solver (milliseconds): "<< duration.count() << st
 
             model.clear();
 */
-
+//std::cout<<"call return"<<"\n";
         return 0;
     }
     catch (const std::exception &e)

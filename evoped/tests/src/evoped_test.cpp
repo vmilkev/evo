@@ -1209,7 +1209,7 @@ TEST_CASE("Testing Amat class")
 
             ap.set_sparsiity_threshold(100.0); // ensure dense matrix processing
             ap.make_matrix("tests/data/ped_bkg.dat", false);
-            ap.get_matrix("A", "matrix_A");
+            ap.save_matrix("A", "matrix_A");
 
             evoped::Utilities2 u;
             std::vector<double> values;
@@ -1280,7 +1280,7 @@ TEST_CASE("Testing Amat class")
 
             ap.set_sparsiity_threshold(-1.0); // ensure sparse calculations
             ap.make_matrix("tests/data/ped_bkg.dat", false);
-            ap.get_matrix("A", "sp_matrix_A");
+            ap.save_matrix("A", "sp_matrix_A");
 
             evoped::Utilities2 u;
             std::vector<double> values;
@@ -1358,10 +1358,10 @@ TEST_CASE("Testing Amat class")
             //ap.get_matrix("iA22", iA22, ai22_id);
             //ap.get_matrix("A22", A22, a22_id);
 
-            ap.get_matrix("iA", "iA");
-            ap.get_matrix("irA", "irA");
-            ap.get_matrix("iA22", "iA22");
-            ap.get_matrix("A22", "A22");
+            ap.save_matrix("iA", "iA");
+            ap.save_matrix("irA", "irA");
+            ap.save_matrix("iA22", "iA22");
+            ap.save_matrix("A22", "A22");
 
             evoped::Utilities2 u;
             std::vector<double> values;
@@ -2019,7 +2019,7 @@ TEST_CASE( "Testing Gmat class" )
             u.fread_matrix("g_matr", values, keys, g_id);
             
             G.resize(g_id.size());
-            size_t counter = 0;
+            //size_t counter = 0;
             for (size_t i = 0; i < keys.size(); i++)
             {
                     G[keys[i]] = values[i];
@@ -2108,13 +2108,13 @@ TEST_CASE( "Testing Gmat class" )
             
             //-------------------------
             //h.get_matrix(H,h_id);
-            h.get_matrix("h_matr");
+            h.save_matrix("h_matr");
             evoped::Utilities2 u;
             std::vector<double> h_vals;
             std::vector<size_t> h_keys;
             u.fread_matrix("h_matr", h_vals, h_keys, h_id);
             H.resize(h_id.size());
-            size_t counter = 0;
+            //size_t counter = 0;
             for (size_t i = 0; i < h_keys.size(); i++)
             {
                     H[ h_keys[i] ] = h_vals[ i ];
@@ -2224,13 +2224,13 @@ TEST_CASE( "Testing Gmat class" )
 
             //-------------------------
             //h.get_matrix(H,h_id);
-            h.get_matrix("h_matr");
+            h.save_matrix("h_matr");
             evoped::Utilities2 u;
             std::vector<double> h_vals;
             std::vector<size_t> h_keys;
             u.fread_matrix("h_matr", h_vals, h_keys, h_id);
             H.resize(h_id.size());
-            size_t counter = 0;
+            //size_t counter = 0;
             for (size_t i = 0; i < h_keys.size(); i++)
             {
                     H[ h_keys[i] ] = h_vals[ i ];
@@ -2340,13 +2340,13 @@ TEST_CASE( "Testing Gmat class" )
 
             //-------------------------
             //h.get_matrix(H,h_id);
-            h.get_matrix("h_matr");
+            h.save_matrix("h_matr");
             evoped::Utilities2 u;
             std::vector<double> h_vals;
             std::vector<size_t> h_keys;
             u.fread_matrix("h_matr", h_vals, h_keys, h_id);
             H.resize(h_id.size());
-            size_t counter = 0;
+            //size_t counter = 0;
             for (size_t i = 0; i < h_keys.size(); i++)
             {
                     H[ h_keys[i] ] = h_vals[ i ];

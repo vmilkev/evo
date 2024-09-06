@@ -110,8 +110,6 @@ namespace evolm
         bool z_on_memory = false;
         bool var_onmem = false;
         bool cor_onmem = false;
-
-        std::map<size_t, size_t> adj_effects_order; // map between the submitted effects ids and their recoded (consecutive) order
         
         void get_vect_z_uni2(const size_t &which_trait, const size_t &which_row, std::vector<float> &values, std::vector<size_t> &keys);
         void get_vect_z_uni2(const size_t &which_trait, const size_t &which_row, float **vect);

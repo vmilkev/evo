@@ -99,7 +99,7 @@ namespace evoped
             iG.fread("iG.dmat");
 
             make_matrix(iA, iA_id, iA22, iA22_id, iG, g_id);            
-            get_matrix(out_file);
+            save_matrix(out_file);
 
             iA.fclear(); iA.clear();
             iA_id.clear(); iA_id.shrink_to_fit();
@@ -177,7 +177,7 @@ namespace evoped
             iG.fread("iG.dmat");
 
             make_matrix(iA, iA_id, iA22, iA22_id, iG, g_id);            
-            get_matrix(out_file);
+            save_matrix(out_file);
 
             iA.fclear(); iA.clear();
             iA_id.clear(); iA_id.shrink_to_fit();
@@ -584,7 +584,7 @@ namespace evoped
             shapeofg.clear();
 
             // ----------------- G22(-1) = G(-1) - A22(-1) -----------------
-std::cout<<"G(-1) - A22(-1)"<<"\n";
+
             std::vector<size_t> pos_map;
             for (size_t i = 0; i < g_ids.size(); i++)
                 pos_map.push_back(u.find_invect(a_red_ids, g_ids[i]));
@@ -608,7 +608,7 @@ std::cout<<"G(-1) - A22(-1)"<<"\n";
             a_red_matr.clear();
 
             // ----------------- H = A(-1) not in G22(-1) -----------------
-std::cout<<"A(-1) not in G22(-1)"<<"\n";
+
             std::vector<std::int64_t> a_id_notin_g;
             u.check_id( g_ids, a_ids, a_id_notin_g ); // find ids of A(-1) which are not in G(-1)
 
@@ -632,14 +632,11 @@ std::cout<<"A(-1) not in G22(-1)"<<"\n";
                 int found_col_pos = u.find_invect( a_id_notin_g, (std::int64_t)real_col );
                 if ( found_col_pos != -1 ) // all ids which are not genotyped
                 {
-                    //h_values.push_back(a_matr[ matr_keys[i] ]);
-                    //h_keys.push_back(matr_keys[i]);
                     t_values[i] = a_matr[ matr_keys[i] ];
                     t_keys[i] = matr_keys[i];
                 }
                 else if ( found_row_pos == -1 && found_col_pos == -1) // store all genotyped ids
                 {
-                    //matr_keys_in_g.push_back(matr_keys[i]);
                     t_matr_keys_in_g[i] = matr_keys[i];
                 }
             }
@@ -660,9 +657,7 @@ std::cout<<"A(-1) not in G22(-1)"<<"\n";
             t_keys.clear(); t_keys.shrink_to_fit();
             t_matr_keys_in_g.clear(); t_matr_keys_in_g.shrink_to_fit();
 
-std::cout<<"sizes: "<<h_values.size()<<" "<<h_keys.size()<<" "<<matr_keys_in_g.size()<<"\n";
             // ------------------- H = A(-1) + G22(-1) ---------------------
-std::cout<<"A(-1) + G22(-1)"<<"\n";
            
             for (size_t i = 0; i < matr_keys_in_g.size(); i++) // correct genotyped values by related A-matrix values
             {
@@ -674,14 +669,11 @@ std::cout<<"A(-1) + G22(-1)"<<"\n";
 
                 size_t g_row = u.find_invect( g_ids, (std::int64_t)real_row );
                 size_t g_col = u.find_invect( g_ids, (std::int64_t)real_col );
+                
                 if (g_row >= g_col)
-                {
                     g_matr(g_row, g_col) = a_matr[ikey] + g_matr(g_row, g_col);
-                }
                 else
-                {
                     g_matr(g_col, g_row) = a_matr[ikey] + g_matr(g_col, g_row);
-                }
             }
 
             pos_map.clear();
@@ -693,7 +685,6 @@ std::cout<<"A(-1) + G22(-1)"<<"\n";
             hmat_id = a_ids;
 
             size_t key = 0;
-            T a_value = (T)0;
             size_t row = 0;
             size_t col = 0;
 
@@ -715,7 +706,6 @@ std::cout<<"A(-1) + G22(-1)"<<"\n";
                 }
             }
 
-std::cout<<"end"<<"\n";
             a_matr.clear();
             g_matr.clear();
         }
@@ -1036,10 +1026,6 @@ std::cout<<"end"<<"\n";
             for (size_t i = 0; i < g_ids.size(); i++)
                 pos_map.push_back(u.find_invect(a_ids, g_ids[i]));
 
-            //H = a_matr;
-
-            //a_matr.clear();
-
             hmat_id = a_ids;
 
             size_t h_size = a_matr.size() * ( a_matr.size() + 1 )/2;
@@ -1106,7 +1092,7 @@ std::cout<<"end"<<"\n";
 
     //===============================================================================================================
     template <typename T>
-    void Hmat<T>::get_matrix(const std::string &out_fname)
+    void Hmat<T>::save_matrix(const std::string &out_fname)
     {
         // Note, we operate with L-stored format, hence return lower triangular part
         try
@@ -1132,8 +1118,8 @@ std::cout<<"end"<<"\n";
             throw;
         }
     }
-    template void Hmat<float>::get_matrix(const std::string &out_fname);
-    template void Hmat<double>::get_matrix(const std::string &out_fname);
+    template void Hmat<float>::save_matrix(const std::string &out_fname);
+    template void Hmat<double>::save_matrix(const std::string &out_fname);
 
     //===============================================================================================================
     template <typename T>

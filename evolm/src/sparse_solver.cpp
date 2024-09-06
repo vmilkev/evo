@@ -82,8 +82,6 @@ namespace evolm
 
             z_on_memory = false;
 
-            adj_effects_order.clear();
-
             /*clear_model_matrix();
 
             bin_fnames.clear();
@@ -114,6 +112,8 @@ namespace evolm
 
             size_t i_adj_effects = 0;
 
+            std::vector<size_t> effects_order; // map between consecutive order of all model effects in the solver and their appending order
+
             for (size_t i = 0; i < n_trait; i++)
             {
                 int trait_obs_id = model.observation_trait[i]; // index of submitted observations vector in the observations std::vector
@@ -140,9 +140,7 @@ namespace evolm
                     if (shape[1] != n_obs_trait)
                         throw std::string("The dimension of provided effect matrix corresponding to observations is not correct!");
 
-                    adj_effects_order[trait_eff_ids[j]] = i_adj_effects; // map between the submitted effects ids and their recoded (consecutive) order
-
-                    i_adj_effects++;
+                    effects_order.push_back(trait_eff_ids[j]);
                 }
 
                 n_lev.push_back(trait_levels); // get the effects' levels for each trait
@@ -176,7 +174,8 @@ namespace evolm
 
                 for (size_t j = 0; j < n_effects; j++) // loop over correlated effects
                 {
-                    size_t which_effect = cor_effects(j, 0);                     // effect ID
+                    size_t which_effect = effects_order[ cor_effects(j, 0) ]; // effect ID
+
                     std::vector<size_t> shape2 = model.all_effects[which_effect].shape(); // shape of effect matrix, it is transposed, so n_lev-by-n_obs
 
                     if (shape2[0] != shape1[0]) // size of n_levels should be equal to a size of correlation matrix (symmetric)
@@ -1064,16 +1063,19 @@ namespace evolm
 
                 eff.push_back(e); // very first effect
 
-                e.clear();
+                //e.clear();
+                e.fwrite(); // because we may want to reuse the same effect for other trait
 
                 for (size_t i = 1; i < eff_ids.size(); i++)
                 {
                     e = model.all_effects[eff_ids[i]];
+
                     e.fread();
 
                     eff.push_back(e);
 
-                    e.clear();
+                    //e.clear();
+                    e.fwrite(); // because we may want to reuse the same effect for other trait
                 }
 
                 z_uni.push_back(eff);
@@ -1397,15 +1399,7 @@ namespace evolm
     {
         try
         {
-            matrix<int> which_effects = model.correlated_effects[which_correlation];
-
-            //which_effects.fread(); loaded on memory
-            matrix<size_t> shape_eff = which_effects.shape();
-
-            for (size_t i = 0; i < shape_eff[0]; i++)
-                which_effects(i, 0) = (int)adj_effects_order[which_effects(i, 0)];
-
-            return which_effects;
+            return model.correlated_effects[which_correlation];
         }
         catch (const std::exception &e)
         {

@@ -23,7 +23,7 @@ namespace evolm
 
             construct_rhs();
 
-            double size_of_maps = r_map.size() * (sizeof(size_t) + r_map.begin()->second.size() * sizeof(float)) * 3.0 + adj_effects_order.size() * sizeof(size_t) * 6.0;
+            double size_of_maps = r_map.size() * (sizeof(size_t) + r_map.begin()->second.size() * sizeof(float)) * 3.0;
             double size_of_data = (size_of_maps + (double)model.get_size_of_data()) / 1073741824.0;
 
             set_data_size(size_of_data);

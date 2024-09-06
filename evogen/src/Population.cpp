@@ -890,7 +890,7 @@ namespace evogen
     {
         try
         {
-            if ( at >= active_individuals.size() || at < 0 )
+            if ( at >= active_individuals.size() )
                 throw std::string("Illegal value of passed parameter!");
 
             return individuals[active_individuals[at]].get_alive();
@@ -1343,6 +1343,7 @@ namespace evogen
     {
         try
         {
+//std::cout<<"In while, individuals.size() = "<<individuals.size()<<" active_individuals.size() = "<<active_individuals.size()<<'\n';
             size_t i = 0;
             while ( i < individuals.size() )
             {
@@ -1350,6 +1351,7 @@ namespace evogen
                     individuals.erase( individuals.begin() + i );
                 else
                     i = i + 1;
+//std::cout<<"In while, i = "<<i<<'\n';
             }
             
             active_individuals.clear();
@@ -1357,6 +1359,7 @@ namespace evogen
             
             for (size_t j = 0; j < individuals.size(); j++)
                 active_individuals.push_back(j);
+//std::cout<<"In while, individuals.size() = "<<individuals.size()<<" active_individuals.size() = "<<active_individuals.size()<<'\n';
         }
         catch (const std::exception &e)
         {

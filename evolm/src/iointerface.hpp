@@ -31,7 +31,12 @@ namespace evolm
         void fgetdata(std::vector<std::vector<T>> &out);                  // Reads general ASCII formated data
         
         void fgetvar(const std::string &var_name,                         // Extract a data for a specific variable accessed by the name 'var_name'
+                     float miss_constant,
                      effects_storage &out_var);         // Reference variable name (observations var name) which used to track missing records
+        void fget_var_levels(const std::string &var_name,
+                             float miss_constant,
+                             std::vector<int> &out_int,
+                             std::vector<std::string> &out_str);
         
         void clear();
 
@@ -43,8 +48,17 @@ namespace evolm
         template <typename T>
         int find_value(std::vector<T> &where,
                        T what);                                           // fins the position of the string 'what' in the vector 'where'
+        
+        template <typename T>
+        void fread_matrix(const std::string &fname, std::vector<T> &vals, std::vector<size_t> &keys, std::vector<std::int64_t> &ids);
+        template <typename T>
+        void fread_matrix(const std::string &fname, std::vector<T> &vals, std::vector<size_t> &keys, std::vector<std::string> &ids);
+        void fread_matrix_info(const std::string &fname, size_t *info);
+
 
     private:
+        float missing_constant = 0.0f;
+        int missing_int = 999999999;
         //template <typename T>
         //int find_value(std::vector<T> &where,
         //               T what);                                           // fins the position of the string 'what' in the vector 'where'
@@ -57,12 +71,18 @@ namespace evolm
                          std::vector<float> &fvalues);                    // converts vector of strings to a vector of floating point numbers
         
         void str_to_int(std::vector<std::string> &data_str,
-                       std::vector<int> &fvalues);                        // converts vector of strings to a vector of integer numbers
+                        std::vector<bool> &missing_pos,
+                        std::vector<int> &fvalues);                        // converts vector of strings to a vector of integer numbers
         void cat_to_effect(std::vector<int> &cvalues,
                            compact_storage<int> &ematrix); // get integers vector and returns an effect matrix
-        template <typename T>
-        size_t int_to_cat(std::vector<T> &ivalues,
+        //template <typename T>
+        size_t int_to_cat(std::vector<int> &ivalues,
                                std::vector<int> &cat_values);             // get integers vector (categorical data) and returns a number of columns of a corresponding effect matrix, and vector of unique values
+        size_t int_to_cat(std::vector<std::string> &ivalues,
+                               std::vector<int> &cat_values);             // get integers vector (categorical data) and returns a number of columns of a corresponding effect matrix, and vector of unique values
+
+        template <typename T>
+        void get_unique_levels(std::vector<T> &ivalues, std::vector<T> &unique_ivalues);
 
         std::string io_file;                                              // IO file name
         std::map<size_t, size_t> snp_id;                                  // KEY: the consecutive index; the VALUE: observation ID

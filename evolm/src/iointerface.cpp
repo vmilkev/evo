@@ -485,7 +485,7 @@ namespace evolm
         }
     }
     //===============================================================================================================
-    void IOInterface::fgetvar(const std::string &var_name, effects_storage &out_var)
+    void IOInterface::fgetvar(const std::string &var_name, float miss_constant, effects_storage &out_var)
     {
         /*
                 Extract data for a specific variable accessed by the name 'var_name';
@@ -512,6 +512,8 @@ namespace evolm
         */
         try
         {
+            missing_constant = miss_constant;
+
             std::ifstream snpF;
             std::string line;
             std::string delimiter = " ";
@@ -621,12 +623,20 @@ namespace evolm
 
             // ---------------- Detect types ------------------
 
+            std::vector<bool> where_is_missing(var_types.size(), false);
+            for (size_t i = 0; i < var_types.size(); i++)
+                if (var_types[i] == 5)
+                    where_is_missing[i] = true;
+            
             int detected_type = define_vartype(var_types);
 
             var_types.clear();
             var_types.shrink_to_fit();
 
             // ----------- Return specific data matrix --------
+
+            if ( data_str.size() != where_is_missing.size() )
+                throw std::string("data_str.size() != where_is_missing.size()");
 
             switch (detected_type)
             {
@@ -659,7 +669,7 @@ namespace evolm
                 if (detected_type == 3)
                 {
                     std::vector<int> ivalues;      // temporal container for integer-type values converted from string-type data
-                    str_to_int(data_str, ivalues); // convert string-type data to integer (which will be processed further as a categorical-type data)
+                    str_to_int(data_str, where_is_missing, ivalues); // convert string-type data to integer (which will be processed further as a categorical-type data)
 
                     n_columns = int_to_cat(ivalues, c_values); // estimate the number of columns in an effect matrix, and convert integers to categorical data
 
@@ -698,37 +708,217 @@ namespace evolm
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in IOInterface::fgetvar(const std::string &, effects_storage &)" << '\n';
+            std::cerr << "Exception in IOInterface::fgetvar(const std::string &, float, effects_storage &)" << '\n';
             std::cerr << "Reason => " << e.what() << '\n';
             throw e;
         }
         catch (const std::string err)
         {
-            std::cerr << "Exception in IOInterface::fgetvar(const std::string &, effects_storage &)" << '\n';
+            std::cerr << "Exception in IOInterface::fgetvar(const std::string &, float, effects_storage &)" << '\n';
             std::cerr << "Reason => " << err << '\n';
             throw err;
         }
         catch (...)
         {
-            std::cerr << "Exception in IOInterface::fgetvar(const std::string &, effects_storage &)" << '\n';
+            std::cerr << "Exception in IOInterface::fgetvar(const std::string &, float, effects_storage &)" << '\n';
+            throw;
+        }
+    }
+    //===============================================================================================================
+    void IOInterface::fget_var_levels(const std::string &var_name, float miss_constant, std::vector<int> &out_int, std::vector<std::string> &out_str)
+    {
+        /*
+                File format:
+
+                [header]
+                [list of data of different types with "space" delimiter]
+
+                Example:
+                var_f1 var_i1 var_f2 var_cat var_str
+                12.2   20     51.1   1       aple
+                15.5   30     10     2       plum
+                21.0   45     562    3       aple
+                30.5   50     452    3       plum
+                40     61     231    4       tomato
+                51.3   71     125    2       tomato
+                60.6   80     121    1       plum
+                70.001 91     121    1       aple
+                82.012 10     110.0  4       tomato
+        */
+        try
+        {
+            missing_constant = miss_constant;
+
+            std::ifstream snpF;
+            std::string line;
+            std::string delimiter = " ";
+            std::vector<std::string> vars_header;
+
+            std::vector<std::string> data_str;
+            std::vector<int> var_types;
+
+            // -------------- Opening file --------------------
+
+            snpF.open(io_file.c_str(), std::fstream::in);
+            if (!snpF.good())
+                throw std::string("Cannot open file for reading!");
+
+            // -------------- Read header ---------------------
+
+            getline(snpF, line);
+
+            size_t pos = 0;
+            std::string token1;
+
+            while ((pos = line.find(delimiter)) != std::string::npos)
+            {
+                if (pos == 0)
+                    token1 = " ";
+                else
+                    token1 = line.substr(0, pos);
+
+                line.erase(0, pos + delimiter.length());
+
+                if (token1.compare(delimiter) == 0)
+                    continue;
+
+                vars_header.push_back(token1);
+            }
+
+            vars_header.push_back(line);
+
+            // ---------- Detect var_name column number ------
+
+            int var_col = find_value(vars_header, var_name);
+
+            if (var_col == -1)
+            {
+                if (var_name == "1") // in the case of the intercept variable
+                    throw std::string("Trying to obtain unique levels for the intercept.");
+
+                std::string s("The following variable name is not in the data file header: ");
+                s = s + var_name;
+                throw s;
+            }
+            // ----------------- Read data ------------------
+
+            while (getline(snpF, line))
+            {
+                size_t pos = 0;
+                size_t which_col = 0;
+                std::string token;
+
+                while ((pos = line.find(delimiter)) != std::string::npos)
+                {
+                    if (pos == 0)
+                        token = " ";
+                    else
+                        token = line.substr(0, pos);
+
+                    line.erase(0, pos + delimiter.length());
+
+                    if (token.compare(delimiter) == 0)
+                        continue;
+
+                    if (which_col == (size_t)var_col) // do something if at right column
+                    {
+                        var_types.push_back(get_datatype(token));
+                        data_str.push_back(token);
+                    }
+
+                    which_col++;
+                }
+
+                // for the very last column:
+                if (which_col == (size_t)var_col) // do something if at right column
+                {
+                    var_types.push_back(get_datatype(line));
+                    data_str.push_back(line);
+                }
+            }
+
+            snpF.close();
+
+            // ---------------- Detect types ------------------
+
+            std::vector<bool> where_is_missing(var_types.size(), false);
+            for (size_t i = 0; i < var_types.size(); i++)
+                if (var_types[i] == 5)
+                    where_is_missing[i] = true;
+
+            int detected_type = define_vartype(var_types);
+
+            var_types.clear();
+            var_types.shrink_to_fit();
+
+            // ----------- Return specific data matrix --------
+
+            switch (detected_type)
+            {
+            case 2: // for continious variable, returns a vector
+            {
+                // Do nothing because this type has only one level
+                // check other output vectors, if they are empty - variable is continious
+                break;
+            }
+            case 1:
+            case 3:
+            case 4: // for integer- and string-type variables (categorical), returns a matrix
+            {
+                if (detected_type == 3)
+                {
+                    std::vector<int> ivalues;      // temporal container for integer-type values converted from string-type data
+                    str_to_int(data_str, where_is_missing, ivalues); // convert string-type data to integer (which will be processed further as a categorical-type data)
+                    get_unique_levels(ivalues, out_int);
+                }
+                else
+                    get_unique_levels(data_str, out_str); // estimate the number of columns in an effect matrix, and convert integers to categorical data
+
+                data_str.clear();
+                data_str.shrink_to_fit();
+
+                break;
+            }
+            default:
+                throw std::string("The variable '" + var_name + "' type has not been determined!");
+            }
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in IOInterface::fget_var_levels(const std::string &, float, std::vector<int> &, std::vector<std::string> &)" << '\n';
+            std::cerr << "Reason => " << e.what() << '\n';
+            throw e;
+        }
+        catch (const std::string err)
+        {
+            std::cerr << "Exception in IOInterface::fget_var_levels(const std::string &, float, std::vector<int> &, std::vector<std::string> &)" << '\n';
+            std::cerr << "Reason => " << err << '\n';
+            throw err;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in IOInterface::fget_var_levels(const std::string &, float, std::vector<int> &, std::vector<std::string> &)" << '\n';
             throw;
         }
     }
     //===============================================================================================================
 
-    template <typename T>
-    size_t IOInterface::int_to_cat(std::vector<T> &ivalues, std::vector<int> &cat_values)
+    size_t IOInterface::int_to_cat(std::vector<int> &ivalues, std::vector<int> &cat_values)
     {
         try
         {
-            std::vector<T> in_values(ivalues);
+            std::vector<int> in_values(ivalues);
 
             sort(in_values.begin(), in_values.end());
 
             if (adjacent_find(in_values.begin(), in_values.end()) != in_values.end())         // if not unique
                 in_values.erase(unique(in_values.begin(), in_values.end()), in_values.end()); // make the vector unique
 
+            if ( in_values.back() == missing_int )
+                in_values.pop_back(); // remove missing constant to obtain correct number of levels in effect
+
             // recoding integer values in the 'ivalues' vector to the vcategorical data
+            // for missing values: cat_values = -1
             for (size_t i = 0; i < ivalues.size(); i++)
             {
                 int i_observation = find_value(in_values, ivalues[i]); // get categorical value (in the range [0,n]) of a specific observation 'ivalues[i]'
@@ -739,25 +929,109 @@ namespace evolm
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in IOInterface::int_to_cat(std::vector<T> &, std::vector<int> &)" << '\n';
+            std::cerr << "Exception in IOInterface::int_to_cat(std::vector<int> &, std::vector<int> &)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in IOInterface::int_to_cat(std::vector<T> &, std::vector<int> &)" << '\n';
+            std::cerr << "Exception in IOInterface::int_to_cat(std::vector<int> &, std::vector<int> &)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in IOInterface::int_to_cat(std::vector<T> &, std::vector<int> &)" << '\n';
+            std::cerr << "Exception in IOInterface::int_to_cat(std::vector<int> &, std::vector<int> &)" << '\n';
+            throw;
+        }
+    }
+    //===============================================================================================================
+
+    size_t IOInterface::int_to_cat(std::vector<std::string> &ivalues, std::vector<int> &cat_values)
+    {
+        try
+        {
+            std::vector<std::string> in_values(ivalues);
+
+            sort(in_values.begin(), in_values.end());
+
+            if (adjacent_find(in_values.begin(), in_values.end()) != in_values.end())         // if not unique
+                in_values.erase(unique(in_values.begin(), in_values.end()), in_values.end()); // make the vector unique
+
+            int last_value = 0;
+
+            std::string last = in_values.back();
+            last_value = stoi( last );
+
+            if ( last_value == missing_int )
+                in_values.pop_back(); // remove missing constant to obtain correct number of levels in effect
+
+            // recoding integer values in the 'ivalues' vector to the vcategorical data
+            // for missing values: cat_values = -1
+            for (size_t i = 0; i < ivalues.size(); i++)
+            {
+                int i_observation = find_value(in_values, ivalues[i]); // get categorical value (in the range [0,n]) of a specific observation 'ivalues[i]'
+                cat_values.push_back(i_observation);                   // for each record write a specific category
+            }
+
+            return in_values.size();
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in IOInterface::int_to_cat(std::vector<std::string> &, std::vector<int> &)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in IOInterface::int_to_cat(std::vector<std::string> &, std::vector<int> &)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in IOInterface::int_to_cat(std::vector<std::string> &, std::vector<int> &)" << '\n';
             throw;
         }
     }
 
-    template size_t IOInterface::int_to_cat(std::vector<int> &ivalues, std::vector<int> &cat_values);
-    template size_t IOInterface::int_to_cat(std::vector<std::string> &ivalues, std::vector<int> &cat_values);
+    //===============================================================================================================
+
+    template <typename T>
+    void IOInterface::get_unique_levels(std::vector<T> &ivalues, std::vector<T> &unique_ivalues)
+    {
+        try
+        {
+            std::vector<T> in_values(ivalues);
+
+            sort(in_values.begin(), in_values.end());
+
+            if (adjacent_find(in_values.begin(), in_values.end()) != in_values.end())         // if not unique
+                in_values.erase(unique(in_values.begin(), in_values.end()), in_values.end()); // make the vector unique
+
+            unique_ivalues = in_values;
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in IOInterface::get_unique_levels(std::vector<T> &, std::vector<T> &)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in IOInterface::get_unique_levels(std::vector<T> &, std::vector<T> &)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in IOInterface::get_unique_levels(std::vector<T> &, std::vector<T> &)" << '\n';
+            throw;
+        }
+    }
+
+    template void IOInterface::get_unique_levels(std::vector<int> &ivalues, std::vector<int> &unique_ivalues);
+    template void IOInterface::get_unique_levels(std::vector<std::string> &ivalues, std::vector<std::string> &unique_ivalues);
 
     //===============================================================================================================
 
@@ -766,7 +1040,8 @@ namespace evolm
         try
         {
             for (size_t i = 0; i < cvalues.size(); i++)
-                ematrix.append(1, i, cvalues[i]);
+                if ( cvalues[i] != -1 )
+                    ematrix.append(1, i, cvalues[i]);
 
             ematrix.optimize();
         }
@@ -791,12 +1066,15 @@ namespace evolm
 
     //===============================================================================================================
 
-    void IOInterface::str_to_int(std::vector<std::string> &data_str, std::vector<int> &fvalues)
+    void IOInterface::str_to_int(std::vector<std::string> &data_str, std::vector<bool> &missing_pos, std::vector<int> &fvalues)
     {
         try
         {
             for (size_t i = 0; i < data_str.size(); i++)
-                fvalues.push_back(std::stoi(data_str[i]));
+                if ( missing_pos[i] )
+                    fvalues.push_back( missing_int );
+                else
+                    fvalues.push_back(std::stoi(data_str[i]));
 
             std::vector<int>::iterator result = std::min_element(fvalues.begin(), fvalues.end());
             int min_value = *result;
@@ -806,19 +1084,19 @@ namespace evolm
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in IOInterface::str_to_int(std::vector<std::string> &, std::vector<int> &)" << '\n';
+            std::cerr << "Exception in IOInterface::str_to_int(std::vector<std::string> &, std::vector<bool> &, std::vector<int> &)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in IOInterface::str_to_int(std::vector<std::string> &, std::vector<int> &)" << '\n';
+            std::cerr << "Exception in IOInterface::str_to_int(std::vector<std::string> &, std::vector<bool> &, std::vector<int> &)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in IOInterface::str_to_int(std::vector<std::string> &, std::vector<int> &)" << '\n';
+            std::cerr << "Exception in IOInterface::str_to_int(std::vector<std::string> &, std::vector<bool> &, std::vector<int> &)" << '\n';
             throw;
         }
     }
@@ -862,6 +1140,9 @@ namespace evolm
             if (adjacent_find(types_vect.begin(), types_vect.end()) != types_vect.end())          // if not unique
                 types_vect.erase(unique(types_vect.begin(), types_vect.end()), types_vect.end()); // make the vector unique
 
+            if ( types_vect.back() == 5 )
+                types_vect.pop_back();
+
             if (types_vect.size() > 2)
                 throw std::string("More than two different data types detected for a variable in a data file!");
 
@@ -872,8 +1153,8 @@ namespace evolm
             if (types_vect.size() == 1)
                 return types_vect[0];
 
-            // if some of the integers hafe floating point representation, treat data vector as floating point
-            if ((types_vect[0] == 2 && types_vect[1] == 3) || (types_vect[1] == 2 && types_vect[0] == 3))
+            // if some of the integers have floating point representation, treat data vector as floating point
+            if ( types_vect[0] == 2 && types_vect[1] == 3 )
                 return types_vect[0];
 
             // if a string types is mixed with floating point number
@@ -938,23 +1219,29 @@ namespace evolm
     {
         try
         {
-            std::regex boolean_expr = std::regex("^false|true$");                       // type 1
-            std::regex float_expr = std::regex("^[+-]?([0-9]+([.][0-9]*)|[.][0-9]+)$"); //("^\\d+\\.\\d+$");   // type 2
-            std::regex integer_expr = std::regex("^\\d+$");                             // type 3
-            std::regex string_expr = std::regex("[a-zA-Z_#0-9]+");                      // type 4
+            std::regex boolean_expr = std::regex("^false|true$");                       // type 1, boolean
+            std::regex float_expr = std::regex("^[+-]?([0-9]+([.][0-9]*)|[.][0-9]+)$"); // type 2, float
+            std::regex integer_expr = std::regex("^\\d+$");                             // type 3, integer
+            std::regex string_expr = std::regex("[a-zA-Z_#0-9]+");                      // type 4, string
+            std::string missing = std::to_string(missing_constant);                     // type 5, missing data
 
             int datatype = 0;
 
             if (std::regex_match(str_token, boolean_expr))
                 datatype = 1;
             else if (std::regex_match(str_token, float_expr))
-                datatype = 2;
+            {
+                if ( missing.find(str_token) !=std::string::npos )
+                    datatype = 5;
+                else
+                    datatype = 2;
+            }
             else if (std::regex_match(str_token, integer_expr))
                 datatype = 3;
             else if (std::regex_match(str_token, string_expr))
                 datatype = 4;
             else
-                throw std::string("Undetected data type!");
+                throw std::string("Cannot detect a data type for the token " + str_token);
 
             return datatype;
         }
@@ -1080,7 +1367,8 @@ namespace evolm
         catch (const std::exception &e)
         {
             std::cerr << "Exception in IOInterface::fgetdata(std::vector<std::vector<float>> &)." << '\n';
-            std::cerr << e.what() << '\n';
+            std::cerr <<"Reason => "<< e.what() << '\n';
+            std::cerr << " => operating on file "<< io_file << " which expected to consist strictly numerical data without header."<<"\n";
             throw e;
         }
         catch (const std::string &err)
@@ -1257,7 +1545,7 @@ namespace evolm
     }
 
     //===============================================================================================================
-        void IOInterface::make_zmatrix( evolm::matrix<int> &M, evolm::matrix<float> &Z )
+    void IOInterface::make_zmatrix( evolm::matrix<int> &M, evolm::matrix<float> &Z )
     {
         try
         {
@@ -1378,6 +1666,134 @@ namespace evolm
             throw;
         }
     }
+    //===========================================================================================
+    template <typename T>
+    void IOInterface::fread_matrix(const std::string &fname, std::vector<T> &vals, std::vector<size_t> &keys, std::vector<std::int64_t> &ids)
+    {
+        std::fstream fA;
+        //fA.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+
+        std::string name_suffix(".corbin");
+        size_t find = fname.find(name_suffix);
+        std::string fname2(fname);
+        if( find == std::string::npos ) // there is no suffix
+            fname2 = fname + name_suffix;
+        
+        fA.open(fname2, fA.binary | fA.in);
+
+        if (!fA.is_open())
+            throw std::string("IOInterface::fread_matrix(const std::string &, std::vector<T> &, std::vector<size_t> &, std::vector<T2> &): Error while opening a binary file.");
+
+        size_t B[3];
+
+        fA.read( reinterpret_cast<char *>(&B), 3 * sizeof(size_t) ); // 0. reading a storage info
+
+        // info about matrix values
+        size_t var_inbytes = B[0];
+        size_t var_type = B[1]; // expected 2 or 3
+        
+        // info about matrix IDs
+        size_t var_type2 = B[2]; // expected 4 or 5
+
+        size_t vals_size;
+        size_t keys_size;
+        size_t ids_size;
+
+        fA.read( reinterpret_cast<char *>( &vals_size ), sizeof(size_t) ); // 1. reading size of values
+        vals.resize(vals_size);
+        fA.read( reinterpret_cast<char *>( vals.data() ), vals_size * var_inbytes ); // 2. reading all values
+
+        fA.read( reinterpret_cast<char *>( &keys_size ), sizeof(size_t) ); // 3. reading size of keys
+        keys.resize(keys_size);
+        fA.read( reinterpret_cast<char *>( keys.data() ), keys_size * sizeof(size_t) ); // 4. reading all keys
+
+        fA.read( reinterpret_cast<char *>( &ids_size ), sizeof(size_t) ); // 3. reading size of keys
+        ids.resize(ids_size);
+        fA.read( reinterpret_cast<char *>( ids.data() ), ids_size * sizeof(std::int64_t) ); // 4. reading all keys
+
+        fA.close();
+    }
+    template void IOInterface::fread_matrix(const std::string &fname, std::vector<float> &vals, std::vector<size_t> &keys, std::vector<std::int64_t> &ids);
+    template void IOInterface::fread_matrix(const std::string &fname, std::vector<double> &vals, std::vector<size_t> &keys, std::vector<std::int64_t> &ids);
+    //===========================================================================================
+    template <typename T>
+    void IOInterface::fread_matrix(const std::string &fname, std::vector<T> &vals, std::vector<size_t> &keys, std::vector<std::string> &ids)
+    {
+        std::fstream fA;
+        //fA.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+
+        std::string name_suffix(".corbin");
+        size_t find = fname.find(name_suffix);
+        std::string fname2(fname);
+        if( find == std::string::npos ) // there is no suffix
+            fname2 = fname + name_suffix;
+
+        fA.open(fname2, fA.binary | fA.in);
+
+        if (!fA.is_open())
+            throw std::string("IOInterface::fread_matrix(const std::string &, std::vector<T> &, std::vector<size_t> &, std::vector<T2> &): Error while opening a binary file.");
+
+        size_t B[3];
+
+        fA.read( reinterpret_cast<char *>(&B), 3 * sizeof(size_t) ); // 0. reading a storage info
+
+        // info about matrix values
+        size_t var_inbytes = B[0];
+        size_t var_type = B[1]; // expected 2 or 3
+        
+        // info about matrix IDs
+        size_t var_type2 = B[2]; // expected 4 or 5
+
+        size_t vals_size;
+        size_t keys_size;
+        size_t ids_size;
+
+        fA.read( reinterpret_cast<char *>( &vals_size ), sizeof(size_t) ); // 1. reading size of values
+        vals.resize(vals_size);
+        fA.read( reinterpret_cast<char *>( vals.data() ), vals_size * var_inbytes ); // 2. reading all values
+
+        fA.read( reinterpret_cast<char *>( &keys_size ), sizeof(size_t) ); // 3. reading size of keys
+        keys.resize(keys_size);
+        fA.read( reinterpret_cast<char *>( keys.data() ), keys_size * sizeof(size_t) ); // 4. reading all keys
+
+        fA.read( reinterpret_cast<char *>( &ids_size ), sizeof(size_t) ); // 3. reading size of keys
+        ids.resize(ids_size);
+        for (size_t i = 0; i < ids_size; i++)
+        {
+            size_t str_size;
+            std::string str;
+            fA.read( reinterpret_cast<char *>( &str_size ), sizeof(size_t) ); // 5. writing size of ids
+            str.resize(str_size);
+            fA.read( reinterpret_cast<char *>( &str[0] ), str_size ); // 6. reading specific id
+            ids[i] = str;
+        }
+
+        fA.close();
+    }
+    template void IOInterface::fread_matrix(const std::string &fname, std::vector<float> &vals, std::vector<size_t> &keys, std::vector<std::string> &ids);
+    template void IOInterface::fread_matrix(const std::string &fname, std::vector<double> &vals, std::vector<size_t> &keys, std::vector<std::string> &ids);
+    //===========================================================================================
+    void IOInterface::fread_matrix_info(const std::string &fname, size_t *info)
+    {
+        std::fstream fA;
+        //fA.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+
+        std::string name_suffix(".corbin");
+        size_t find = fname.find(name_suffix);
+        std::string fname2(fname);
+        if( find == std::string::npos ) // there is no suffix
+            fname2 = fname + name_suffix;
+
+        fA.open(fname2, fA.binary | fA.in);
+
+        if (!fA.is_open())
+            throw std::string("IOInterface::fread_matrix_info(const std::string &, size_t &): Error while opening a binary file.");
+
+        fA.read( reinterpret_cast<char *>(info), 3 * sizeof(size_t) ); // 0. reading a storage info
+
+        fA.close();
+    }
+
     //===============================================================================================================
     //===============================================================================================================
     //===============================================================================================================

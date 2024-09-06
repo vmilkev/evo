@@ -9,4 +9,5 @@ namespace evolm
     extern template class compact_storage<float>;
     extern template class compact_storage<double>;
     extern template class compact_storage<int>;
+     
 }

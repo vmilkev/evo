@@ -54,7 +54,9 @@ namespace evoped
                          const std::string &g_id_file,
                          const std::string &ped_file,
                          const std::string &out_file);
-        void get_matrix(const std::string &out_fname);
+        
+        void save_matrix(const std::string &out_fname);
+        
         void get_matrix(std::vector<T> &values,
                         std::vector<size_t> &keys,
                         std::vector<std::int64_t> &id);

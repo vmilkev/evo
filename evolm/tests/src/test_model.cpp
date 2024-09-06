@@ -15,7 +15,7 @@ TEST_CASE("Testing model set-up")
 TEST_CASE("Testing on model 1")
 {
     // ---------------------------
-    // model:
+    // model 5.1 p. 72:
     // effect: 1       2
     // y1 = b1*X1 + a1*Z1 + e1;
     // effect: 3       4
@@ -1021,6 +1021,7 @@ TEST_CASE("Testing on model 1")
             int obs_trate_1 = 0;
 
             std::vector<int> eff_trate_2{2, 3};
+            //std::vector<int> eff_trate_2{0, 1};
             int obs_trate_2 = 1;
 
             // define the model
@@ -1035,6 +1036,9 @@ TEST_CASE("Testing on model 1")
             model.append_effect(z2, 5, 8); // eff := 3
 
             std::vector<int> corr_eff{1, 3};
+
+            std::vector<float> iG1_t{40, 18,
+                                    18, 20}; // full matrix, not inverse!
 
             model.append_corrstruct(iG1, 2, iA, 8, corr_eff);
             model.append_traitstruct(obs_trate_1, eff_trate_1);
@@ -1080,6 +1084,7 @@ TEST_CASE("Testing on model 1")
             int obs_trate_1 = 0;
 
             std::vector<int> eff_trate_2{2, 3};
+            //std::vector<int> eff_trate_2{0, 1};
             int obs_trate_2 = 1;
 
             // define the model
@@ -1094,6 +1099,7 @@ TEST_CASE("Testing on model 1")
             model.append_effect(z2, 5, 8); // eff := 3
 
             std::vector<int> corr_eff{1, 3};
+            //std::vector<int> corr_eff{1, 1};
 
             model.append_corrstruct(iG1, 2, iA, 8, corr_eff);
             model.append_traitstruct(obs_trate_1, eff_trate_1);
@@ -1145,6 +1151,7 @@ TEST_CASE("Testing on model 1")
             int obs_trate_1 = 0;
 
             std::vector<int> eff_trate_2{2, 3};
+            //std::vector<int> eff_trate_2{0, 1};
             int obs_trate_2 = 1;
 
             // define the model
@@ -1157,12 +1164,12 @@ TEST_CASE("Testing on model 1")
             model.append_effect(z1, 5, 8); // eff := 1
             model.append_effect(x2, 5, 2); // eff := 2
             model.append_effect(z2, 5, 8); // eff := 3
-
-            std::vector<int> corr_eff{1, 3};
+            
+            std::vector<int> corr_eff{1, 3}; // according to in-solver's order
 
             model.append_corrstruct(iG1, 2, iA, 8, corr_eff);
-            model.append_traitstruct(obs_trate_1, eff_trate_1);
-            model.append_traitstruct(obs_trate_2, eff_trate_2);
+            model.append_traitstruct(obs_trate_1, eff_trate_1); // eff (0,1) order (0,1): 0->0, 1->1
+            model.append_traitstruct(obs_trate_2, eff_trate_2); // eff (0,1) order (2,3): 2->0, 3->1
 
             solver.append_model(model);
 
@@ -1218,11 +1225,11 @@ TEST_CASE("Testing on model 1")
             std::vector<int> eff_trate_1{1, 2};
             int obs_trate_1 = 0;
 
-            std::vector<int> eff_trate_2{3, 0};
+            std::vector<int> eff_trate_2{1, 2};
             int obs_trate_2 = 1;
 
             std::vector<int> corr_eff{1, 3};
-            std::vector<int> corr_eff2{0, 2}; // same matrix but diff order of effects
+            std::vector<int> corr_eff2{3, 1}; // same matrix but diff order of effects; positions according to the solver's order
 
             model.append_corrstruct("tests/data/iG_diff_order.dat", "tests/data/ainv.bin", corr_eff2);
 
@@ -1446,8 +1453,10 @@ TEST_CASE("Testing on model 2")
     model.append_effect(w, 10, 14); // eff := 2
     model.append_effect(u, 10, 14); // eff := 3
 
-    std::vector<int> corr_eff_1{3, 2};
-    std::vector<int> corr_eff_2{1};
+    //std::vector<int> corr_eff_1{3, 2};
+    std::vector<int> corr_eff_1{1, 2}; // as in the solver's order
+    //std::vector<int> corr_eff_2{1};
+    std::vector<int> corr_eff_2{3}; // as in the solver's order
 
     std::vector<int> eff_trate{0, 3, 2, 1};
     int obs_trate = 0;
@@ -1726,7 +1735,7 @@ TEST_CASE("Testing on model 4")
             model.append_effect(eff_snp, in.size(), in[0].size()); // eff := 0
             model.append_effect(eff_fixed, in2.size(), in2[0].size());         // eff := 1
 
-            std::vector<int> corr_eff{0};
+            std::vector<int> corr_eff{1};
 
             std::vector<int> eff_trate{1, 0};
             int obs_trate = 0;
@@ -2014,7 +2023,7 @@ TEST_CASE("Testing on big model 4")
 //std::cout<<"            ==> appending eff_fixed ..."<<"\n";
             model.append_effect(eff_fixed, in2.size(), in2[0].size());         // eff := 1
 
-            std::vector<int> corr_eff{0};
+            std::vector<int> corr_eff{1}; // as in the solver's order, eff_snp appears second
 
             std::vector<int> eff_trate{1, 0};
             //std::vector<int> eff_trate{0, 1};

@@ -14,9 +14,9 @@ EXTLIB := ../libplinkio/release_lib
 EXTLIBNAME := plinkio
 
 # Mac
-#LIBRARY_PATH := /Users/au383883/Documents/MY/codebase/evo/libplinkio/release_lib
+LIBRARY_PATH := /Users/au383883/Documents/MY/codebase/evo/libplinkio/release_lib
 # Debian
-LIBRARY_PATH := /usr/home/qgg/vimi/codebase/evo/libplinkio/release_lib
+#LIBRARY_PATH := /usr/home/qgg/vimi/codebase/evo/libplinkio/release_lib
 # Ubuntu
 #LIBRARY_PATH := /home/vimi/Documents/codebase/evo/libplinkio/release_lib
 
