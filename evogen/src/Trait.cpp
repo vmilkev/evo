@@ -3,7 +3,6 @@
 namespace evogen
 {
     //===============================================================================================================
-
     Trait::Trait()
     {
         try
@@ -28,9 +27,7 @@ namespace evogen
             throw;
         }
     }
-
     //===============================================================================================================
-
     Trait::~Trait()
     {
         try
@@ -55,9 +52,7 @@ namespace evogen
             throw;
         }
     }
-
     //===============================================================================================================
-
 #ifdef PYBIND
 
     std::vector<float> Trait::py_tovect(pybind11::array_t<float> py_vect)
@@ -96,9 +91,7 @@ namespace evogen
             throw;
         }        
     }
-
     //===============================================================================================================
-
     std::vector<std::vector<float>> Trait::py_tovect2d(pybind11::array_t<float> py_vect)
     {
         try
@@ -143,9 +136,7 @@ namespace evogen
             throw;
         }        
     }
-
     //===============================================================================================================
-
     Trait::Trait(Population &pop,
                  pybind11::array_t<float> py_trmean,
                  pybind11::array_t<float> py_qtl_prop_chrom,
@@ -191,9 +182,7 @@ namespace evogen
             throw;
         }
     }
-
     //===============================================================================================================
-
     void Trait::set_trait(Population &pop,
                         pybind11::array_t<float> py_trmean,
                         pybind11::array_t<float> py_qtl_prop_chrom,
@@ -237,9 +226,7 @@ namespace evogen
             throw;
         }
     }
-
     //===============================================================================================================
-
     void Trait::reset_trait(Population &pop,
                             pybind11::array_t<float> py_trmean,
                             pybind11::array_t<float> py_qtl_prop_chrom,
@@ -287,9 +274,7 @@ namespace evogen
     }
 
 #endif
-
     //===============================================================================================================
-
     Trait::Trait(Population &pop,
                  std::vector<float> &trmean,
                  std::vector<float> &qtl_prop_chrom,
@@ -324,9 +309,7 @@ namespace evogen
             throw;
         }
     }
-
     //===============================================================================================================
-
     void Trait::set_trait(Population &pop,
                           std::vector<float> &trmean,
                           std::vector<float> &qtl_prop_chrom,
@@ -535,9 +518,7 @@ namespace evogen
             throw;
         }
     }
-
     //===============================================================================================================
-
     void Trait::reset_trait(Population &pop,
                             std::vector<float> &trmean,
                             std::vector<float> &qtl_prop_chrom,
@@ -602,9 +583,7 @@ namespace evogen
             throw;
         }
     }
-
     //===============================================================================================================
-
     void Trait::clear()
     {
         try
@@ -639,9 +618,7 @@ namespace evogen
             throw;
         }
     }
-
     //===============================================================================================================
-
     bool Trait::is_cleared()
     {
         try
@@ -666,9 +643,7 @@ namespace evogen
             throw;
         }
     }
-
     //===============================================================================================================
-
     void Trait::sample_dom(size_t which_dist, std::vector<float> &dist_param)
     {
         try
@@ -727,9 +702,7 @@ namespace evogen
             throw;
         }
     }
-
     //===============================================================================================================
-
     void Trait::sample_genes(std::vector<size_t> &n_qtl, std::vector<std::vector<unsigned long>> &stable, std::vector<float> &qtl_prop)
     {
         /* We are sampling not physical locations but indexes pointing to the std::vector of maarkers in the genome. */
@@ -779,9 +752,7 @@ namespace evogen
             throw;
         }
     }
-
     //===============================================================================================================
-
     void Trait::sample_effects(size_t n_trate)
     {
         try
@@ -832,9 +803,7 @@ namespace evogen
             throw;
         }
     }
-
     //===============================================================================================================
-
     void Trait::calculate_trait(Population &in_pop, std::vector<float> &envr, size_t n_trate)
     {
         try
@@ -879,9 +848,7 @@ namespace evogen
             throw;
         }
     }
-
     //===============================================================================================================
-
     void Trait::calculate_trait(Population &in_pop, std::vector<size_t> &ind_list, std::vector<float> &envr, size_t n_trate)
     {
         try
@@ -927,9 +894,7 @@ namespace evogen
             throw;
         }
     }
-
     //===============================================================================================================
-
     float Trait::ploidy_effect(size_t n_ploidy, float degree)
     {
         try
@@ -954,9 +919,7 @@ namespace evogen
             throw;
         }
     }
-
     //===============================================================================================================
-
     std::vector<int> Trait::get_locus_state(Population &in_pop, size_t individ, size_t qtl_position)
     {
         try
@@ -1011,7 +974,6 @@ namespace evogen
             throw;
         }
     }
-
     //===============================================================================================================
 
     evolm::matrix<float> Trait::var_diag(evolm::matrix<float> &arr)

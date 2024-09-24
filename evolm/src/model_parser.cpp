@@ -54,7 +54,7 @@ namespace evolm
     {
         try
         {
-            // detect multiple expressions in the string separated by ";"
+            // detect multiple expressions from the string separated by ";"
             std::vector<std::string> all_expressions;
             std::vector<size_t> type_1_expressions; // obs = model_expression
             std::vector<size_t> type_2_expressions; // var_name = file_value
@@ -63,53 +63,55 @@ namespace evolm
 
             split_str2(";", expr, all_expressions); // keep spaces for a while, needed to parse matrix_value expression
 
-            if (all_expressions.size() == 1) // only one name-value expression submitted
-                eval_expr(all_expressions[0]);
-            else
-            {
-                for (size_t i = 0; i < all_expressions.size(); i++) // separate by type in order to process types 2 & 3 before the type 1
-                {    
-                    int the_type = detect_expression_type(all_expressions[i]);
-                    
-                    switch (the_type)
-                    {
-                    case 1:
-                        type_1_expressions.push_back(i);
-                        remove_space( all_expressions[i] );
-                        break;
-                    case 2:
-                        type_2_expressions.push_back(i);
-                        remove_space( all_expressions[i] );
-                        break;
-                    case 3:
-                        type_3_expressions.push_back(i);
-                        break;
-                    case 4:
-                        type_4_expressions.push_back(i);
-                        remove_space( all_expressions[i] );
-                        break;
-                    default:
-                        break;
-                    }
-                }
-                for (size_t i = 0; i < type_3_expressions.size(); i++)
-                    eval_expr(all_expressions[ type_3_expressions[i] ]);
-
-                for (size_t i = 0; i < type_2_expressions.size(); i++)
-                    eval_expr(all_expressions[ type_2_expressions[i] ]);
-
-                for (size_t i = 0; i < type_1_expressions.size(); i++)
-                    eval_expr(all_expressions[ type_1_expressions[i] ]);
-
-                for (size_t i = 0; i < type_4_expressions.size(); i++)
-                    eval_expr(all_expressions[ type_4_expressions[i] ]);
+            for (size_t i = 0; i < all_expressions.size(); i++) // separate by type in order to process types 2 & 3 before the type 1
+            {    
+                int the_type = detect_expression_type(all_expressions[i]);
                 
-                all_expressions.clear(); all_expressions.shrink_to_fit();
-                type_1_expressions.clear(); type_1_expressions.shrink_to_fit();
-                type_2_expressions.clear(); type_2_expressions.shrink_to_fit();
-                type_3_expressions.clear(); type_3_expressions.shrink_to_fit();
-                type_4_expressions.clear(); type_4_expressions.shrink_to_fit();
+                switch (the_type)
+                {
+                case 1:
+                    type_1_expressions.push_back(i);
+                    remove_space( all_expressions[i] );
+                    break;
+                case 2:
+                    type_2_expressions.push_back(i);
+                    remove_space( all_expressions[i] );
+                    break;
+                case 3:
+                    type_3_expressions.push_back(i);
+                    break;
+                case 4:
+                    type_4_expressions.push_back(i);
+                    remove_space( all_expressions[i] );
+                    break;
+                default:
+                    break;
+                }
             }
+
+            for (size_t i = 0; i < type_3_expressions.size(); i++)
+                eval_expr(all_expressions[ type_3_expressions[i] ]);
+
+            for (size_t i = 0; i < type_2_expressions.size(); i++)
+                eval_expr(all_expressions[ type_2_expressions[i] ]);
+
+            for (size_t i = 0; i < type_1_expressions.size(); i++)
+            {
+                eval_expr(all_expressions[ type_1_expressions[i] ]);
+                get_list_of_subm_eff(); // get the list of submitted effects
+            }
+
+            for (size_t i1 = 0; i1 < type_4_expressions.size(); i1++)
+            {
+                eval_expr(all_expressions[ type_4_expressions[i1] ]);
+                def_corr_struct(); // define the correlation structure
+            }
+            
+            all_expressions.clear(); all_expressions.shrink_to_fit();
+            type_1_expressions.clear(); type_1_expressions.shrink_to_fit();
+            type_2_expressions.clear(); type_2_expressions.shrink_to_fit();
+            type_3_expressions.clear(); type_3_expressions.shrink_to_fit();
+            type_4_expressions.clear(); type_4_expressions.shrink_to_fit();
         }
         catch (const std::string &e)
         {
@@ -129,7 +131,90 @@ namespace evolm
             throw;
         }
     }
+    // -------------------------------------------------------------
+    void model_parser::get_list_of_subm_eff()
+    {
+        try
+        {
+            std::vector<size_t> sub_eff;
 
+            for (size_t i = next_subm_eff; i < random_and_fixed_effects.size(); i++)
+                sub_eff.push_back(i);
+            
+            next_subm_eff = random_and_fixed_effects.size();
+            
+            // loop over submitted observations to define the model:
+            for (size_t i = next_subm_obs; i < observations.size(); i++)
+                model_definition[i] = sub_eff;
+            
+            next_subm_obs = observations.size();
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in model_parser::get_list_of_subm_eff()"<< "\n";
+            std::cerr << "Reason => " << e << "\n";
+            throw e;
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in model_parser::get_list_of_subm_eff()"<< "\n";
+            std::cerr << "Reason => " << e.what() << "\n";
+            throw e;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in model_parser::get_list_of_subm_eff()"<< "\n";
+            throw;
+        }
+    }
+    // -------------------------------------------------------------
+    void model_parser::def_corr_struct()
+    {
+        try
+        {
+            for (size_t i = 0; i < corr_vars_index_in_effects.size(); i++) // loop over all provided model correlations
+            {
+                std::vector<size_t> corr_effects_subm_order; // consecutive order across all models for the selected correlation                                                                
+                
+                for (size_t j = 0; j < corr_vars_index_in_effects[i].size(); j++) // for this specific correlation loop over correleted effects and find if they are in the model
+                {
+                    size_t order = 0; // consecutive order of submitted effects
+                    std::string eff_name = random_and_fixed_effects_names[ corr_vars_index_in_effects[i][j] ]; // index of correlated effect we are looking for in the model definition
+
+                    for (auto const &m: model_definition) // loop over map's values of model_definition (the submited effects indeces)
+                    {
+                        std::vector<size_t> effects_positions = m.second; // submited effects indeces
+
+                        for (size_t l = 0; l < effects_positions.size(); l++)
+                        {
+                            if ( random_and_fixed_effects_names[ effects_positions[l] ] == eff_name )
+                                corr_effects_subm_order.push_back(order);
+                            order++;
+                        }
+                    }
+                }
+                std::sort( corr_effects_subm_order.begin(), corr_effects_subm_order.end() );
+                correlated_effects.push_back(corr_effects_subm_order);
+            }
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in model_parser::def_corr_struct()"<< "\n";
+            std::cerr << "Reason => " << e << "\n";
+            throw e;
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in model_parser::def_corr_struct()"<< "\n";
+            std::cerr << "Reason => " << e.what() << "\n";
+            throw e;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in model_parser::def_corr_struct()"<< "\n";
+            throw;
+        }
+    }
     // -------------------------------------------------------------
     void model_parser::eval_expr(const std::string &expression)
     {
@@ -2137,7 +2222,51 @@ std::cout<<"\n";
             std::cout<<"\n";
             std::cout<<"residual:"<<"\n";
             std::cout<<extra_effects_names[ corr_matr_index_in_extra_vars[corr_matr_index_in_extra_vars.size()-1][0] ]<<", position in extra: "<<corr_matr_index_in_extra_vars[corr_matr_index_in_extra_vars.size()-1][0]<<"\n";
+            
+            std::cout<<"\n";
+            std::cout<<"Models definitions:"<<"\n";
+            for (auto const &v: model_definition)
+            {
+                std::cout<<"model: "<< observations_names[v.first]<<" ~ ";
+                std::vector<size_t> eff = v.second;
+                for (auto const &e: eff)
+                    std::cout<<random_and_fixed_effects_names[e]<<" + ";
+                std::cout<<'\n';
+            }
 
+            std::cout<<"\n";
+            std::cout<<"Models submitted, variables:"<<"\n";
+            for (auto  const &m: model_definition)
+            {
+                size_t obs = m.first;
+                std::vector<size_t> model = m.second;
+                std::cout<<observations_names[obs]<<" ~ ";
+                for (auto const &v: model)
+                    std::cout<<random_and_fixed_effects_names[v]<<" + ";
+                std::cout<<'\n';
+            }
+            
+            std::cout<<"\n";
+            std::cout<<"Models submitted, indeces:"<<"\n";
+            for (auto  const &m: model_definition)
+            {
+                size_t obs = m.first;
+                std::vector<size_t> model = m.second;
+                std::cout<<obs<<" ~ ";
+                for (auto const &v: model)
+                    std::cout<<v<<" + ";
+                std::cout<<'\n';
+            }
+
+            std::cout<<"\n";
+            std::cout<<"Correlations submitted:"<<"\n";
+            for (auto  const &m: correlated_effects)
+            {
+                std::cout<<"correlation: {";
+                for (auto const &v: m)
+                    std::cout<<v<<", ";
+                std::cout<<"}"<<'\n';
+            }
         }
         catch (const std::string &e)
         {

@@ -521,6 +521,64 @@ namespace evolm
         }
     }
     //===============================================================================================================
+    void model_sparse::append_corrstruct(const std::vector<float> &var, size_t lda1, compact_storage<float> &corr, const std::vector<int> &which_effects)
+    {
+        try
+        {
+            matrix<float> variance;
+            compact_storage<float> correlation;
+            matrix<int> _effects;
+
+            _effects.resize(which_effects.size(), 1);
+            variance.resize(lda1, lda1);
+            
+            if (lda1 != which_effects.size())
+                throw std::string("The number of provided correlated all_effects does not correspond to the dimension of variance-covariance matrix!");
+
+            for (size_t i = 0; i < which_effects.size(); i++)
+                _effects[i] = which_effects[i];
+
+            for (size_t i = 0; i < var.size(); i++)
+                variance[i] = var[i];
+
+            correlation = corr;
+
+            variance.fwrite();
+
+            variances.push_back(variance);
+
+            correlation.make_rows_list();
+            size_of_data = size_of_data + correlation.size_inmem();
+            correlation.fwrite_rows_structure();
+
+            correlation.fwrite();
+            correlations.push_back(correlation);
+
+            identity_correlations.push_back(false);
+            identity_dimension.push_back(0);
+
+            _effects.fwrite();
+            correlated_effects.push_back(_effects);
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in model_sparse::append_corrstruct(const std::vector<float> &, size_t, compact_storage &, const std::vector<int> &)." << '\n';
+            std::cerr << e.what() << '\n';
+            throw e;
+        }
+        catch (std::string &err)
+        {
+            std::cerr << "Exception in model_sparse::append_corrstruct(const std::vector<float> &, size_t, compact_storage &, const std::vector<int> &)." << '\n';
+            std::cerr << "Reason => " << err << '\n';
+            throw err;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in model_sparse::append_corrstruct(const std::vector<float> &, size_t, compact_storage &, const std::vector<int> &)." << '\n';
+            throw;
+        }
+    }
+    //===============================================================================================================
     void model_sparse::append_corrstruct(const std::vector<float> &var, size_t lda1, std::vector<float> &corr, size_t lda2, const std::vector<int> &which_effects)
     {
         try

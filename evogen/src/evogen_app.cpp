@@ -84,10 +84,9 @@ int main(int argc, char *argv[])
 		pop.set_population(20, "tests/data/struct_haplotypes_pop3.dat", 0.7, 4); // (1) population
 
 		std::cout << "pop is ready."<<"\n";
-
+        /*
 		std::vector<float> tr_mean{40.0, 5.0, 0.5};							   // (2) trait means
 		std::vector<float> qtl_prop{0.65, 0.65, 0.65, 0.65}; // (3) proportion of snps selected as qtls
-		//std::vector<float> qtl_prop{1.0, 1.0, 1.0, 1.0};
 		std::vector<std::vector<float>> cor_g; // (4) genomic correlations
 		std::vector<std::vector<float>> cor_e; // (5) rsidual correlations
 		std::vector<float> g1{1.0, 0.5, 0.7};
@@ -102,11 +101,22 @@ int main(int argc, char *argv[])
 		cor_e.push_back(e1);
 		cor_e.push_back(e2);
 		cor_e.push_back(e3);
-
 		std::vector<float> var_g{100.0, 10.0, 0.1}; // (6) genomic variances
 		std::vector<float> var_e{200.0, 20.0, 0.3}; // (7) residual variances
-
 		std::vector<float> env{0.0, 0.0, 0.0}; // (8) enviironment
+        */
+		std::vector<float> tr_mean{40.0};							   // (2) trait means
+		std::vector<float> qtl_prop{0.65, 0.65, 0.65, 0.65}; // (3) proportion of snps selected as qtls
+		std::vector<std::vector<float>> cor_g; // (4) genomic correlations
+		std::vector<std::vector<float>> cor_e; // (5) rsidual correlations
+		std::vector<float> g1{0.50};
+		std::vector<float> e1{0.5};
+		cor_g.push_back(g1);
+		cor_e.push_back(e1);
+		std::vector<float> var_g{100.0}; // (6) genomic variances
+		std::vector<float> var_e{200.0}; // (7) residual variances
+		std::vector<float> env{0.0}; // (8) enviironment
+
 
 		// (i) For uniform distribution, model 1
 		std::vector<float> k_range_U{-1.0, 1.0}; // range of k parameter

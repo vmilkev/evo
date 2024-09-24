@@ -199,12 +199,15 @@ namespace evogen
                         if ( individuals_list[i].size() == 0 )
                             throw std::string("Cannot remove individuals from the empty list in the Group!");
                         
+                        std::sort(individuals_list[i].begin(), individuals_list[i].end(), std::greater<>()); // sorting in decreasing order in order to remove from the back of the list
+
                         for (size_t j = 0; j < individuals_list[i].size(); j++)
                         {
+                            //std::cout<<"-> removing: "<<j<<" position: "<<individuals_list[i][j] - 0<<" pop "<<i<<" size "<<pop_list[i].get().size()<< " individuals " <<individuals_list[i].size()<<'\n';
                             // remember: individuals_list[i][j] points to the position (index)
                             // in the active_individuals list
-                            //std::cout<<"removed id: "<<pop_list[i].get().id_at( individuals_list[i][j] - j )<<"\n";
-                            pop_list[i].get().remove_at( individuals_list[i][j] - j );
+                            //std::cout<<"removed id: "<<pop_list[i].get().id_at( individuals_list[i][j] - 0 )<<"\n";
+                            pop_list[i].get().remove_at( individuals_list[i][j] );
                         }
                     }
                 }
@@ -495,107 +498,114 @@ namespace evogen
     {
         try
         {
-            if (sexual_reproduction)
-            {
-                // association lists
-                std::vector<size_t> female_list;
-                std::vector<size_t> male_list;
-                std::vector<size_t> female_pops;
-                std::vector<size_t> male_pops;
+            auto start = std::chrono::high_resolution_clock::now();
 
-                // initialize lists
-                for (size_t i = 0; i < pop_list.size(); i++)
+            Utilites u;
+
+            // association lists
+            std::vector<size_t> male_list;
+            std::vector<size_t> male_pops;
+
+            std::vector<std::vector<size_t>> fem_by_pop; // !!!
+            std::vector<int> fem_pop; // !!!
+
+            // initialize lists
+            for (size_t i = 0; i < pop_list.size(); i++) // loop over all populations in the group
+            {
+                int fem_ipop = -1;
+                std::vector<size_t> fem_list;
+
+                for (size_t j = 0; j < individuals_list[i].size(); j++) // loop over all individuals from the specu=ific population
                 {
-                    for (size_t j = 0; j < individuals_list[i].size(); j++)
+                    short sex = 1;
+
+                    if ( !sexual_reproduction ) // mix group of males and females to let them mate regardless of sex (though, this does not allow a self-mate)
                     {
-                        if ( pop_list[i].get().sex_at( individuals_list[i][j] ) == 1 )
-                        {
-                            male_list.push_back(j);
-                            male_pops.push_back(i);
-                        }
-                        else
-                        {
-                            female_list.push_back(j);
-                            female_pops.push_back(i);
-                        }
+                        std::vector<int> which_sex = u.get_uni_rand( 1, (int)1, (int)100, false );
+                        if ( which_sex[0] < 50 )
+                            sex = 0;
+                    }
+
+                    if ( pop_list[i].get().sex_at( individuals_list[i][j] ) == sex ) // if male
+                    {
+                        male_list.push_back( individuals_list[i][j] );
+                        male_pops.push_back(i);
+                    }
+                    else // if female
+                    {
+                        fem_list.push_back( individuals_list[i][j] );
+                        fem_ipop = i;
                     }
                 }
 
-                Utilites u;
-
-                size_t n_male = male_list.size()-1;
-
-                // consecutively selecting females to mate them onece with available mails (randomly sampled)
-                for (size_t i = 0; i < female_list.size(); i++)
+                if ( !fem_list.empty()  )
                 {
-                    std::vector<int> n_offsprings = u.get_bin_rand(1,max_offspring,success_rate, false); // sample number of offsprings for this female
-                    std::vector<unsigned long> which_mail = u.get_uni_rand(1,(unsigned long)0,(unsigned long)n_male,false); // sample male to mate
+                    fem_by_pop.push_back(fem_list);
+                    fem_pop.push_back(fem_ipop);
+                }
+            }
 
-                    size_t i_pop = female_pops[i];
-                    size_t i_female = female_list[i];
+            if ( male_list.empty() )
+                throw std::string("The list of males available for mating is empty.");
+
+            if ( fem_by_pop.empty() )
+                throw std::string("The list of females available for mating is empty.");
+
+            size_t n_male = male_list.size()-1;
+
+            for (size_t i = 0; i < fem_by_pop.size(); i++) // loop over different populations present in the group
+            {
+                size_t i_pop = (size_t)fem_pop[i];
+
+                std::vector<int> n_offsprings = u.get_bin_rand( fem_by_pop[i].size(), max_offspring, success_rate, false ); // sample number of offsprings for each female in pop i
+                std::vector<unsigned long> which_male = u.get_uni_rand( fem_by_pop[i].size(),(unsigned long)0,(unsigned long)n_male,false ); // sample males to mate with each specific female
+
+                int all_expected_offs = std::accumulate(n_offsprings.begin(), n_offsprings.end(), 0); // calculate number of elements the population i_pop will be exended
+
+                // before resizing we need to know the starting indeces for population containers
+                std::vector<size_t> in_pos1(fem_by_pop[i].size()); // writing position1 for each female
+                std::vector<size_t> in_pos2(fem_by_pop[i].size()); // writing position2 for each female
+                in_pos1[0] = pop_list[ i_pop ].get().capacity(); // at individuals
+                in_pos2[0] = pop_list[ i_pop ].get().size(); // at active_individuals
+
+                for (size_t j = 1; j < fem_by_pop[i].size(); j++)
+                {
+                    in_pos1[j] = in_pos1[j-1] + n_offsprings[j];
+                    in_pos2[j] = in_pos2[j-1] + n_offsprings[j];
+                }
+
+                pop_list[ i_pop ].get().resize( (size_t)all_expected_offs); // resize population
+
+#pragma omp parallel for                
+                for (size_t l = 0; l < fem_by_pop[i].size(); l++) // loop over females from the specific population
+                {
+                    size_t i_female = fem_by_pop[i][l];
                     size_t i_anim = pop_list[i_pop].get().active_individuals[i_female];
-                    //Animal a_dame =  pop_list[i_pop].get().individuals[i_anim]; // Female individual
 
                     // select the sampled male
-                    size_t i_pop2 = male_pops[ which_mail[0] ];
-                    size_t i_male = male_list[ which_mail[0] ];
+                    size_t i_pop2 = male_pops[ which_male[l] ];
+                    size_t i_male = male_list[ which_male[l] ];
                     size_t i_anim2 = pop_list[i_pop2].get().active_individuals[i_male];
-                    //Animal b_sire =  pop_list[i_pop2].get().individuals[i_anim2]; // Male individual
 
-                    for (size_t j = 0; j < (size_t)n_offsprings[0]; j++)
+                    for (size_t j = 0; j < (size_t)n_offsprings[l]; j++)
                     {
                         Animal c( pop_list[i_pop2].get().individuals[i_anim2], pop_list[i_pop].get().individuals[i_anim] ); // constructing new-born individual
-                        pop_list[i_pop].get().add(c); // add to female's population
-                        add(pop_list[i_pop],pop_list[i_pop].get().size()-1); // add to the current group
-                        add_newborn(pop_list[i_pop],pop_list[i_pop].get().size()-1); // add to the current group, new-born lists
+                        pop_list[i_pop].get().add_at(c, in_pos1[l]+j, in_pos2[l]+j); // add to female's population
+                    }
+                }
+                for (size_t l = 0; l < fem_by_pop[i].size(); l++)
+                {
+                    for (size_t j = 0; j < (size_t)n_offsprings[l]; j++)
+                    {
+                        add( pop_list[i_pop], in_pos2[l]+j ); // add to the current group
+                        add_newborn( pop_list[i_pop], in_pos2[l]+j ); // add to the current group, new-born lists
                     }
                 }
             }
-            else
-            {
-                std::vector<size_t> all_list;
-                std::vector<size_t> all_pops;
+            auto stop = std::chrono::high_resolution_clock::now();
+            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+            std::cout <<"==> maating duration, millisec "<< duration.count() << std::endl;
 
-                // initialize lists
-                for (size_t i = 0; i < pop_list.size(); i++)
-                {
-                    for (size_t j = 0; j < individuals_list[i].size(); j++)
-                    {
-                        all_list.push_back(j);
-                        all_pops.push_back(i);
-                    }
-                }
-
-                Utilites u;
-
-                size_t n_individuals = all_list.size()-1;
-
-                for (size_t i = 0; i < all_list.size()/2; i++)
-                {
-                    std::vector<int> n_offsprings = u.get_bin_rand(1,max_offspring,success_rate, false); // sample number of offsprings for the specific mating
-                    std::vector<unsigned long> which_indiv = u.get_uni_rand(2,(unsigned long)0,(unsigned long)n_individuals,false); // sample two individuals to mate
-
-                    size_t i_pop = all_pops[ which_indiv[0] ];
-                    size_t i_female = all_list[ which_indiv[0] ];
-                    size_t i_anim = pop_list[i_pop].get().active_individuals[i_female];
-                    //Animal a_dame =  pop_list[i_pop].get().individuals[i_anim]; // Individual 1
-
-                    // select the sampled male
-                    size_t i_pop2 = all_pops[ which_indiv[1] ];
-                    size_t i_male = all_list[ which_indiv[1] ];
-                    size_t i_anim2 = pop_list[i_pop2].get().active_individuals[i_male];
-                    //Animal b_sire =  pop_list[i_pop2].get().individuals[i_anim2]; // Male individual
-
-                    for (size_t j = 0; j < (size_t)n_offsprings[0]; j++)
-                    {
-                        Animal c( pop_list[i_pop2].get().individuals[i_anim2], pop_list[i_pop].get().individuals[i_anim] ); // constructing new-born individual
-                        pop_list[i_pop].get().add(c); // add to female's population
-                        add(pop_list[i_pop],pop_list[i_pop].get().size()-1); // add to the current group
-                        add_newborn(pop_list[i_pop],pop_list[i_pop].get().size()-1); // add to the current group, new-born lists
-                    }
-                }
-
-            }
         }
         catch (const std::exception &e)
         {
@@ -639,6 +649,34 @@ namespace evogen
         catch (...)
         {
             std::cerr << "Exception in Group::mate()" << '\n';
+            throw;
+        }
+    }
+
+    //===============================================================================================================
+
+    void Group::mate(bool sexual_reproduction, float max_offspring, float success_rate)
+    {
+        // this is just to allow the float type for max_offspring variable (if someone will pass it in Python)
+        try
+        {
+            mate(sexual_reproduction, (int)max_offspring, success_rate);
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Group::mate(bool, float, float)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Group::mate(bool, float, float)" << '\n';
+            std::cerr <<"Reason: "<< e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Group::mate(bool, float, float)" << '\n';
             throw;
         }
     }

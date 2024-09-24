@@ -28,6 +28,9 @@ namespace evogen
         void mate(bool sexual_reproduction, // true - sexual, false - asexsual;
                   int max_offspring,        // max number of offspring from the same mating event
                   float success_rate);     // probability of getting max_offspring value (binomial distribution)
+        void mate(bool sexual_reproduction,
+                  float max_offspring,
+                  float success_rate);
         void regroup_newborn(Group &grp);
 
         void aging(int delta_t);

@@ -30,7 +30,7 @@ int main(void)
         // 1102 82.12 10     110.0  4       tomato  false
         //--------------------------------------------------
 
-        //std::string model_expression("obs_f~ x1 + (1+var_f2|id)a +(1|var_cat)random2 +(1|x1)random_3; data = tests/data/diverse_data.dat; x1 = tests/data/data_matr.dat");
+        std::string model_expression1("obs_f, var_f2 ~ x1 + (1+var_f2|id)a +(1|var_cat)random2 +(1|x1)random_3; data = tests/data/diverse_data.dat; x1 = tests/data/data_matr.dat");
         std::string model_expression("weight ~ 1 + herd + pen + (1|id) + (1|id)b + (1|dam); data = tests/data/model_2/model_2_data.dat; obs_missing_value = [-9.0]");
         //std::string model_expression("obs_f,var_f2 , , ,~ 1 + (1+var_f2|id) + x1+ x2 +(1+f|x3*x4) - x4 +(1 + x1:x2|x4) + x1+x2:x3 + (1|var_cat) + x4*x5*x6 - x4:x5:x6");
 
@@ -47,6 +47,7 @@ int main(void)
         std::string variance_expression("var = (id, b)*A1*G1 + (dam)*I*G2 + R; A1 = tests/data/model_2/A1.corbin; G1 = [150 -40, -40 90]; G2 = [40]; R = [350]");
 
         m_parser.process_expression(extra_vars_expression);
+        m_parser.process_expression(model_expression);
         m_parser.process_expression(model_expression);
         m_parser.process_expression(extra_vars_expression3);
         m_parser.process_expression(variance_expression);

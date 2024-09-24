@@ -13,19 +13,18 @@ namespace evogen
 
     Population::~Population()
     {
-        //
+        clear();
     }
 
     //===============================================================================================================
 
     void Population::aging(int delta_t)
     {
-        /*
-            Increase an age of every individual in a population:
-            new_age = current_age + delta_t.
-            delta_t - the amount of time added to the current age of a particular individual;
-                      the time unit is arbitrary.
-        */
+        //    Increase an age of every individual in a population:
+        //    new_age = current_age + delta_t.
+        //    delta_t - the amount of time added to the current age of a particular individual;
+        //              the time unit is arbitrary.
+        
         try
         {
             for (size_t i = 0; i < size(); i++)
@@ -213,9 +212,10 @@ namespace evogen
         try
         {
             for (size_t i = 0; i < active_individuals.size(); i++)
-            {
                 individuals[active_individuals[i]].clear();
-            }
+
+            individuals.shrink_to_fit();
+
             active_individuals.clear();
             active_individuals.shrink_to_fit();
         }
@@ -242,10 +242,9 @@ namespace evogen
 
     void Population::set_population(const std::string &haplotypes_fname, const std::string &genotype_structure, bool with_pedigree)
     {
-        /*
-        Create population using haplotypes file. This variant reads unnamed haplotypes, hence,
-        assign random IDs to individuals with unknown parents (unrelated population).
-        */
+        // Create population using haplotypes file. This variant reads unnamed haplotypes, hence,
+        // assign random IDs to individuals with unknown parents (unrelated population).
+        
         try
         {
             /* because it is the animal population we have diploid genotype,
@@ -483,13 +482,11 @@ namespace evogen
     {
         try
         {
-            if (active_individuals.size() >= 1)
-            {
-                for (size_t i = 0; i < active_individuals.size(); i++)
-                    vect_out.push_back(individuals[active_individuals[i]].genome.get_genome());
-            }
-            else
+            if (active_individuals.size() == 0)
                 throw std::string("Cannot return the genotypes for the empty population");
+
+            for (size_t i = 0; i < active_individuals.size(); i++)
+                vect_out.push_back(individuals[active_individuals[i]].genome.get_genome());
         }
         catch (const std::exception &e)
         {
@@ -506,6 +503,157 @@ namespace evogen
         catch (...)
         {
             std::cerr << "Exception in Population::get_all_genotypes(std::vector<std::vector<short>> &)" << '\n';
+            throw;
+        }
+    }
+
+    //===============================================================================================================
+
+    void Population::get_all_haplotypes(std::vector<std::vector<bool>> &vect_out, std::vector<std::vector<unsigned long>> &out_snp_table)
+    {
+        try
+        {
+            if (active_individuals.size() == 0)
+                throw std::string("Cannot return the halpotypes for the empty population");
+
+            std::vector<std::vector<bool>> i_haplotypes;
+            std::vector<std::vector<unsigned long>> i_gstructure;
+
+            for (size_t i = 0; i < active_individuals.size(); i++)
+            {
+                individuals[active_individuals[i]].genome.get_genome(i_haplotypes, i_gstructure); // get all haplotypes for individual i
+                
+                for ( size_t j = 0; j < i_haplotypes.size(); j++) // write haplotypes to the population haplotypes pool
+                    vect_out.push_back( i_haplotypes[j] );
+                                
+                i_haplotypes.clear();
+                i_haplotypes.shrink_to_fit();
+                i_gstructure.clear();
+                i_gstructure.shrink_to_fit();
+            }
+
+            out_snp_table = individuals[active_individuals[0]].genome.get_snp_table();
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Population::get_all_haplotypes(std::vector<std::vector<bool>> &, std::vector<std::vector<unsigned long>> &)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Population::get_all_haplotypes(std::vector<std::vector<bool>> &, std::vector<std::vector<unsigned long>> &)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Population::get_all_haplotypes(std::vector<std::vector<bool>> &, std::vector<std::vector<unsigned long>> &)" << '\n';
+            throw;
+        }
+    }
+
+    //===============================================================================================================
+
+    void Population::get_ld(const std::string &out_file)
+    {
+        try
+        {
+            std::vector<std::vector<bool>> haplotypes;
+            std::vector<std::vector<unsigned long>> snp_table;
+
+            get_all_haplotypes(haplotypes, snp_table);
+
+            // do some file management ------------------
+            std::string prefix(out_file + "_chr_");
+            std::string suffix(".ld");
+            std::vector<std::string> fnames(snp_table.size());
+            for(size_t i = 0; i < snp_table.size(); i++)
+                fnames[i] = prefix + std::to_string(i) + suffix;
+            // ------------------------------------------
+
+            size_t n_variants = haplotypes[0].size();
+            size_t n_haplotypes = haplotypes.size();
+
+            for (size_t chr_i = 0; chr_i < snp_table.size(); chr_i++) // calculate and write-out LD chromosome-by-chromosome
+            {
+                size_t snp_0 = snp_table[chr_i][0]; // first snp in chromosome
+                size_t snp_1 = snp_table[chr_i][1]; // last snp in shromosome
+
+                size_t chr_variants = snp_1 - snp_0 + 1; // number of variants
+                std::vector<double> freq(chr_variants, 0.0); // frequency of individual variants
+                std::vector<std::vector<double>> freq_paired(chr_variants, std::vector<double> (chr_variants, 0.0));
+                std::vector<std::vector<double>> corr(chr_variants, std::vector<double> (chr_variants, 0.0));
+
+#pragma omp parallel for
+                for (size_t snp_i = snp_0; snp_i <= snp_1; snp_i++) // for every chromosomal variant
+                {
+                    for (size_t hap_i = 0; hap_i < n_haplotypes; hap_i++) // sum over all haplotypes
+                        freq[snp_i-snp_0] = freq[snp_i-snp_0] + (double)haplotypes[hap_i][snp_i];
+                    
+                    freq[snp_i-snp_0] = freq[snp_i-snp_0] / (double)n_haplotypes; // calculate individual frequecy
+
+                    for (size_t snp_j = snp_i; snp_j <= snp_1; snp_j++) // calculate paired frequencies
+                    {
+                        for (size_t hap_i = 0; hap_i < n_haplotypes; hap_i++) // sum over all haplotypes
+                            if ( haplotypes[hap_i][snp_i] == haplotypes[hap_i][snp_j] )
+                                freq_paired[snp_i-snp_0][snp_j-snp_0] = freq_paired[snp_i-snp_0][snp_j-snp_0] + (double)haplotypes[hap_i][snp_j];
+                        
+                        freq_paired[snp_i-snp_0][snp_j-snp_0] = freq_paired[snp_i-snp_0][snp_j-snp_0] / (double)n_haplotypes; // calculate individual frequecy
+                    }
+                }
+
+#pragma omp parallel for
+                for (size_t snp_i = snp_0; snp_i <= snp_1; snp_i++)
+                {
+                    for (size_t snp_j = snp_i; snp_j <= snp_1; snp_j++)
+                    {
+                        double top_val = (freq_paired[snp_i-snp_0][snp_j-snp_0] - freq[snp_i-snp_0] * freq[snp_j-snp_0]) * (freq_paired[snp_i-snp_0][snp_j-snp_0] - freq[snp_i-snp_0] * freq[snp_j-snp_0]);
+                        double bot_val = freq[snp_i-snp_0] * (1 - freq[snp_i-snp_0]) * freq[snp_j-snp_0] * (1 - freq[snp_j-snp_0]);
+
+                        //corr[snp_i-snp_0][snp_j-snp_0] = freq_paired[snp_i-snp_0][snp_j-snp_0] - freq[snp_i-snp_0] * freq[snp_j-snp_0]; // unscaled LD
+                        
+                        if (bot_val == 0.0f)
+                            corr[snp_i-snp_0][snp_j-snp_0] = 0.0f;
+                        else
+                            corr[snp_i-snp_0][snp_j-snp_0] = top_val / bot_val;
+                    }
+                }
+                
+                std::ofstream fout(fnames[chr_i]);
+                fout << std::setprecision(10);
+                for (size_t i = 0; i < chr_variants; i++)
+                {
+                    for (size_t j = 0; j < chr_variants; j++)
+                        fout<<corr[i][j]<<" ";
+                    fout<<'\n';
+                }
+            }
+
+            // write haplotypes
+            std::ofstream fout("ld_related_haplotypes.hpt");
+            for (size_t i = 0; i < haplotypes.size(); i++)
+            {
+                for (size_t j = 0; j < haplotypes[i].size(); j++)
+                    fout << haplotypes[i][j] << " ";
+                fout << '\n';
+            }
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Population::get_ld(const std::string &)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Population::get_ld(const std::string &)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Population::get_ld(const std::string &)" << '\n';
             throw;
         }
     }
@@ -1313,9 +1461,7 @@ namespace evogen
         try
         {
             size_t next_index = individuals.size();
-            Animal a;
-            a = in_a;
-            individuals.push_back(a);
+            individuals.push_back(in_a);
             active_individuals.push_back(next_index);
         }
         catch (const std::exception &e)
@@ -1339,27 +1485,100 @@ namespace evogen
 
     //===============================================================================================================
 
+    void Population::resize(size_t n_elements)
+    {
+        try
+        {
+            size_t sz_1 = individuals.size();
+            size_t sz_2 = active_individuals.size();
+            
+            individuals.resize( sz_1 + n_elements );            
+            active_individuals.resize( sz_2 + n_elements );
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Population::resize(size_t)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Population::resize(size_t)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Population::resize(size_t)" << '\n';
+            throw;
+        }
+    }
+
+    //===============================================================================================================
+
+    void Population::add_at(Animal &in_a, size_t position, size_t position2)
+    {
+        try
+        {
+            if ( position >= individuals.size() )
+                throw std::string("position >= individuals.size()");
+
+            if ( position2 >= active_individuals.size() )
+                throw std::string("position2 >= active_individuals.size()");
+
+            individuals[position] = in_a;
+            active_individuals[position2] = position;
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Population::add_at(Animal &, size_t, size_t)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Population::add_at(Animal &, size_t, size_t)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Population::add_at(Animal &, size_t, size_t)" << '\n';
+            throw;
+        }
+    }
+
+    //===============================================================================================================
+
     void Population::reshape()
     {
         try
         {
-//std::cout<<"In while, individuals.size() = "<<individuals.size()<<" active_individuals.size() = "<<active_individuals.size()<<'\n';
-            size_t i = 0;
-            while ( i < individuals.size() )
-            {
-                if ( !individuals[i].get_active() )
-                    individuals.erase( individuals.begin() + i );
-                else
-                    i = i + 1;
-//std::cout<<"In while, i = "<<i<<'\n';
-            }
+            //auto start = std::chrono::high_resolution_clock::now();
+
+            std::vector<Animal> t_individuals( active_individuals.size() );
+
+#pragma omp parallel for
+            for (size_t i = 0; i < active_individuals.size(); i++)
+                t_individuals[i] = individuals[ active_individuals[i] ];
+
+            individuals.clear();
+            individuals.shrink_to_fit();
+
+            individuals = t_individuals;
+
+            t_individuals.clear();
+            t_individuals.shrink_to_fit();
             
             active_individuals.clear();
             active_individuals.shrink_to_fit();
             
             for (size_t j = 0; j < individuals.size(); j++)
                 active_individuals.push_back(j);
-//std::cout<<"In while, individuals.size() = "<<individuals.size()<<" active_individuals.size() = "<<active_individuals.size()<<'\n';
+
+            //auto stop = std::chrono::high_resolution_clock::now();
+            //auto duration = std::chrono::duration_cast<std::chrono::seconds>(stop - start);
+            //std::cout <<"==> reshaping duration, sec "<< duration.count() << std::endl;
         }
         catch (const std::exception &e)
         {

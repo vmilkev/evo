@@ -36,6 +36,8 @@ namespace evogen
         void clear();
         void reshape();    // reduce capaciity to fit size (hence, memory)
 
+        void get_ld(const std::string &out_file);
+
         void aging(int delta_t);
 
         void id_at(size_t at, unsigned long id);
@@ -76,6 +78,7 @@ namespace evogen
         std::vector<short> get_genome_at(size_t which_genome, size_t locus);
         void get_all_genotypes(const std::string &file_out);
         void get_all_genotypes(std::vector<std::vector<short>> &vect_out);
+        void get_all_haplotypes(std::vector<std::vector<bool>> &vect_out, std::vector<std::vector<unsigned long>> &out_snp_table);
 
         // ------------- Required in Trait class ---------------------
         std::vector<std::vector<unsigned long>> get_genome_table();
@@ -103,10 +106,6 @@ namespace evogen
                          <<"\n";
             }
             std::cout<<"\n";
-            /*for (size_t i = 0; i < active_individuals.size(); i++)
-            {
-                std::cout<<"from active_individuals: i = "<<i<<", value = "<<active_individuals[i]<<"\n";
-            }*/
         }
 #endif
 
@@ -117,7 +116,8 @@ namespace evogen
         void remove_at(size_t which_list_position);
         void add(Animal &in_a); // adds existent entiety from another population
 
-    protected:
+        void add_at(Animal &in_a, size_t position, size_t position2);
+        void resize(size_t n_elements);
     };
 
     inline bool operator==(const Population &rhs, const Population &lhs)

@@ -1,5 +1,6 @@
 #include "solver_pcg.hpp"
 #include "model.hpp"
+#include "lmm.hpp"
 
 PYBIND11_MODULE(evolm, m)
 {
@@ -49,4 +50,10 @@ PYBIND11_MODULE(evolm, m)
         .def( "get_solution", static_cast< int (evolm::Pcg::*)(const std::string &) >(&evolm::Pcg::get_solution) )
         .def( "get_solution", static_cast< pybind11::array_t<float> (evolm::Pcg::*)() >(&evolm::Pcg::get_solution) );
 
+    /*pybind11::class_<evolm::lmm>(m, "lmm")
+        .def(pybind11::init<>())
+        .def("clear", &evolm::lmm::clear)
+        .def( "define", &evolm::lmm::define )
+        .def( "define_infile", &evolm::lmm::define_infile )
+        .def( "solve", &evolm::lmm::solve );*/
 }

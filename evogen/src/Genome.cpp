@@ -24,6 +24,10 @@ namespace evogen
             structure.shrink_to_fit();
             snp_table.clear();
             snp_table.shrink_to_fit();
+            hotspots.clear();
+            hotspots.shrink_to_fit();
+            std_hotspots.clear();
+            std_hotspots.shrink_to_fit();
         }
         catch (const std::exception &e)
         {
@@ -64,6 +68,8 @@ namespace evogen
 
                 snp_table.push_back(range);
             }
+
+            def_hotspot_table();
         }
         catch (const std::exception &e)
         {
@@ -80,6 +86,63 @@ namespace evogen
         catch (...)
         {
             std::cerr << "Exception in Genome::def_snp_table()." << '\n';
+            throw;
+        }
+    }
+
+    //===============================================================================================================
+
+    void Genome::def_hotspot_table()
+    {
+        try
+        {
+            for (size_t i = 0; i < structure.size(); i++) // for each chromosome
+            {
+                float resolution = (float)structure[i][1];
+                float n_snp_chr = snp_table[i][1] - snp_table[i][0] + 1; // length of chromosome in terms of number of markers
+                size_t n_hotspot = std::ceil(n_snp_chr * freq_hotspot / resolution);
+
+                if (n_hotspot < 2)
+                    throw std::string("The chromosome resolution/density id too high leading to zerro number of recombination hotspots in the chromosome!");
+
+                std::vector<size_t> locations;
+                size_t step = n_snp_chr / n_hotspot;
+                size_t pos = snp_table[i][0] + step;
+
+                std_hotspots.push_back( (float)step / step_devider );
+
+                size_t centromere_pos = n_hotspot / 4;
+//std::cout<<"resolution "<<resolution<<" n_snp_chr "<<n_snp_chr<<" n_hotspot "<<n_hotspot<<" step "<<step<<" centromere_pos "<<centromere_pos<<'\n';                
+                for (size_t j = 0; j < n_hotspot - 1; j++) // assign hotspots locations for the i-th chromosome
+                {
+                    if ( j == centromere_pos ) // there is no hotspot at centromere
+                    {
+                        locations.push_back( 0 );
+                        pos = pos + step;
+                    }
+                    
+                    locations.push_back( pos );
+                    pos = pos + step;
+                }
+
+                hotspots.push_back(locations);
+            }
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Genome::def_hotspot_table()." << '\n';
+            std::cerr << e.what() << '\n';
+            throw e;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Genome::def_hotspot_table()." << '\n';
+            std::cerr <<"Reason: "<< e << '\n';
+            throw e;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Genome::def_hotspot_table()." << '\n';
             throw;
         }
     }
@@ -148,6 +211,7 @@ namespace evogen
 
     std::vector<short> Genome::get_genome()
     {
+        // Reads (multiple) haplotypes and returns single genotype
         try
         {
             if ( markers.empty() )
@@ -188,7 +252,7 @@ namespace evogen
 
     void Genome::set_genome(std::vector<std::vector<bool>> &snp, std::vector<std::vector<unsigned long>> &gstructure)
     {
-        /* uses prepared SNP variants either from file or from reproduction gamete */
+        // uses prepared SNP variants either from file or from reproduction gamete
 
         try
         {
@@ -197,9 +261,7 @@ namespace evogen
             int ploidy = snp.size();
 
             if (ploidy % 2 != 0)
-            {
                 throw std::string("The number of ploidy is odd!");
-            }
 
             def_snp_table();
         }
@@ -226,7 +288,7 @@ namespace evogen
 
     void Genome::set_genome(std::vector<std::vector<unsigned long>> &gstructure, float ref_allele_probability, short nploidy)
     {
-        /* Simulation of genome (snp variants) */
+        // Simulation of genome (snp variants)
 
         try
         {
@@ -234,28 +296,37 @@ namespace evogen
             int ploidy = (int)nploidy;
 
             if (ploidy % 2 != 0)
-            {
                 throw std::string("The number of provided ploidy is odd!");
-            }
+
+            if ( ref_allele_probability > 1.0f || ref_allele_probability < 0.0f )
+                throw std::string("ref_allele_probability > 1.0f || ref_allele_probability < 0.0f");
 
             def_snp_table();
 
             size_t snp_variants = 0;
-
-            // calculate snp variants in the genome
-            for (size_t i = 0; i < structure.size(); i++)
-            {
+            
+            for (size_t i = 0; i < structure.size(); i++) // calculate snp variants in the genome
                 snp_variants = snp_variants + std::floor(structure[i][0] / structure[i][1]);
-            }
 
-            for (size_t i = 0; i < (size_t)nploidy; i++)
+            if ( ref_allele_probability == 0.0f || ref_allele_probability == 1.0f) // if we want each individual have a first haplotype with all 1, and the second with all 0
             {
-                std::vector<bool> variants;
-                for (size_t j = 0; j < snp_variants; j++)
-                {
-                    variants.push_back(asign_snp_variant(ref_allele_probability));
+                for (size_t i = 0; i < (size_t)nploidy; i++)
+                {                    
+                    if ( i % 2 )
+                        markers.emplace_back(snp_variants, true);
+                    else
+                        markers.emplace_back(snp_variants, false);
                 }
-                markers.push_back(variants);
+            }
+            else // normal case
+            {
+                for (size_t i = 0; i < (size_t)nploidy; i++)
+                {
+                    std::vector<bool> variants;
+                    for (size_t j = 0; j < snp_variants; j++)
+                        variants.push_back(asign_snp_variant(ref_allele_probability));
+                    markers.push_back(variants);
+                }
             }
         }
         catch (const std::exception &e)
@@ -281,11 +352,11 @@ namespace evogen
 
     short Genome::asign_snp_variant(float ref_allele_probability)
     {
-        /*
-            ref_allele_probability - is the probability of appearance of a reference allele in a loci
-            snp_variant is 0 => num. of ref. alleles is 1
-            snp_variant is 1 => num. of ref. alleles is 0
-        */
+        
+        //    ref_allele_probability - is the probability of appearance of a reference allele in a loci
+        //    snp_variant is 0 => num. of ref. alleles is 1
+        //    snp_variant is 1 => num. of ref. alleles is 0
+        
         short snp_variant = 0;
 
         try
@@ -461,9 +532,9 @@ namespace evogen
 
     //===============================================================================================================
 
-    void Genome::get_reproduction_gamete(std::vector<std::vector<bool>> &out_gamete, size_t cross_per_chr, size_t mut_per_genome)
+    void Genome::get_reproduction_gamete(std::vector<std::vector<bool>> &out_gamete, size_t cross_per_chr, float mut_freq)
     {
-        /* out_sex_chr_id: for each produced gamete indicates where does sex chromosome (the last one) comes from in the gamete: 0 - paternal, 1 - maternal. */
+        // out_sex_chr_id: for each produced gamete indicates where does sex chromosome (the last one) comes from in the gamete: 0 - paternal, 1 - maternal.
 
         try
         {
@@ -471,54 +542,63 @@ namespace evogen
                 throw std::string("The genome for this individual is empty!");
 
             recombination(out_gamete, cross_per_chr);
-            mutation(out_gamete, mut_per_genome);
+            mutation(out_gamete, mut_freq);
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Genome::get_reproduction_gamete( size_t, size_t, std::vector<bool> &, short & )." << '\n';
+            std::cerr << "Exception in Genome::get_reproduction_gamete( std::vector<std::vector<bool>> &, size_t, float )." << '\n';
             std::cerr << e.what() << '\n';
             throw e;
         }
         catch (...)
         {
-            std::cerr << "Exception in Genome::get_reproduction_gamete( size_t, size_t, std::vector<bool> &, short & )." << '\n';
+            std::cerr << "Exception in Genome::get_reproduction_gamete( std::vector<std::vector<bool>> &, size_t, float )." << '\n';
             throw;
         }
     }
 
     //===============================================================================================================
 
-    void Genome::mutation(std::vector<std::vector<bool>> &in_gamete, size_t events_genome)
+    void Genome::mutation(std::vector<std::vector<bool>> &in_gamete, float mut_freq)
     {
+        // mut_freq - probability of mutation of a single snp during meyosis
         try
         {
-            for (size_t i_set = 0; i_set < in_gamete.size(); i_set++)
+            if ( mut_freq >= 1.0f )
+                throw std::string("Mutation frequency should be in the range [0.0, 1.0].");
+
+            for (size_t i_set = 0; i_set < in_gamete.size(); i_set++) // for each specific gamete
             {
                 // Sample mutation points
                 Utilites u;
-                std::vector<size_t> locations = u.get_uni_rand(events_genome, (size_t)0, in_gamete.size() - 1, false);
+
+                std::vector<int> events = u.get_bin_rand(1, in_gamete[i_set].size(), (double)mut_freq, false); // based on the mut_freq probability, calculate the number of mutations (modified snps) for entire gamete
+                size_t events_genome = events[0]; // number of mutations
+                
+//std::cout<<"mutation events: "<<events_genome<<'\n';
+                std::vector<size_t> locations = u.get_uni_rand(events_genome, (size_t)0, in_gamete[i_set].size() - 1, false); // sample of mutation locations (specific snps subject to modification)
 
                 for (size_t i = 0; i < events_genome; i++)
                 {
                     size_t point = locations[i];
-                    //std::cout << "Mutation point: " << point << "; current val: " << in_gamete[i_set][point] << "; obtained val: ";
-                    if (in_gamete[i_set][point] == 0)
-                        in_gamete[i_set][point] = 1;
+//std::cout << "Mutation point: " << point << "; current val: " << in_gamete[i_set][point] << "; obtained val: ";
+                    if ( !in_gamete[i_set][point] ) // if 0
+                        in_gamete[i_set][point] = true; // change to 1
                     else
-                        in_gamete[i_set][point] = 0;
-                    //std::cout << in_gamete[i_set][point] << "\n";
+                        in_gamete[i_set][point] = false; // change to 0
+//std::cout << in_gamete[i_set][point] << "\n";
                 }
             }
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Genome::mutation( std::vector<std::vector<bool>> &, size_t )" << '\n';
+            std::cerr << "Exception in Genome::mutation( std::vector<std::vector<bool>> &, float )" << '\n';
             std::cerr << e.what() << '\n';
             throw e;
         }
         catch (...)
         {
-            std::cerr << "Exception in Genome::mutation( std::vector<std::vector<bool>> &, size_t )" << '\n';
+            std::cerr << "Exception in Genome::mutation( std::vector<std::vector<bool>> &, float )" << '\n';
             throw;
         }
     }
@@ -640,7 +720,7 @@ namespace evogen
                     which_pat = 0;
 
                 //......................................................
-                /* Here we know where does sex chromosome will come: from sire or dame */
+                // Here we know where does sex chromosome will come: from sire or dame
 
                 //out_sex_chr_id = is_paternal[n_chr - 1][which_pat];
 
@@ -654,7 +734,7 @@ namespace evogen
                     short apply_cross = is_crossed[i][which_cell];  // defines the sequence of original/crossed chromosomes
                     short which_strand = is_paternal[i][which_pat]; // defines the sequence of chromosome origin: paternal/maternal
 
-                    /* the values of which_cell & which_pat are constant for a specific gamete, and expected to be different for every new generated gamete. */
+                    // the values of which_cell & which_pat are constant for a specific gamete, and expected to be different for every new generated gamete.
 
                     //std::cout << "chr.no: " << i << "; apply_cross & which strand: " << apply_cross << ", " << which_strand << "; which_pat & which_cell: " << which_pat << ", " << which_cell << "\n";
 
@@ -694,76 +774,136 @@ namespace evogen
 
         try
         {
+            //crossover_model_gamma(in_chr, out_strand, n_crossovers, which_strands_set, chromatide);
+            crossover_model_uniform(in_chr, out_strand, n_crossovers, which_strands_set, chromatide);
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Genome::crossover(size_t, size_t, size_t, size_t)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw e;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Genome::crossover(size_t, size_t, size_t, size_t)" << '\n';
+            throw;
+        }
+
+        return chromatide;
+    }
+
+    //===============================================================================================================
+
+    void Genome::crossover_model_gamma(size_t in_chr, size_t out_strand, size_t n_crossovers, size_t which_strands_set, std::vector<bool> &out_chromatide)
+    {
+        try
+        {
+            Utilites u;
+
             size_t first_snp = snp_table[in_chr][0];
             size_t last_snp = snp_table[in_chr][1];
 
             std::vector<long> cross_locations;
 
-            Utilites u;
+            long pos = (long)u.get_randi( (size_t)0, hotspots[in_chr].size()-1 ); // sample position in hotspots table for a very first crossover event
 
-            size_t chr_length = last_snp - first_snp + 1;
+            if ( (pos != (size_t)0) && (hotspots[in_chr][pos] == (size_t)0) ) // if we catch the centromere, change the position
+                pos--;
 
-            cross_locations.push_back((long)u.get_randi(first_snp, last_snp)); /* sample the very first crossover location */
+            std::vector<float> location = u.get_norm_rand(1, (float)hotspots[in_chr][pos], std_hotspots[in_chr], false); // the actual crossover position sampled from normal distr using pos as a mean
 
-            double beta = 1.0 / ((double)n_crossovers / (double)chr_length);
-            double alpha = 2.0;
+            if ( (size_t)location[0] > first_snp && (size_t)location[0] < last_snp )
+                cross_locations.push_back( (size_t)location[0] ); // very first crossover location
+            else
+                cross_locations.push_back( hotspots[in_chr][pos] );
 
-            // std::cout<<"first & last snp: "<<first_snp<<", "<<last_snp<<"; beta: "<<beta <<"; chr_length: "<<chr_length<<"; n_crosses: "<<n_crossovers<<"\n";
+            size_t chr_length = last_snp - first_snp + 1; // in number of snps (markers)
+            float beta = 1.0 / ((float)n_crossovers / (float)chr_length );
+            float alpha = 2.0;
 
-            std::vector<double> left_cross_points = u.get_gamma_rand(2 * n_crossovers, alpha, beta, false);
-            std::vector<double> right_cross_points = u.get_gamma_rand(2 * n_crossovers, alpha, beta, false);
-
-            // std::cout << "chromosome: " << in_chr << "; first location: " << cross_locations[0] << "\n";
+            size_t step = std_hotspots[in_chr] * step_devider;
 
             // Left move along chromosome
+            size_t index = 0;
             for (size_t i = 0; i < 2 * n_crossovers; i++)
             {
-                long next_location = cross_locations[i] - (long)std::round(left_cross_points[i]);
+                std::vector<float> left_cross_point = u.get_gamma_rand(1, alpha, beta, false);
 
-                if (next_location > (long)first_snp)
+                if ( ( cross_locations[index] - (long)std::round(left_cross_point[0]) ) <= (long)first_snp )
+                    break;
+                size_t position = ( cross_locations[index] - (long)std::round(left_cross_point[0]) - first_snp ) / step; // position in the hotspots table
+                if ( hotspots[in_chr][position] == (size_t)0 ) // this is centromere, where there is no crossover
+                    continue;
+                std::vector<float> locat = u.get_norm_rand(1, (float)hotspots[in_chr][position], std_hotspots[in_chr], false); // sample actual recombination position
+                if ( (size_t)locat[0] > first_snp && (size_t)locat[0] < last_snp )
                 {
-                    cross_locations.push_back(next_location);
-                    // std::cout << "left previous point: " << cross_locations[i] << ", next point: " << next_location << ", shift: " << std::round(left_cross_points[i]) << "\n";
+                    cross_locations.push_back( (size_t)locat[0] ); // crossover location
+                    index++;
                 }
                 else
                     break;
             }
 
-            // right move along chromosome
-            long next_location = cross_locations[0] + (long)std::round(right_cross_points[0]);
-            size_t processed_crosses = cross_locations.size();
+            std::vector<float> right_cross_point = u.get_gamma_rand(1, alpha, beta, false);
+            size_t position0 = ( cross_locations[0] + (long)std::round(right_cross_point[0]) - first_snp ) / step; // position in the hotspots table
+            
+            if ( (position0 != (size_t)0) && (hotspots[in_chr][position0] == (size_t)0) ) // if we catch the centromere, resample
+                position0--;
 
-            if (next_location < (long)last_snp)
+            if ( position0 > 0 && position0 < hotspots[in_chr].size() )
             {
-                cross_locations.push_back(next_location);
-                processed_crosses = cross_locations.size();
-                // std::cout << "right previous point: " << cross_locations[0] << ", next point: " << next_location << ", shift: " << std::round(right_cross_points[0]) << "\n";
-
-                for (size_t i = 0; i < 2 * n_crossovers; i++)
+                std::vector<float> locat = u.get_norm_rand(1, (float)hotspots[in_chr][position0], std_hotspots[in_chr], false); // sample actual recombination position
+                
+                if ( (size_t)locat[0] > first_snp && (size_t)locat[0] < last_snp )
                 {
-                    long next_location = cross_locations[i + processed_crosses - 1] + (long)std::round(right_cross_points[i + 1]);
+                    cross_locations.push_back( (size_t)locat[0] ); // crossover location
+                    size_t processed_crosses = cross_locations.size() - 1;
 
-                    if (next_location < (long)last_snp)
+                    index = 0;
+                    for (size_t i = 1; i < 2 * n_crossovers - 1; i++)
                     {
-                        cross_locations.push_back(next_location);
-                        // std::cout << "right previous point: " << cross_locations[i + processed_crosses - 1] << ", next point: " << next_location << ", shift: " << std::round(right_cross_points[i+1]) << "\n";
-                    }
-                    else
+                        right_cross_point.clear(); right_cross_point.shrink_to_fit();
+
+                        right_cross_point = u.get_gamma_rand(1, alpha, beta, false);
+
+                        if ( ( cross_locations[processed_crosses + index] + (long)std::round(right_cross_point[0]) ) >= (long)last_snp )
+                            break;
+                        
+                        size_t position = ( cross_locations[processed_crosses + index] + (long)std::round(right_cross_point[0]) - first_snp ) / step; // position in the hotspots table
+                        if ( hotspots[in_chr][position] == (size_t)0 )
+                            continue;
+
+                        if ( (position > 0) && (position < hotspots[in_chr].size()) )
+                        {                        
+                            //std::vector<float> locat = u.get_norm_rand(1, (float)hotspots[in_chr][position], std_hotspots[in_chr], false); // sample actual recombination position
+                            
+                            if ( (size_t)locat[0] > first_snp && (size_t)locat[0] < last_snp )
+                            {
+                                cross_locations.push_back( (size_t)locat[0] ); // crossover location
+                                index++;
+                            }
+                            else
+                                break;
+                        }
                         break;
+                    }
                 }
             }
 
             std::sort(cross_locations.begin(), cross_locations.end());
 
-            /*
+            /*std::cout << "hotspots on the chromosome " << in_chr << ": ";
+            for (size_t i = 0; i < hotspots[in_chr].size(); i++)
+                std::cout<<hotspots[in_chr][i]<<" ";
             std::cout << "\n";
+            //std::cout << "\n";
             std::cout << "cross locations in chromosome " << in_chr << ": ";
             for (size_t i = 0; i < cross_locations.size(); i++)
             {
                 std::cout << cross_locations[i] << " ";
             }
-            std::cout << "\n";
-            */
+            std::cout << "\n";*/
+            
 
             // .........................................................
             // Staring exchnging of sections of chromosome
@@ -796,23 +936,114 @@ namespace evogen
             // Return gamete's chromosom
 
             if (out_strand == 0)
-                chromatide = chromatide_pat;
+                out_chromatide = chromatide_pat;
             else
-                chromatide = chromatide_mat;
+                out_chromatide = chromatide_mat;
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Genome::crossover(size_t, size_t, size_t)" << '\n';
+            std::cerr << "Exception in Genome::crossover_model_gamma(size_t, size_t, size_t, size_t, std::vector<bool> &)" << '\n';
             std::cerr << e.what() << '\n';
             throw e;
         }
         catch (...)
         {
-            std::cerr << "Exception in Genome::crossover(size_t, size_t, size_t)" << '\n';
+            std::cerr << "Exception in Genome::crossover_model_gamma(size_t, size_t, size_t, size_t, std::vector<bool> &)" << '\n';
             throw;
         }
+    }
 
-        return chromatide;
+    //===============================================================================================================
+
+    void Genome::crossover_model_uniform(size_t in_chr, size_t out_strand, size_t n_crossovers, size_t which_strands_set, std::vector<bool> &out_chromatide)
+    {
+        try
+        {
+            Utilites u;
+
+            size_t first_snp = snp_table[in_chr][0];
+            size_t last_snp = snp_table[in_chr][1];
+
+            std::vector<long> cross_locations;
+
+            std::vector<int> sampled_crossovers = u.get_bin_rand(1, (int)n_crossovers, 0.8, false); // sample the actual number of crossovers for this chromosome
+
+            long pos = 0;
+            std::vector<float> location;
+
+            for (size_t i = 0; i < (size_t)sampled_crossovers[0]; i++)
+            {
+                pos = (long)u.get_randi( (size_t)0, hotspots[in_chr].size()-1 ); // sample position in hotspots table for a crossover event
+                if ( (pos != (size_t)0) && (hotspots[in_chr][pos] == (size_t)0) ) // if we catch the centromere, change the position
+                    pos--;
+                location = u.get_norm_rand(1, (float)hotspots[in_chr][pos], std_hotspots[in_chr], false); // the actual crossover position within the hotspot sampled from normal distr using pos as a mean
+                
+                if ( (size_t)location[0] > first_snp && (size_t)location[0] < last_snp )
+                    cross_locations.push_back( (size_t)location[0] ); // very first crossover location
+                else
+                    cross_locations.push_back( hotspots[in_chr][pos] );
+            }
+
+            std::sort(cross_locations.begin(), cross_locations.end());
+
+            /*std::cout << "hotspots on the chromosome " << in_chr << ": ";
+            for (size_t i = 0; i < hotspots[in_chr].size(); i++)
+                std::cout<<hotspots[in_chr][i]<<" ";
+            std::cout << "\n";
+            //std::cout << "\n";
+            std::cout << "cross locations in chromosome " << in_chr << ": ";
+            for (size_t i = 0; i < cross_locations.size(); i++)
+            {
+                std::cout << cross_locations[i] << " ";
+            }
+            std::cout << "\n";*/            
+
+            // .........................................................
+            // Staring exchnging of sections of chromosome
+            // .........................................................
+
+            // temporal containers
+            std::vector<bool> chromatide_pat;
+            std::vector<bool> chromatide_mat;
+
+            for (size_t i = first_snp; i <= last_snp; i++)
+            {
+                chromatide_pat.push_back(markers[0 + which_strands_set][i]);
+                chromatide_mat.push_back(markers[1 + which_strands_set][i]);
+            }
+
+            for (size_t i = 0; i < cross_locations.size(); i++)
+            {
+                std::vector<bool> chromatide_tmp(1, 0);
+
+                for (size_t j = 0; j < cross_locations[i] - first_snp; j++)
+                {
+                    chromatide_tmp[0] = chromatide_pat[j];
+
+                    chromatide_pat[j] = chromatide_mat[j];
+                    chromatide_mat[j] = chromatide_tmp[0];
+                }
+            }
+            // .........................................................
+
+            // Return gamete's chromosom
+
+            if (out_strand == 0)
+                out_chromatide = chromatide_pat;
+            else
+                out_chromatide = chromatide_mat;
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Genome::crossover_model_uniform(size_t, size_t, size_t, size_t, std::vector<bool> &)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw e;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Genome::crossover_model_uniform(size_t, size_t, size_t, size_t, std::vector<bool> &)" << '\n';
+            throw;
+        }
     }
 
     //===============================================================================================================

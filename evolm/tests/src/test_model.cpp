@@ -904,6 +904,7 @@ TEST_CASE("Testing on model 1")
             std::vector<int> corr_eff{1, 3};
 
             model.append_corrstruct(iG1, 2, iA, 8, corr_eff);
+            
             model.append_traitstruct(obs_trate_1, eff_trate_1);
             model.append_traitstruct(obs_trate_2, eff_trate_2);
 

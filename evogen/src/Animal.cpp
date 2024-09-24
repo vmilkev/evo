@@ -43,11 +43,14 @@ namespace evogen
     {
         try
         {
+            size_t n_crossovers = 4;
+            float mutat_frequency = 0.005;
+
             std::vector<std::vector<bool>> gamete_a;
-            a_sire.genome.get_reproduction_gamete(gamete_a, 3, 2);
+            a_sire.genome.get_reproduction_gamete(gamete_a, n_crossovers, mutat_frequency);
 
             std::vector<std::vector<bool>> gamete_b;
-            b_dame.genome.get_reproduction_gamete(gamete_b, 3, 2);
+            b_dame.genome.get_reproduction_gamete(gamete_b, n_crossovers, mutat_frequency);
 
             std::vector<std::vector<unsigned long>> gstructure = a_sire.genome.get_genome_structure();
 
@@ -57,11 +60,15 @@ namespace evogen
             if (gamete_a.size() != gamete_b.size())
                     throw std::string("The ploidy of parents are not the same!");
 
-            std::vector<std::vector<bool>> gamete( gamete_a );
+            //std::vector<std::vector<bool>> gamete( gamete_a );
+            std::vector<std::vector<bool>> gamete;
 
             for (size_t i = 0; i < gamete_b.size(); i++)
+            {
                 gamete.push_back( gamete_b[i] );
-            
+                gamete.push_back( gamete_a[i] );
+            }
+                        
             genome.set_genome(gamete, gstructure);
 
             properties.id = asign_id();
@@ -73,6 +80,51 @@ namespace evogen
             properties.active = true;
 
             properties.sex = asign_sex();
+
+            //std::cout<<"NEW Animal "<<properties.id<<" sire "<<a_sire.properties.id<<", dame "<<b_dame.properties.id<<'\n';
+            
+            //std::vector<std::vector<bool>> haplotypes;
+            //std::vector<std::vector<unsigned long>> gstructure2;
+
+            /*a_sire.genome.get_genome(haplotypes, gstructure2);
+
+            std::cout<<"sire "<<properties.sire<<" genome: "<<'\n';
+            for (size_t i = 0; i < haplotypes.size(); i++)
+            {
+                for (size_t j = 0; j < haplotypes[i].size(); j++)
+                    std::cout<< haplotypes[i][j] << " ";
+                std::cout << '\n';
+            }
+
+            haplotypes.clear(); haplotypes.shrink_to_fit(); gstructure2.clear(); gstructure2.shrink_to_fit();
+
+            b_dame.genome.get_genome(haplotypes, gstructure2);
+
+            std::cout<<"dame "<<properties.dame<<" genome: "<<'\n';
+            for (size_t i = 0; i < haplotypes.size(); i++)
+            {
+                for (size_t j = 0; j < haplotypes[i].size(); j++)
+                    std::cout<< haplotypes[i][j] << " ";
+                std::cout << '\n';
+            }
+
+            haplotypes.clear(); haplotypes.shrink_to_fit(); gstructure2.clear(); gstructure2.shrink_to_fit();*/
+
+            //std::cout<<"offspring "<<properties.id<<" gamete (size & dame): "<<'\n';
+
+            /*for (size_t i = 0; i < gamete_a.size(); i++)
+            {
+                for (size_t j = 0; j < gamete_a[i].size(); j++)
+                    std::cout<< gamete_a[i][j] << " ";
+                std::cout << '\n';
+            }            
+            //std::cout<<"dame gamete: "<<'\n';
+            for (size_t i = 0; i < gamete_b.size(); i++)
+            {
+                for (size_t j = 0; j < gamete_b[i].size(); j++)
+                    std::cout<< gamete_b[i][j] << " ";
+                std::cout << '\n';
+            }*/
         }
         catch (const std::exception &e)
         {
@@ -97,6 +149,7 @@ namespace evogen
 
     Animal::~Animal()
     {
+        clear();
     }
 
     //===============================================================================================================

@@ -42,6 +42,8 @@ namespace evolm
                 
                 void append_corrstruct(const std::vector<float> var, size_t lda1, std::string &identity, size_t lda2, const std::vector<int> which_effects);
                 void append_corrstruct(const std::string &fname_var, std::string &identity, size_t lda2, const std::vector<int> which_effects);
+
+                void append_corrstruct(const std::vector<float> &var, size_t lda1, compact_storage<float> &corr, const std::vector<int> &which_effects);
                 // ----------------------------------------------
                 void clear_residuals();
                 void clear_observations();

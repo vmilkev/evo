@@ -36,6 +36,11 @@ namespace evolm
 
         std::unordered_map<std::string, std::string> identifier_to_eff_name; // aliases for random effects, if used
 
+        size_t next_subm_eff = 0;
+        size_t next_subm_obs = 0;
+        std::vector<std::vector<size_t>> correlated_effects; // for each correlation defines correlated effects (in consecutive order as submitted to solver)
+        std::map<size_t, std::vector<size_t>> model_definition; // observations and explaining factors (effects); key: obs index, value: list of eff indices defining the model        
+
         // Methods:
         void get_obsvars(std::string &expr, std::vector<std::string> &out_vars);
         
@@ -90,6 +95,9 @@ namespace evolm
         void find_corr_vars_in_effects(std::vector<std::vector<std::string>> &corr_vars);
         void load_corbin_file(std::string &cor_matr_file, std::string &cor_variable, compact_storage<float> &corr_storage);
 
+        void get_list_of_subm_eff();
+        void def_corr_struct();
+
     public:
         model_parser();
         ~model_parser();
@@ -99,6 +107,8 @@ namespace evolm
         // for debugging
         void print();
         void report();
+
+        friend class lmm;
     };
 
 } // end of namespace evolm
