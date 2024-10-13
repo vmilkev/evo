@@ -1,7 +1,6 @@
 APPNAME := plinkio
 
 SRCDIR := src
-#BDIR_CLIB := /Users/au383883/Documents/MY/codebase/evo/libplinkio/release_lib
 BDIR_CLIB := release_lib
 BDIR_APP := release_app
 
@@ -30,7 +29,6 @@ ifeq ($(UNAME_OS),Darwin) # using apple's Accelerate
 	CFLAGS_APP := -I$(SRCDIR)
 	CFLAGS_CLIB := -I$(SRCDIR)
 
-#	EXTRA_CFLAGS := -Wall -Wextra -pedantic -Wno-c99-extensions -O3 -Xpreprocessor -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -std=c++17
 	EXTRA_CFLAGS := -O3 -Xpreprocessor -std=c++17 -Wall -Wextra -pedantic -Wno-c99-extensions
 
 	LIBFLAGS := -undefined dynamic_lookup -shared -lm -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
@@ -38,7 +36,6 @@ ifeq ($(UNAME_OS),Darwin) # using apple's Accelerate
 	EXTRA_LIBFLAGS :=  -L$(BDIR_CLIB) -l$(APPNAME)
 else
 	ifeq ($(UNAME_OS),Linux)
-#		ifeq ( $(SOURSE_BLAS_IS_INTEL), 1) # using Intel's MKL
 		ifdef SOURSE_BLAS_IS_INTEL
 			CFLAGS_APP := -O3 -I$(SRCDIR) -DMKL_ILP64 -I${MKLROOT}/include -std=c++17
 			CFLAGS_CLIB := -O3 -I$(SRCDIR) -DMKL_ILP64 -I${MKLROOT}/include -fPIC -std=c++17
@@ -76,12 +73,12 @@ OBJECT_APP := $(patsubst $(SRCDIR)/%,$(BDIR_APP)/%,$(SOURCES_ALL:.cpp=.o))
 # build shared c++ lib
 $(TARGET_CLIB): $(OBJECT_LIB)
 	@echo " Linking shared lib ..."
-	$(CXX) $^ $(LIBFLAGS) -o $(TARGET_CLIB) $(EXTRA_LIBFLAGS_2)
+	$(CXX) $^ $(LIBFLAGS) -o $(TARGET_CLIB)
 
 # build c++ app
 $(TARGET_APP): $(OBJECT_APP)
 	@echo " Linking c++ app ..."
-	$(CXX) $^ $(LIBFLAGS_TEST) $(EXTRA_LIBFLAGS) $(EXTRA_LIBFLAGS_2) -o $(TARGET_APP)
+	$(CXX) $^ $(LIBFLAGS_TEST) $(EXTRA_LIBFLAGS) -o $(TARGET_APP)
 
 #----------------------------------------------------------------
 

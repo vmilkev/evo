@@ -6,6 +6,11 @@ namespace evolm
     {
     }
     //===============================================================================================================
+    model_sparse::~model_sparse()
+    {
+        clear();
+    }
+    //===============================================================================================================
     void model_sparse::set_missing(float val)
     {
         try
@@ -532,8 +537,13 @@ namespace evolm
             _effects.resize(which_effects.size(), 1);
             variance.resize(lda1, lda1);
             
-            if (lda1 != which_effects.size())
-                throw std::string("The number of provided correlated all_effects does not correspond to the dimension of variance-covariance matrix!");
+            if (lda1 != which_effects.size()){
+                std::string msg = "The number of provided correlated effects, which is " + std::to_string(which_effects.size()) +
+                                    ", does not correspond to the dimension of variance-covariance matrix, which is " +
+                                    std::to_string(lda1) + " by " + std::to_string(lda1) + "."
+                                    " Expected dimension of variance-covariance matrix: n_effects * n_trait by n_effects * n_trait";
+                throw msg;
+            }
 
             for (size_t i = 0; i < which_effects.size(); i++)
                 _effects[i] = which_effects[i];
@@ -998,8 +1008,6 @@ namespace evolm
                 e.fclear();
                 e.clear();
             }
-            //residuals.clear();
-            //residuals.shrink_to_fit();
             std::vector<matrix<float>>().swap(residuals);
         }
         catch (const std::exception &e)
@@ -1024,8 +1032,6 @@ namespace evolm
                 e.fclear();
                 e.clear();
             }
-            //observations.clear();
-            //observations.shrink_to_fit();
             std::vector<matrix<float>>().swap(observations);
             
             for (auto &e : miss_observations)
@@ -1055,8 +1061,6 @@ namespace evolm
             for (auto &e : all_effects)
                 e.clear();
             
-            //all_effects.clear();
-            //all_effects.shrink_to_fit();
             std::vector<effects_storage>().swap(all_effects);
         }
         catch (const std::exception &e)
@@ -1081,8 +1085,6 @@ namespace evolm
                 e.fclear();
                 e.clear();
             }
-            //correlated_effects.clear();
-            //correlated_effects.shrink_to_fit();
             std::vector<matrix<int>>().swap(correlated_effects);
 
             for (auto &e : variances)
@@ -1090,8 +1092,6 @@ namespace evolm
                 e.fclear();
                 e.clear();
             }
-            //variances.clear();
-            //variances.shrink_to_fit();
             std::vector<matrix<float>>().swap(variances);
 
             for (auto &e : correlations)
@@ -1099,8 +1099,6 @@ namespace evolm
                 e.fclear();
                 e.clear();
             }
-            //correlations.clear();
-            //correlations.shrink_to_fit();
             std::vector<compact_storage<float>>().swap(correlations);
 
             identity_correlations.clear();
@@ -1125,10 +1123,6 @@ namespace evolm
     {
         try
         {
-            //observation_trait.clear();
-            //observation_trait.shrink_to_fit();
-            //effects_trait.clear();
-            //effects_trait.shrink_to_fit();
             std::vector<int>().swap(observation_trait);
             std::vector<matrix<int>>().swap(effects_trait);
         }

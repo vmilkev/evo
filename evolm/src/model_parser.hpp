@@ -22,6 +22,7 @@ namespace evolm
         
         std::vector<evolm::effects_storage> extra_effects; // effects/matrices provided by a name-value expression
         std::vector<std::string> extra_effects_names; // var names for the effects/matrices provided by a name-value expression
+        std::vector<std::vector<std::string>> extra_effects_levels;
         
         std::vector<evolm::effects_storage> observations; // obs container
         std::vector<std::string> observations_names;
@@ -30,11 +31,13 @@ namespace evolm
         std::vector<evolm::effects_storage> random_and_fixed_effects; // random effects container
         std::vector<std::string> random_and_fixed_effects_names;
         std::vector<int> random_and_fixed_in_extra_storage; // -1 if not in extra storage
+        std::vector<std::vector<std::string>> random_and_fixed_effects_levels;
 
         std::vector<std::vector<int>> corr_vars_index_in_effects; // points to a random effect
         std::vector<std::vector<int>> corr_matr_index_in_extra_vars; // where to find correlation matrix for random effect, -1 means I (identity matrix)
 
         std::unordered_map<std::string, std::string> identifier_to_eff_name; // aliases for random effects, if used
+        std::unordered_map<std::string, std::string> borroow_levels_from; // key <- variable which uses levels from other variable -> value; uses levels but not observations
 
         size_t next_subm_eff = 0;
         size_t next_subm_obs = 0;
@@ -77,10 +80,13 @@ namespace evolm
         void process_random_vars(std::vector<std::vector<std::vector<std::string>>> &lhs_random,
                                  std::vector<std::vector<std::vector<std::string>>> &rhs_random,
                                  std::vector<std::string> &rand_vars_identifiers);
+        
         void get_effect_from_data(evolm::IOInterface &in_data,
                                   std::vector<std::string> &in_var_vect,
                                   evolm::effects_storage &out_s,
-                                  std::string &effect_name);
+                                  std::string &effect_name,
+                                  std::vector<std::string> &var_levels);
+
         void eval_model_expr(const std::string &expression,
                              std::vector<std::string> &observ_vars,
                              std::vector<std::vector<std::vector<std::string>>> &lhs_randvars,
@@ -93,10 +99,14 @@ namespace evolm
                                        std::string delim_closed,
                                        std::vector<std::string> &out_vars);
         void find_corr_vars_in_effects(std::vector<std::vector<std::string>> &corr_vars);
-        void load_corbin_file(std::string &cor_matr_file, std::string &cor_variable, compact_storage<float> &corr_storage);
+        void load_corbin_file(std::string &cor_matr_file, std::string &cor_variable, std::vector<std::string> &var_levels, compact_storage<float> &corr_storage);
 
         void get_list_of_subm_eff();
         void def_corr_struct();
+
+        void check_borrowed_levels(std::vector<std::string> &in_vars);
+
+        void element_wise_dot(std::vector<std::string> &lhs, std::vector<std::string> &rhs);
 
     public:
         model_parser();
@@ -106,7 +116,7 @@ namespace evolm
 
         // for debugging
         void print();
-        void report();
+        void report(const std::string &log_file);
 
         friend class lmm;
     };

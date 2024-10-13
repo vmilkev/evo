@@ -16,19 +16,43 @@ namespace evolm
     {
         try
         {
+            writelog << "Loading data ... ";
+
+            auto start = std::chrono::high_resolution_clock::now();
+
             memload_effects();
             // memload_var();
             memload_cor();
             memload_cor_effects();
 
+            auto stop = std::chrono::high_resolution_clock::now();
+            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+            writelog <<"completed in "<< duration.count() << " milliseconds." << '\n';
+
+            writelog << "Constructing RHS vector ... ";
+
+            start = std::chrono::high_resolution_clock::now();
+            
             construct_rhs();
+            
+            stop = std::chrono::high_resolution_clock::now();
+            duration = std::chrono::duration_cast<std::chrono::seconds>(stop - start);
+            writelog <<"completed in "<< duration.count() << " seconds." << '\n';
 
             double size_of_maps = r_map.size() * (sizeof(size_t) + r_map.begin()->second.size() * sizeof(float)) * 3.0;
             double size_of_data = (size_of_maps + (double)model.get_size_of_data()) / 1073741824.0;
 
             set_data_size(size_of_data);
 
+            writelog << "Constructing model matrix ... ";
+
+            start = std::chrono::high_resolution_clock::now();
+
             set_model_matrix();
+
+            stop = std::chrono::high_resolution_clock::now();
+            duration = std::chrono::duration_cast<std::chrono::seconds>(stop - start);
+            writelog <<"completed in "<< duration.count() << " seconds." << '\n';
 
             /*diskload_effects();
             diskload_var();
@@ -38,9 +62,11 @@ namespace evolm
 
             remove_model();
 
-            // after cleaning data, load as much as possible model_matrix to memory
-            //----------------------------
-            if (first_row_ondisk < model_matrix.size() - 1)
+            writelog << "Loading model matrix into memory ... ";
+            
+            start = std::chrono::high_resolution_clock::now();
+
+            if (first_row_ondisk < model_matrix.size() - 1) // after cleaning data, load as much as possible model_matrix to memory
             {
                 size_t rows_per_memory = std::floor( ( ( get_memory_limit() - 2.0 * size_of_data) / row_size_upper_bound ) - 2.0 );
                 
@@ -61,9 +87,22 @@ namespace evolm
                 
                 first_row_ondisk = last_row;
             }
-            //----------------------------
+
+            stop = std::chrono::high_resolution_clock::now();
+            duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+            writelog <<"completed in "<< duration.count() << " milliseconds." << '\n';
+
+            writelog << "Starting PCG iterations (stops when rate values lower or equal to 0.0) ... " << '\n';
+            writelog << '\n';
+            writelog << "Iteration & Convergence Rate:" << '\n';
+            writelog << '\n';
 
             jacobi_pcg();
+
+            stop = std::chrono::high_resolution_clock::now();
+            duration = std::chrono::duration_cast<std::chrono::seconds>(stop - start);
+            writelog << '\n';
+            writelog <<"PCG completed in "<< duration.count() << " seconds." << '\n';
         }
         catch (const std::exception &e)
         {
@@ -186,22 +225,53 @@ namespace evolm
         }
     }
 
+    void sparse_pcg::get_solution(std::vector<double> &out_sol)
+    {
+        try
+        {
+            out_sol = sol;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in sparse_pcg::get_solution(std::vector<double> &): " << e << '\n';
+            throw e;
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in sparse_pcg::get_solution(std::vector<double> &)." << '\n';
+            std::cerr << e.what() << '\n';
+            throw e;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in sparse_pcg::get_solution(std::vector<double> &)." << '\n';
+            throw;
+        }
+    }
+
     void sparse_pcg::construct_dval(std::vector<double> &inverted_diagonal)
     {
         try
         {
             if (inverted_diagonal.size() != model_matrix.size())
                 throw std::string("The size allocated for the vector of model matrix diagonals is not correct!");
-
+//------------
+/*for (size_t i = 0; i < model_matrix.size(); i++)
+{
+    smatrix<float> s;
+    model_matrix[i].to_sparse(s);
+    s.print(std::to_string(i));
+}*/
+//------------
 #pragma omp parallel for num_threads(available_cpu)
             for (size_t j = 0; j < first_row_ondisk; j++) // process data which is already in memory
             {
                 float d = model_matrix[j].value_at(0, j);
 
                 if (d == 0.0f)
-                    throw std::string("sparse_pcg::construct_dval2(std::vector<float> &) => The diagonal element of the model matrix is 0.0!");
-
-                inverted_diagonal[j] = 1.0 / static_cast<double>(d);
+                    inverted_diagonal[j] = 1.0;
+                else
+                    inverted_diagonal[j] = 1.0 / static_cast<double>(d);
             }
 
             /*for (size_t i = 0; i < get_num_of_mem_blocks(); i++) // variant 1, on blocks with consecutive reading
@@ -228,6 +298,7 @@ namespace evolm
             std::fstream fA;
             fA.open(bin_fname, fA.binary | fA.in);
             fA.seekg(model_matrix[first_row_ondisk].bin_file_read_position, fA.beg);
+
 #pragma omp parallel sections
             {
 #pragma omp section
@@ -247,8 +318,9 @@ namespace evolm
                         {
                             float d = model_matrix[j].value_at(0, j);
                             if (d == 0.0f)
-                                throw std::string("sparse_pcg::construct_dval2(std::vector<float> &) => The diagonal element of the model matrix is 0.0!");
-                            inverted_diagonal[j] = 1.0 / static_cast<double>(d);
+                                inverted_diagonal[j] = 1.0;
+                            else
+                                inverted_diagonal[j] = 1.0 / static_cast<double>(d);
                             model_matrix[j].remove_data();
                             j = j + 1;
                         }
@@ -362,7 +434,7 @@ namespace evolm
             size_t unknowns = shape_rhs[0];
 
             if (befault_max_iter)
-                max_iterations = unknowns * 10;
+                max_iterations = unknowns * 2;
 
             std::vector<double> Mi(unknowns, 0.0);     // inverse of diagonal of A
             std::vector<double> _rhs(unknowns, 0.0);   // rhs
@@ -412,7 +484,7 @@ namespace evolm
             double betha = 0.0;
 
             // std::cout << "max_iterations: "<< max_iterations << "; iter: " << iterations << "; delta_new: " << delta_new << " condition: "<< /*delta_zero */ tolerance * tolerance << "\n";
-            while (iterations < max_iterations && delta_new > /*delta_zero */ tolerance * tolerance)
+            while ( iterations < max_iterations && delta_new > delta_zero * tolerance * tolerance )
             {
                 update_vect(q, d); // here we casting vector from float to double every time by calling this function
 
@@ -454,14 +526,12 @@ namespace evolm
                 for (size_t i = 0; i < unknowns; i++)
                     d[i] = s[i] + betha * d[i];
 
-                // debugging
-                // if (!(iterations % 10))
-                //std::cout << "iter: " << iterations << "; delta_new: " << delta_new << " alpha: " << alpha << " i_value: " << i_value << "\n";
+                if (!(iterations % 2))
+                    writelog << iterations << "  "<< delta_new - delta_zero * tolerance * tolerance << "\n";
 
                 iterations = iterations + 1;
             }
             iterations = iterations - 1;
-            //std::cout << "no iterations: " << iterations << " delta_new: " << delta_new << " condition: " << /*delta_zero */ tolerance * tolerance << "\n";
         }
         catch (const std::string &e)
         {

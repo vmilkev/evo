@@ -43,6 +43,7 @@ namespace evolm
 
         void extend_by(effects_storage &rhs_matr);
         void element_wise_dot(effects_storage &rhs_matr);
+        void optimize();
 
         void print(std::string &message);
     };

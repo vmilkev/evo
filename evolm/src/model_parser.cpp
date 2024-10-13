@@ -23,6 +23,9 @@ namespace evolm
         extra_effects_names.clear();
         extra_effects_names.shrink_to_fit();
 
+        extra_effects_levels.clear();
+        extra_effects_levels.shrink_to_fit();
+
         observations.clear();
         observations.shrink_to_fit();
 
@@ -41,13 +44,26 @@ namespace evolm
         random_and_fixed_in_extra_storage.clear();
         random_and_fixed_in_extra_storage.shrink_to_fit();
 
+        random_and_fixed_effects_levels.clear();
+        random_and_fixed_effects_levels.shrink_to_fit();
+
         corr_vars_index_in_effects.clear();
         corr_vars_index_in_effects.shrink_to_fit();
 
         corr_matr_index_in_extra_vars.clear();
         corr_matr_index_in_extra_vars.shrink_to_fit();
 
+        correlated_effects.clear();
+        correlated_effects.shrink_to_fit();
+
         identifier_to_eff_name.clear();
+
+        borroow_levels_from.clear();
+
+        model_definition.clear();
+
+        next_subm_eff = 0;
+        next_subm_obs = 0;
     }
     // -------------------------------------------------------------
     void model_parser::process_expression(const std::string &expr)
@@ -324,8 +340,9 @@ namespace evolm
                 std::vector<float> values;
                 size_t nrows = 0;
                 size_t ncols = 0;
+                std::vector<std::string> snp_names;
 
-                in.scale_genotypes(values, nrows, ncols);
+                in.scale_genotypes(values, nrows, ncols, snp_names);
 
                 evolm::compact_storage<float> cs(nrows, ncols);
 
@@ -342,12 +359,15 @@ namespace evolm
 
                 extra_effects.push_back(eff);
                 extra_effects_names.push_back(name_value_pair[0]);
+                extra_effects_levels.push_back(snp_names);
 
                 eff.clear();
             }
             else // handle as ASCII text files; general data file, considered as a float-type matrix
             {
                 std::vector<std::vector<float>> var_data;
+                std::vector<std::string> levels;
+
                 in.fgetdata(var_data);
 
                 evolm::compact_storage<float> cs(var_data.size(), var_data[0].size());
@@ -356,6 +376,9 @@ namespace evolm
                     for (size_t j = 0; j < var_data[0].size(); j++)
                         cs.append(var_data[i][j], i, j);                
                 
+                for (size_t i = 0; i < var_data[0].size(); i++)
+                    levels.push_back(std::to_string(i+1));
+
                 cs.optimize();
 
                 var_data.clear();
@@ -368,6 +391,7 @@ namespace evolm
 
                 extra_effects.push_back(eff);
                 extra_effects_names.push_back(name_value_pair[0]);
+                extra_effects_levels.push_back(levels);
 
                 eff.clear();
             }
@@ -555,23 +579,7 @@ namespace evolm
             if ( correlated_vars.size() != correlated_groups.size()-1 )
                 throw std::string("Incorrect expression for the model variance: correlated_vars.size() != correlated_groups.size()-1");
 
-//----------------
-/*
-std::cout<<"\n";
-// list of extra_vars variables
-std::cout<<"extra var names: "<<"\n";
-for (auto const &v: extra_effects_names)
-    std::cout<<v<<"\n";
-std::cout<<"\n";
-// list of effect_vars variables
-std::cout<<"effects var names: "<<"\n";
-for (auto const &v: random_and_fixed_effects_names)
-    std::cout<<v<<"\n";
-std::cout<<"\n";
-*/
-//----------------
-
-            find_corr_vars_in_effects(correlated_vars); // for each correlated var find index (position) in effects vector
+            find_corr_vars_in_effects(correlated_vars); // for each correlated var find index (position) in effects vector, writing to the class's corr_vars_index_in_effects container
 
             correlated_vars.clear();
             correlated_vars.shrink_to_fit();
@@ -601,7 +609,7 @@ std::cout<<"\n";
                             
                             if (index != -1) // found, variable have .corbin file
                             {
-                                // here we need to read correlation matrix, process it and add it to extra vars
+                                // here we need to read correlation matrix, process it and add it to the extra vars
 
                                 std::string cor_matr_name = correlated_groups[i][j];
                                 std::string cor_matr_file = special_corr_vars[l][1];
@@ -609,15 +617,11 @@ std::cout<<"\n";
                                 size_t pos_in_effects = corr_vars_index_in_effects[i][0]; // index for correlated variable in effects list
 
                                 std::string cor_variable = random_and_fixed_effects_names[pos_in_effects]; // var name to look at a data file for num of levels
-                                
-                                if ( is_str_in_expr(cor_variable, "1|") ) // because we need to find num levels in data file, check if variable consist '1|' sub-string
-                                    cor_variable.erase(0,2); // remove '1|' since this should not be in a file's header
-                                
-//std::cout<<"var needed processing: "<<cor_matr_name<<" in file: "<<cor_matr_file<<" aligne for effect: "<<cor_variable<<" pos_in_effects "<<pos_in_effects<<"\n";
-                                
+                                std::vector<std::string> levels = random_and_fixed_effects_levels[pos_in_effects];
+                                                                
                                 compact_storage<float> corr_storage;
 
-                                load_corbin_file(cor_matr_file, cor_variable, corr_storage);
+                                load_corbin_file(cor_matr_file, cor_variable, levels, corr_storage);
 
                                 // add corr_storage to extra_vars storage
 
@@ -642,7 +646,7 @@ std::cout<<"\n";
                         if (index == -1) // Cannot find in special_corr_vars
                             throw std::string("Cannot find the variable " + correlated_groups[i][j] + " variable.");
                     }
-//std::cout<<"cov matrix var: "<< correlated_groups[i][j] <<" index: "<< index <<"\n";                    
+
                     indeces.push_back(index); // interpretation: positive - index in extra vars; -1 - identity matrix.
                 }
 
@@ -675,40 +679,33 @@ std::cout<<"\n";
     }
     // -------------------------------------------------------------
     void model_parser::find_corr_vars_in_effects(std::vector<std::vector<std::string>> &corr_vars)
-    {
-        // for each random (correlated) variable find index (position) in effects vector
+    {        
         try
         {
             evolm::IOInterface in;
 
-            for (size_t i = 0; i < corr_vars.size(); i++)
+            for (size_t i = 0; i < corr_vars.size(); i++) // for each random (correlated) variable find index (position) in effects vector
             {
                 std::vector<int> indeces;
 
                 for (size_t j = 0; j < corr_vars[i].size(); j++)
                 {
-                    // std::cout<<"processing correlated var: "<< corr_vars[i][j] <<"\n";
+                    std::string t_var_name = corr_vars[i][j];
 
-                    // (1) check the aliases map
-                    std::unordered_map<std::string,std::string>::const_iterator it;
-                    it = identifier_to_eff_name.find(corr_vars[i][j]);
-                    if ( it != identifier_to_eff_name.end() ) // if the identifier exist
-                    {
-                        int index = in.find_value(random_and_fixed_effects_names, it->second); // find by original var name
-                        if ( index == -1 ) // variable not found
-                            throw std::string("Cannot find correlated variable " + it->second);
-                        indeces.push_back(index);
-                        continue;
-                    }
+                    // (1) check the aliases map, return the original name if alias is used
+                    std::unordered_map<std::string,std::string>::const_iterator it = identifier_to_eff_name.find(t_var_name);                                        
+                    if ( it != identifier_to_eff_name.end() )
+                        t_var_name = it->second;
                     
                     // (2) if there is no special identifier provided, check the name as it is
-                    std::string t_var = "1|" + corr_vars[i][j];
-                    int index = in.find_value(random_and_fixed_effects_names, t_var);
+                    int index = in.find_value(random_and_fixed_effects_names, t_var_name);
+                    
                     if ( index == -1 ) // if not found
                     {
-                        index = in.find_value(random_and_fixed_effects_names, corr_vars[i][j]); // check var without '1|' notation
+                        std::string t_var = "1|" + t_var_name;
+                        index = in.find_value(random_and_fixed_effects_names, t_var); // check var with '1|' notation
                         if ( index == -1 ) // variable not found, report error
-                            throw std::string("Cannot find correlated variable " + corr_vars[i][j]);
+                            throw std::string("Cannot find correlated variable " + t_var_name);
                     }
                     
                     indeces.push_back(index);
@@ -736,7 +733,7 @@ std::cout<<"\n";
         }
     }
     // -------------------------------------------------------------
-    void model_parser::load_corbin_file(std::string &cor_matr_file, std::string &cor_variable, compact_storage<float> &corr_storage)
+    void model_parser::load_corbin_file(std::string &cor_matr_file, std::string &cor_variable, std::vector<std::string> &var_levels, compact_storage<float> &corr_storage)
     {
         try
         {
@@ -744,18 +741,26 @@ std::cout<<"\n";
                 throw std::string("The data file name is empty!");
 
             IOInterface in;
-            in.set_fname(data_file_name);
             
-            std::vector<int> int_levels;
-            std::vector<std::string> str_levels;
+            std::vector<int64_t> int_levels;
+            std::vector<std::string> str_levels( var_levels.size() );
 
-            in.fget_var_levels(cor_variable, obs_missing_value, int_levels, str_levels);
+            std::string interaction_str(" x ");
+            size_t pos = var_levels[0].rfind(interaction_str);
 
-            if ( int_levels.empty() && str_levels.empty() )
-                throw std::string("The carrelated variable " + cor_variable + " is found to be a continious variable with one level (vector). The .corbin file format does not support such variables. Use custom matrices to express correlations.");
-
-            if ( !int_levels.empty() && !str_levels.empty() )
-                throw std::string("The carrelated variable " + cor_variable + " is found to be a two-type variable: !int_levels.empty() && !str_levels.empty().");
+            if ( pos != std::string::npos ) // checking for possible interaction bbetween variables
+            {
+                size_t start = pos + interaction_str.size();
+#pragma omp parallel for
+                for (size_t i = 0; i < var_levels.size(); i++) // extract only the levels for grouping variable (very last one): only for .corbin files!
+                    str_levels[i] = var_levels[i].substr(start, std::string::npos);
+            }
+            else
+            {
+#pragma omp parallel for
+                for (size_t i = 0; i < var_levels.size(); i++)
+                    str_levels[i] = var_levels[i];
+            }
 
             size_t cor_matr_info[3]; // info storage for a data in .cprbin file
             in.fread_matrix_info( cor_matr_file, cor_matr_info ); // get info
@@ -763,18 +768,20 @@ std::cout<<"\n";
             std::vector<float> f_vals;
             std::vector<double> d_vals;
             std::vector<std::int64_t> i_ids;
-            std::vector<int> int_ids;
             std::vector<std::string> s_ids;
             std::vector<size_t> keys;
 
             std::vector<size_t> pos_map; // permutation vector
             std::vector<std::int64_t> pos_map_red; // permutation vector, in the case of corr matrix needs to be reduced
             
-            if( !int_levels.empty() ) // Check if keys type corresponds to determined levels type
-            {                                    
-                if ( cor_matr_info[2] != 5 ) // expected type int64 of ids
-                    throw std::string("expected type int64 of ids: cor_matr_info[2] != 5");
-                
+            if( cor_matr_info[2] == 5 ) // expected type int64 of ids
+            {       
+                int_levels.resize(str_levels.size());
+
+#pragma omp parallel for
+                for (size_t i = 0; i < str_levels.size(); i++) // conversion from std::string to int64
+                    int_levels[i] = std::stol( str_levels[i] );
+
                 if ( cor_matr_info[1] == 2 ) // get cor matrix of type float and int64 ids
                 {
                     in.fread_matrix(cor_matr_file, f_vals, keys, i_ids);
@@ -791,21 +798,15 @@ std::cout<<"\n";
                 else
                     throw std::string("Undefined type of correlation matrix. Expected float or double.");
                 
-                int_ids.resize(i_ids.size()); // type int
-                std::copy( i_ids.begin(), i_ids.end(), int_ids.begin() ); // need convertion from int64 to int
-                
-                i_ids.clear();
-                i_ids.shrink_to_fit();
-
-                if ( int_ids.size() < int_levels.size() )
+                if ( i_ids.size() < int_levels.size() )
                     throw std::string("The number of rows in the correlation matrix " + cor_variable + " stored in the file " + cor_matr_file + " is lowe than the number of levels in the effect!");
 
-                if ( int_ids.size() > int_levels.size() ) // require permutation and reduction
+                if ( i_ids.size() > int_levels.size() ) // require permutation and reduction
                 {
                     size_t num_of_found = 0;
-                    for (size_t i = 0; i < int_ids.size(); i++) // make permutation vector
+                    for (size_t i = 0; i < i_ids.size(); i++) // make permutation vector
                     {
-                        int found = in.find_value(int_levels, int_ids[i]);
+                        int found = in.find_value(int_levels, i_ids[i]);
                         pos_map_red.push_back(found);
                         if ( found != -1 )
                             num_of_found++;                                            
@@ -815,30 +816,24 @@ std::cout<<"\n";
                 }
                 else // require only permutation
                 {
-                    for (size_t i = 0; i < int_ids.size(); i++) // make permutation vector
+                    for (size_t i = 0; i < i_ids.size(); i++) // make permutation vector
                     {
-                        int found = in.find_value(int_levels, int_ids[i]);
+                        int found = in.find_value(int_levels, i_ids[i]);
                         if ( found != -1 )
                             pos_map.push_back(found);
                         else
-                            throw std::string("The following ID " + std::to_string(int_ids[i]) + " from correlation matrix is not in Effect matrix!");
+                            throw std::string("The following ID " + std::to_string(i_ids[i]) + " from correlation matrix is not in Effect matrix!");
                     }
                 }
 
-                corr_storage.resize( int_ids.size() ); // expected symmeric matrix in .corbin
+                corr_storage.resize( i_ids.size() ); // expected symmeric matrix in .corbin
 
-                int_ids.clear();
-                int_ids.shrink_to_fit();
+                i_ids.clear();
+                i_ids.shrink_to_fit();
             }
 
-            int_levels.clear();
-            int_levels.shrink_to_fit();
-
-            if ( !str_levels.empty() )
+            if ( cor_matr_info[2] == 4 ) // expected type std::string of ids
             {                
-                if ( cor_matr_info[2] != 4 ) // expected type std::string of ids
-                    throw std::string("expected type std::string of ids: cor_matr_info[2] != 4");
-                
                 if ( cor_matr_info[1] == 2 )
                 {
                     in.fread_matrix(cor_matr_file, f_vals, keys, s_ids);
@@ -889,9 +884,6 @@ std::cout<<"\n";
                 s_ids.shrink_to_fit();
             }
 
-            str_levels.clear();
-            str_levels.shrink_to_fit();
-
             corr_storage.append_with_keys(f_vals, keys);
 
             f_vals.clear();
@@ -910,24 +902,22 @@ std::cout<<"\n";
             pos_map_red.shrink_to_fit();
             
             corr_storage.sym_to_rec(); // make it rectangular
-
-            //std::cout<<"int levels: "<<int_levels.size()<<" str levels: "<<str_levels.size()<<"\n";
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in model_parser::load_corbin_file(std::string &, std::string &, compact_storage<float> &)"<< "\n";
+            std::cerr << "Exception in model_parser::load_corbin_file(std::string &, std::string &, std::vector<std::string> &, compact_storage<float> &)"<< "\n";
             std::cerr << "Reason => " << e << "\n";
             throw e;
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in model_parser::load_corbin_file(std::string &, std::string &, compact_storage<float> &)"<< "\n";
+            std::cerr << "Exception in model_parser::load_corbin_file(std::string &, std::string &, std::vector<std::string> &, compact_storage<float> &)"<< "\n";
             std::cerr << "Reason => " << e.what() << "\n";
             throw e;
         }
         catch (...)
         {
-            std::cerr << "Exception in model_parser::load_corbin_file(std::string &, std::string &, compact_storage<float> &)"<< "\n";
+            std::cerr << "Exception in model_parser::load_corbin_file(std::string &, std::string &, std::vector<std::string> &, compact_storage<float> &)"<< "\n";
             throw;
         }
     }
@@ -960,7 +950,8 @@ std::cout<<"\n";
                 if ( data_file_name.empty() )
                     throw std::string("The data file name is empty!");
 
-                in.fgetvar(observ_vars[i], obs_missing_value, s); // convert string obs[i] to vector data observations[i]
+                std::vector<std::string> levels; // this is needed here just to pass all required parameters to the function fgetvar !
+                in.fgetvar(observ_vars[i], obs_missing_value, s, levels); // convert string obs[i] to vector data observations[i]
 
                 std::vector<size_t> obs_shape = s.shape();
 
@@ -1000,16 +991,16 @@ std::cout<<"\n";
             evolm::IOInterface in;
             in.set_fname(data_file_name);
 
-            for (size_t i = 0; i < fixed_vars.size(); i++)
+            for (size_t i = 0; i < fixed_vars.size(); i++) // loop over variables in the model (except random) separated by '+' operator
             {
                 std::vector<std::string> var_vect = fixed_vars[i]; // get vector of variable(s) needed to be extracted from a data file for i-th effect
                 
-                evolm::effects_storage s_effect; // parocessed effect
+                evolm::effects_storage s_effect; // container for a parocessed effect
                 
                 // build full var name
                 std::string var_name(var_vect[0]);
-                for (size_t j = 1; j < var_vect.size(); j++)
-                    var_name = var_name + ".*" + var_vect[j];
+                for (size_t j = 1; j < var_vect.size(); j++) // by design, var_vect.size() > 1 assumes '*' operation between variables
+                    var_name = var_name + "*" + var_vect[j];
 
                 // look at the extra_effects storage if the variable observ_vars[i] is already processed
                 int var_find_res = in.find_value(extra_effects_names, var_name);
@@ -1029,11 +1020,13 @@ std::cout<<"\n";
                     throw std::string("The data file name is empty!");
 
                 std::string s_effect_name; // parocessed effect name
+                std::vector<std::string> s_effect_levels;
 
-                get_effect_from_data(in, var_vect, s_effect, s_effect_name); // extract effect from data and do .* if needed
+                get_effect_from_data(in, var_vect, s_effect, s_effect_name, s_effect_levels); // extract effect from data and do .* if needed
 
                 random_and_fixed_effects.push_back(s_effect); // stack the processed effect
                 random_and_fixed_effects_names.push_back(s_effect_name);
+                random_and_fixed_effects_levels.push_back(s_effect_levels);
 
                 s_effect.clear();
             }
@@ -1069,35 +1062,40 @@ std::cout<<"\n";
             if ( lhs_random.size() != rand_vars_identifiers.size() )
                 throw std::string("lhs_random.size() != rand_vars_identifiers.size()");
 
-            for (size_t i = 0; i < lhs_random.size(); i++) // loop over the number of random effects
+            for (size_t i = 0; i < lhs_random.size(); i++) // loop over the number of random effects in the model
             {
+                std::vector<std::string> lhs_levels;
                 evolm::effects_storage i_lhs_eff;
                 std::string lhs_effect_name;
+                bool simple_lhs = false; // indicate that LHS is 1, that means it is not required to call 'BAR' operator
 
                 // check if the random effect provided as a single variable: (1|var)
+
                 if ( lhs_random[i].size() == 1 && rhs_random[i].size() == 1) // if there is no + operator at the LHS and RHS
                 {
                     if ( lhs_random[i][0].size() == 1 && rhs_random[i][0].size() == 1) // if there is no .* operator at the LHS and RHS
                     {
                         if ( lhs_random[i][0][0] == "1" ) // finally, if the random effect in the form of (1|var)
                         {
+                            simple_lhs = true; // simple case: (1|var)
                             std::string var_name = rhs_random[i][0][0];
-                            
-                            // look at the extra_effects storage if the variable observ_vars[i] is already processed
-                            int var_find_res = in.find_value(extra_effects_names, var_name);
 
-                            if ( var_find_res != -1 )
+                            int var_find_res = in.find_value(extra_effects_names, var_name); // look at the extra_effects storage if the variable observ_vars[i] is already processed
+
+                            if ( var_find_res != -1 ) // variable is in the extra storage
                             {
-                                // variable is in the extra storage
                                 random_and_fixed_in_extra_storage.push_back(var_find_res); // we now know where to (not) find var_name variable
                                 lhs_effect_name = lhs_random[i][0][0] + "|" + rhs_random[i][0][0];
-                                random_and_fixed_effects.push_back(i_lhs_eff); // stack the processed effect
+                                random_and_fixed_effects.push_back(i_lhs_eff); // stack the processed effect (empty!)
                                 random_and_fixed_effects_names.push_back(lhs_effect_name);
                                 
+                                lhs_levels = extra_effects_levels[var_find_res];
+                                random_and_fixed_effects_levels.push_back(lhs_levels);
+
                                 if ( !rand_vars_identifiers[i].empty() )
                                     identifier_to_eff_name[rand_vars_identifiers[i]] = lhs_effect_name;
-                                
-                                continue; // move to the next variable
+
+                                continue; // move to the next random variable
                             }
                         }
                     }
@@ -1108,51 +1106,83 @@ std::cout<<"\n";
                 if ( data_file_name.empty() )
                     throw std::string("The data file name is empty!");
 
-                get_effect_from_data(in, lhs_random[i][0], i_lhs_eff, lhs_effect_name); // extract very first LHS effect from data and do .* if needed
-
-                for (size_t j = 1; j < lhs_random[i].size(); j++) // loop over all parsed variables of i-th effect
+                // -------------------- LEFT ---------------------
+                
+                if (!simple_lhs)
                 {
-                    evolm::effects_storage j_effect; // parocessed effect
-                    std::string j_effect_name; // parocessed effect name
+                    get_effect_from_data(in, lhs_random[i][0], i_lhs_eff, lhs_effect_name, lhs_levels); // extract very first LHS effect from data and do .* if needed
 
-                    get_effect_from_data(in, lhs_random[i][j], j_effect, j_effect_name); // extract effect from data and do .* if needed
+                    for (size_t j = 1; j < lhs_random[i].size(); j++) // loop over all parsed variables of i-th effect
+                    {
+                        std::vector<std::string> i_rhs_levels;
 
-                    i_lhs_eff.extend_by(j_effect);
+                        evolm::effects_storage j_effect; // parocessed effect
+                        std::string j_effect_name; // parocessed effect name
 
-                    lhs_effect_name = lhs_effect_name + "+" + j_effect_name;
+                        get_effect_from_data(in, lhs_random[i][j], j_effect, j_effect_name, i_rhs_levels); // extract effect from data and do .* if needed
 
-                    j_effect.clear();
+                        i_lhs_eff.extend_by(j_effect);
+
+                        for ( auto const &v: i_rhs_levels ) // extend_by for vectors of levels
+                            lhs_levels.push_back(v);
+
+                        lhs_effect_name = lhs_effect_name + "+" + j_effect_name;
+
+                        j_effect.clear();
+                    }
                 }
+                else
+                {
+                    lhs_effect_name = "1";
+                    lhs_levels.push_back("Intercept");
+                }
+
+                // -------------------- RIGHT --------------------
+
+                std::vector<std::string> rhs_levels;
 
                 evolm::effects_storage i_rhs_eff;                
                 std::string rhs_effect_name;
 
-                get_effect_from_data(in, rhs_random[i][0], i_rhs_eff, rhs_effect_name); // extract very first RHS effect from data and do .* if needed
+                get_effect_from_data(in, rhs_random[i][0], i_rhs_eff, rhs_effect_name, rhs_levels); // extract very first RHS effect from data and do .* if needed
 
                 for (size_t j = 1; j < rhs_random[i].size(); j++) // loop over all parsed variables of i-th effect
                 {
+                    std::vector<std::string> i_rhs_levels;
                     evolm::effects_storage j_effect; // parocessed effect
                     std::string j_effect_name; // parocessed effect name
 
-                    get_effect_from_data(in, rhs_random[i][j], j_effect, j_effect_name); // extract effect from data and do .* if needed
+                    get_effect_from_data(in, rhs_random[i][j], j_effect, j_effect_name, i_rhs_levels); // extract effect from data and do .* if needed
 
                     i_rhs_eff.extend_by(j_effect);
+
+                    for ( auto const &v: i_rhs_levels ) // extend_by for vectors of levels
+                        rhs_levels.push_back(v);
 
                     rhs_effect_name = rhs_effect_name + "+" + j_effect_name;
 
                     j_effect.clear();
                 }
 
-                i_lhs_eff.element_wise_dot(i_rhs_eff); // do final BAR operation
-                lhs_effect_name = lhs_effect_name + "|" + rhs_effect_name;
+                if (!simple_lhs)
+                {
+                    i_lhs_eff.element_wise_dot(i_rhs_eff); // do final BAR operation
+                    element_wise_dot(lhs_levels, rhs_levels);
+                }
+                else
+                {
+                    i_lhs_eff = i_rhs_eff;
+                    lhs_levels = rhs_levels;
+                }
 
-                //---------------------------------------
-                if ( !rand_vars_identifiers[i].empty() )
+                lhs_effect_name = lhs_effect_name + "|" + rhs_effect_name;
+                
+                if ( !rand_vars_identifiers[i].empty() ) // we need this because if the same effect is used multiple times they should have a different names
                     lhs_effect_name = lhs_effect_name + "_" + rand_vars_identifiers[i];
-                //---------------------------------------
 
                 random_and_fixed_effects.push_back(i_lhs_eff); // stack the processed effect
                 random_and_fixed_effects_names.push_back(lhs_effect_name);
+                random_and_fixed_effects_levels.push_back(lhs_levels);
 
                 if ( !rand_vars_identifiers[i].empty() )
                     identifier_to_eff_name[rand_vars_identifiers[i]] = lhs_effect_name;
@@ -1180,17 +1210,30 @@ std::cout<<"\n";
         }
     }
     // -------------------------------------------------------------
-    void model_parser::get_effect_from_data(evolm::IOInterface &in_data, std::vector<std::string> &in_var_vect, evolm::effects_storage &out_s, std::string &effect_name)
+    void model_parser::get_effect_from_data(evolm::IOInterface &in_data, std::vector<std::string> &in_var_vect, evolm::effects_storage &out_s, std::string &effect_name, std::vector<std::string> &var_levels)
     {
         try
         {
+            std::vector<std::string> lhs_levels;
+
             // checking if in_var_vect[0] var is in the extra_effects storage
             int var_find_res = in_data.find_value(extra_effects_names, in_var_vect[0]);
 
             if ( var_find_res != -1 )
+            {
                 out_s = extra_effects[var_find_res];
+                lhs_levels = extra_effects_levels[var_find_res];
+            }
             else
-                in_data.fgetvar(in_var_vect[0], obs_missing_value, out_s); // very first var
+            {
+                // find in_var_vect[0] in borroow_levels_from,
+                // if success - call overloaded fgetvar
+                std::unordered_map<std::string, std::string>::const_iterator found = borroow_levels_from.find( in_var_vect[0] );
+                if ( found != borroow_levels_from.end() )
+                    in_data.fgetvar(in_var_vect[0], found->second, obs_missing_value, out_s, lhs_levels); // very first var
+                else
+                    in_data.fgetvar(in_var_vect[0], obs_missing_value, out_s, lhs_levels); // very first var
+            }
 
             std::vector<size_t> var_shape = out_s.shape();
 
@@ -1201,14 +1244,27 @@ std::cout<<"\n";
 
             for (size_t j = 1; j < in_var_vect.size(); j++) // do .* operation
             {
+                std::vector<std::string> rhs_levels;
+
                 evolm::effects_storage s2;
 
                 var_find_res = in_data.find_value(extra_effects_names, in_var_vect[j]);
 
                 if ( var_find_res != -1 )
+                {
                     s2 = extra_effects[var_find_res];
+                    rhs_levels = extra_effects_levels[var_find_res];
+                }
                 else
-                    in_data.fgetvar(in_var_vect[j], obs_missing_value, s2); // convert var string to data matrix
+                {
+                    // find in_var_vect[0] in borroow_levels_from,
+                    // if success - call overloaded fgetvar
+                    std::unordered_map<std::string, std::string>::const_iterator found = borroow_levels_from.find( in_var_vect[j] );
+                    if ( found != borroow_levels_from.end() )
+                        in_data.fgetvar(in_var_vect[j], found->second, obs_missing_value, s2, rhs_levels); // convert var string to data matrix
+                    else
+                        in_data.fgetvar(in_var_vect[j], obs_missing_value, s2, rhs_levels); // convert var string to data matrix
+                }
 
                 var_shape = s2.shape();
 
@@ -1217,28 +1273,31 @@ std::cout<<"\n";
 
                 out_s.element_wise_dot(s2);
 
-                var_name = var_name + ".*" + in_var_vect[j];
+                element_wise_dot(lhs_levels, rhs_levels);
+
+                var_name = var_name + "*" + in_var_vect[j];
 
                 s2.clear();
             }
 
             effect_name = var_name;
+            var_levels = lhs_levels;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in model_parser::get_effect_from_data(evolm::IOInterface &, std::vector<std::string> &, evolm::effects_storage &, std::string &)"<< "\n";
+            std::cerr << "Exception in model_parser::get_effect_from_data(evolm::IOInterface &, std::vector<std::string> &, evolm::effects_storage &, std::string &, std::vector<std::string> &)"<< "\n";
             std::cerr << "Reason => " << e << "\n";
             throw e;
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in model_parser::get_effect_from_data(evolm::IOInterface &, std::vector<std::string> &, evolm::effects_storage &, std::string &)"<< "\n";
+            std::cerr << "Exception in model_parser::get_effect_from_data(evolm::IOInterface &, std::vector<std::string> &, evolm::effects_storage &, std::string &, std::vector<std::string> &)"<< "\n";
             std::cerr << "Reason => " << e.what() << "\n";
             throw e;
         }
         catch (...)
         {
-            std::cerr << "Exception in model_parser::get_effect_from_data(evolm::IOInterface &, std::vector<std::string> &, evolm::effects_storage &, std::string &)"<< "\n";
+            std::cerr << "Exception in model_parser::get_effect_from_data(evolm::IOInterface &, std::vector<std::string> &, evolm::effects_storage &, std::string &, std::vector<std::string> &)"<< "\n";
             throw;
         }
     }
@@ -1272,6 +1331,7 @@ std::cout<<"\n";
                 split_random(rand_vars[i], lhs, rhs);
                 parse_expr(lhs, lhs_vars);
                 parse_expr(rhs, rhs_vars);
+
 
                 if (lhs_vars.empty())
                     throw std::string("Incorect syntaxis in the random term: " + rand_vars[i] + " leaing to empty design matrix!");
@@ -1320,11 +1380,16 @@ std::cout<<"\n";
             make_unique(minus_fixedvars);
 
             get_plusvars(in_exp, plus_fixedvars); // extract fixed effects variables with plus sign into the container minus_fixedvars
+
             split_colon(plus_fixedvars);
+
             split_star(plus_fixedvars);
+
             make_unique(plus_fixedvars);
 
             exclude_vars(plus_fixedvars, minus_fixedvars);
+
+            check_borrowed_levels(plus_fixedvars);
 
             split_dot(plus_fixedvars, out_container);
 
@@ -1700,6 +1765,47 @@ std::cout<<"\n";
         }
     }
     // -------------------------------------------------------------
+    void model_parser::element_wise_dot(std::vector<std::string> &lhs, std::vector<std::string> &rhs)
+    {
+        try
+        {
+            if( lhs.empty() || rhs.empty() )
+                throw std::string("lhs.empty() or rhs.empty()");
+
+            size_t expected_size = lhs.size() * rhs.size();
+
+            std::vector<std::string> res;
+
+            for ( auto const &v1: rhs )
+                for ( auto const &v2: lhs )
+                    res.push_back( v2 + " x " + v1 );
+            
+            if ( res.size() != expected_size )
+                throw std::string("res.size() != expected_size");
+            
+            lhs.clear();
+
+            lhs = res;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in model_parser::element_wise_dot(std::vector<std::string> &, std::vector<std::string> &)"<< "\n";
+            std::cerr << "Reason => " << e << "\n";
+            throw e;
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in model_parser::element_wise_dot(std::vector<std::string> &, std::vector<std::string> &)"<< "\n";
+            std::cerr << "Reason => " << e.what() << "\n";
+            throw e;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in model_parser::element_wise_dot(std::vector<std::string> &, std::vector<std::string> &)"<< "\n";
+            throw;
+        }
+    }
+    // -------------------------------------------------------------
     void model_parser::exclude_vars(std::vector<std::string> &where_vars, std::vector<std::string> &which_vars)
     {
         try
@@ -1831,6 +1937,55 @@ std::cout<<"\n";
         catch (...)
         {
             std::cerr << "Exception in model_parser::split_colon(std::vector<std::string> &)"<< "\n";
+            throw;
+        }
+    }
+    // -------------------------------------------------------------
+    void model_parser::check_borrowed_levels(std::vector<std::string> &in_vars)
+    {
+        try
+        {
+            std::vector<std::string> all_res;
+
+            for (size_t i = 0; i < in_vars.size(); i++)
+            {
+                std::vector<std::string> res;
+                std::string s = in_vars[i];
+
+                extract_expr_btw_brackets(s, "{", "}", res);
+                
+                if ( !res.empty() )
+                {
+                    if (res.size() > 1)
+                        throw std::string("Multiple expressions within {} brackets are not allowed!");
+                    
+                    borroow_levels_from[s] = res[0];
+                }
+                
+                all_res.push_back(s);
+            }
+
+            in_vars.clear();
+            in_vars.shrink_to_fit();
+
+            in_vars = all_res;
+            all_res.clear();
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in model_parser::check_borrowed_levels(std::vector<std::string> &)"<< "\n";
+            std::cerr << "Reason => " << e << "\n";
+            throw e;
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in model_parser::check_borrowed_levels(std::vector<std::string> &)"<< "\n";
+            std::cerr << "Reason => " << e.what() << "\n";
+            throw e;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in model_parser::check_borrowed_levels(std::vector<std::string> &)"<< "\n";
             throw;
         }
     }
@@ -2164,125 +2319,152 @@ std::cout<<"\n";
     }
 
     // -------------------------------------------------------------
-    void model_parser::report()
+    void model_parser::report(const std::string &log_file)
     {
         try
         {
-            std::cout<<"list of all extra_vars variables:"<<"\n";
-            std::cout<<"extra var names: "<<"\n";
+            std::ofstream summary(log_file, std::ofstream::out | std::ofstream::trunc);
+
+            if ( !summary.is_open() )
+                throw "Unable to open log file for output!";                
+
+            summary<<'\n';
+            summary<<"--------------------------------------"<<'\n';
+            summary<<"Model Parser"<<'\n';
+            summary<<"--------------------------------------"<<'\n';
+            summary<<'\n';
+            summary<<"List of variables defined outside the model equation(s):"<<"\n";
             size_t index = 0;
             for (auto const &v: extra_effects_names)
             {
-                std::cout<<v<<", position "<<index<<"\n";
+                summary<<"    name & position: "<<v<<" "<<index<<"\n";
                 index++;
             }
-            std::cout<<"\n";
+            summary<<"\n";
             
-            std::cout<<"list of all effects var names: "<<"\n";
+            summary<<"Model variables: "<<"\n";
             index = 0;
             for (auto const &v: random_and_fixed_effects_names)
             {
-                std::cout<<v<<", position "<<index<<"\n";
+                summary<<"    name & position: "<<v<<" "<<index<<"\n";
                 index++;
             }
-            std::cout<<"\n";
+            summary<<"\n";
 
-            std::cout<<"observations:"<<"\n";
+            summary<<"Observations:"<<"\n";
             for (size_t i = 0; i < observations.size(); i++)
+            {
+                std::vector<size_t> n_obs;
                 if (obs_in_extra_storage[i] == -1) // is not in extra storage
-                    std::cout<<observations_names[i]<<", position: "<<i<<"\n";
+                {
+                    n_obs = observations[i].shape();
+                    summary<<"    name, position, records: "<<observations_names[i]<<" "<<i<<" "<<n_obs[0]<<"\n";
+                }
                 else
-                    std::cout<<observations_names[i]<<", position in extra: "<<obs_in_extra_storage[i]<<"\n";
-            std::cout<<"\n";
+                {
+                    n_obs = observations[obs_in_extra_storage[i]].shape();
+                    summary<<"    name, position (in extra), records: "<<observations_names[i]<<" "<<obs_in_extra_storage[i]<<" "<<n_obs[0]<<"\n";
+                }
+            }
+            summary<<"\n";
 
-            std::cout<<"effects:"<<"\n";
+            summary<<"Effects:"<<"\n";
             for (size_t i = 0; i < random_and_fixed_effects.size(); i++)
                 if (random_and_fixed_in_extra_storage[i] == -1) // is not in extra storage
-                    std::cout<<random_and_fixed_effects_names[i]<<", position: "<<i<<"\n";
+                    summary<<"    name, position, levels: "<<random_and_fixed_effects_names[i]<<" "<<i<<" "<<random_and_fixed_effects_levels[i].size()<<"\n";
                 else
-                    std::cout<<random_and_fixed_effects_names[i]<<", position in extra: "<<random_and_fixed_in_extra_storage[i]<<"\n";
-            std::cout<<"\n";
+                    summary<<"    name, position (in extra), levels: "<<random_and_fixed_effects_names[i]<<" "<<random_and_fixed_in_extra_storage[i]<<" "<<random_and_fixed_effects_levels[i].size()<<"\n";
+            summary<<"\n";
 
-            std::cout<<"model variance:"<<"\n";
+            summary<<"Model variance"<<"\n";
             for (size_t i = 0; i < corr_vars_index_in_effects.size(); i++) // loop over all model correlations
             {
-                std::cout<<"corr: ( ";
+                summary<<"correlation "<<i+1<<":"<<'\n';
                 for (size_t j = 0; j < corr_vars_index_in_effects[i].size(); j++)
-                    std::cout<<random_and_fixed_effects_names[ corr_vars_index_in_effects[i][j] ]<<", pos: "<<corr_vars_index_in_effects[i][j]<<" ";
-                std::cout<<"), matr: ";
+                    summary<<"    variable & position: "<<random_and_fixed_effects_names[ corr_vars_index_in_effects[i][j] ]<<" "<<corr_vars_index_in_effects[i][j]<<"\n";
+                summary<<"    matrix & position (in extra): ";
                 if (corr_matr_index_in_extra_vars[i][0] >= 0)
-                    std::cout<<extra_effects_names[ corr_matr_index_in_extra_vars[i][0] ]<<", pos in extra: "<<corr_matr_index_in_extra_vars[i][0]<<", var_matr: ";
+                {
+                    summary<<extra_effects_names[ corr_matr_index_in_extra_vars[i][0] ]<<" "<<corr_matr_index_in_extra_vars[i][0]<<"\n";
+                }
                 else
-                    std::cout<<corr_matr_index_in_extra_vars[i][0]<<" == I"<<", var_matr: ";
+                    summary<<"I "<<corr_matr_index_in_extra_vars[i][0]<<"\n";
+                summary<<"    variance & position in extra.: ";
                 if (corr_matr_index_in_extra_vars[i][1] >= 0)
-                    std::cout<<extra_effects_names[ corr_matr_index_in_extra_vars[i][1] ]<<", pos in extra: "<<corr_matr_index_in_extra_vars[i][1]<<"\n";
+                    summary<<extra_effects_names[ corr_matr_index_in_extra_vars[i][1] ]<<" "<<corr_matr_index_in_extra_vars[i][1]<<"\n";
                 else
-                    std::cout<<corr_matr_index_in_extra_vars[i][1]<<"\n";
+                    summary<<corr_matr_index_in_extra_vars[i][1]<<"\n";
             }
-            std::cout<<"\n";
-            std::cout<<"residual:"<<"\n";
-            std::cout<<extra_effects_names[ corr_matr_index_in_extra_vars[corr_matr_index_in_extra_vars.size()-1][0] ]<<", position in extra: "<<corr_matr_index_in_extra_vars[corr_matr_index_in_extra_vars.size()-1][0]<<"\n";
+            summary<<"\n";
+            summary<<"residual:"<<"\n";
+            summary<<"    name & position in extra: "<<extra_effects_names[ corr_matr_index_in_extra_vars[corr_matr_index_in_extra_vars.size()-1][0] ]<<" "<<corr_matr_index_in_extra_vars[corr_matr_index_in_extra_vars.size()-1][0]<<"\n";
             
-            std::cout<<"\n";
-            std::cout<<"Models definitions:"<<"\n";
+            summary<<"\n";
+            summary<<"Model equation(s), as defined:"<<"\n";
             for (auto const &v: model_definition)
             {
-                std::cout<<"model: "<< observations_names[v.first]<<" ~ ";
+                summary<<"    "<<observations_names[v.first]<<" ~ ";
                 std::vector<size_t> eff = v.second;
-                for (auto const &e: eff)
-                    std::cout<<random_and_fixed_effects_names[e]<<" + ";
-                std::cout<<'\n';
+                summary<<random_and_fixed_effects_names[eff[0]];
+                for (size_t i = 1; i < eff.size(); i++)
+                    summary<<" + "<<random_and_fixed_effects_names[eff[i]];
+                summary<<'\n';
             }
 
-            std::cout<<"\n";
-            std::cout<<"Models submitted, variables:"<<"\n";
+            summary<<"\n";
+            summary<<"Model equation(s), as submitted:"<<"\n";
             for (auto  const &m: model_definition)
             {
                 size_t obs = m.first;
                 std::vector<size_t> model = m.second;
-                std::cout<<observations_names[obs]<<" ~ ";
-                for (auto const &v: model)
-                    std::cout<<random_and_fixed_effects_names[v]<<" + ";
-                std::cout<<'\n';
+                summary<<"    "<<observations_names[obs]<<" ~ ";
+                summary<<random_and_fixed_effects_names[model[0]];
+                for (size_t i = 1; i < model.size(); i++)
+                    summary<<" + "<<random_and_fixed_effects_names[model[i]];
+                summary<<'\n';
             }
             
-            std::cout<<"\n";
-            std::cout<<"Models submitted, indeces:"<<"\n";
+            summary<<"\n";
+            summary<<"Model equation(s), as variables indeces:"<<"\n";
             for (auto  const &m: model_definition)
             {
                 size_t obs = m.first;
                 std::vector<size_t> model = m.second;
-                std::cout<<obs<<" ~ ";
-                for (auto const &v: model)
-                    std::cout<<v<<" + ";
-                std::cout<<'\n';
+                summary<<"    "<<obs<<" ~ ";
+                summary<<model[0];
+                for (size_t i = 1; i < model.size(); i++)
+                    summary<<" + "<<model[i];
+                summary<<'\n';
             }
 
-            std::cout<<"\n";
-            std::cout<<"Correlations submitted:"<<"\n";
+            summary<<"\n";
+            summary<<"Correlations, in variables indeces as submitted:"<<"\n";
             for (auto  const &m: correlated_effects)
             {
-                std::cout<<"correlation: {";
-                for (auto const &v: m)
-                    std::cout<<v<<", ";
-                std::cout<<"}"<<'\n';
+                summary<<"    "<<"correlation: (";
+                summary<<m[0];
+                for (size_t i = 1; i < m.size(); i++)//for (auto const &v: m)
+                    summary<<" ,"<<m[i];
+                summary<<")"<<'\n';
             }
+
+            summary.close();
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in model_parser::report()"<< "\n";
+            std::cerr << "Exception in model_parser::report(const std::string &)"<< "\n";
             std::cerr << "Reason => " << e << "\n";
             throw e;
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in model_parser::report()"<< "\n";
+            std::cerr << "Exception in model_parser::report(const std::string &)"<< "\n";
             std::cerr << "Reason => " << e.what() << "\n";
             throw e;
         }
         catch (...)
         {
-            std::cerr << "Exception in model_parser::report()"<< "\n";
+            std::cerr << "Exception in model_parser::report(const std::string &)"<< "\n";
             throw;
         }
     }

@@ -11,16 +11,6 @@ TSRCDIR := $(TESTDIR)/src
 EXTSRC2 := ../libplinkio/src
 EXTLIBNAME := plinkio
 
-# Mac
-LIBRARY_PATH := /Users/au383883/Documents/MY/codebase/evo/libplinkio/release_lib
-LIBRARY_PATH_2 := /Users/au383883/Documents/MY/codebase/evo/evolm/release2
-# Debian
-#LIBRARY_PATH := /usr/home/qgg/vimi/codebase/evo/libplinkio/release_lib
-#LIBRARY_PATH_2 := /usr/home/qgg/vimi/codebase/evo/evolm/release2
-# Ubuntu
-#LIBRARY_PATH := /home/vimi/Documents/codebase/evo/libplinkio/release_lib
-#LIBRARY_PATH_2 := /home/vimi/Documents/codebase/evo/evolm/release2
-
 # determine OS and source of BLAS lib
 UNAME_OS := $(shell uname -s)
 SOURSE_BLAS_IS_INTEL := 0
@@ -28,9 +18,18 @@ SOURSE_BLAS_IS_INTEL := 0
 # determine compiler
 ifeq ($(UNAME_OS),Darwin)
 	CXX := clang++
+	LIBRARY_PATH := /Users/au383883/Documents/MY/codebase/evo/libplinkio/release_lib
+	LIBRARY_PATH_2 := /Users/au383883/Documents/MY/codebase/evo/evolm/release2
 else
+# cluster
+#LIBRARY_PATH := /usr/home/qgg/vimi/codebase/evo/libplinkio/release_lib
+#LIBRARY_PATH_2 := /usr/home/qgg/vimi/codebase/evo/evolm/release2
+# Ubuntu
+	LIBRARY_PATH := /home/vimi/Documents/codebase/evo/libplinkio/release_lib
+	LIBRARY_PATH_2 := /home/vimi/Documents/codebase/evo/evolm/release2
 	SHELL := /bin/bash
 	export LD_LIBRARY_PATH := $(LD_LIBRARY_PATH):$(LIBRARY_PATH):$(LIBRARY_PATH_2)
+	
 	ifdef SOURSE_BLAS_IS_INTEL
 		CXX := icpx
 	else
@@ -53,7 +52,6 @@ ifeq ($(UNAME_OS),Darwin) # using apple's Accelerate
 
 	LIBFLAGS := -undefined dynamic_lookup -shared -lpthread -lm -lomp -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -L/opt/homebrew/opt/libomp/lib -L/opt/homebrew/opt/openblas/lib -lopenblas
 	LIBFLAGS_TEST := -undefined dynamic_lookup -lpthread -lm -lomp -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -L/opt/homebrew/opt/libomp/lib -L/opt/homebrew/opt/openblas/lib -lopenblas
-#	EXTRA_LIBFLAGS :=  -L$(BDIR_CLIB) -l$(APPNAME) -L$(LIBRARY_PATH) -l$(EXTLIBNAME)
 	EXTRA_LIBFLAGS := -L$(LIBRARY_PATH) -l$(EXTLIBNAME)
 	EXTRA_LIBFLAGS_TEST := -L$(BDIR_CLIB) -l$(APPNAME)
 else
@@ -110,7 +108,7 @@ OBJECT_TST := $(patsubst $(TSRCDIR)/%,$(BDIR_TST)/%,$(SOURCES_TST:.cpp=.o))
 # build lib for python
 $(TARGET_PYLIB): $(OBJECT_PYL)
 	@echo " Linking python lib ..."
-	$(CXX) $^ $(LIBFLAGS) -o $(TARGET_PYLIB) $(EXTRA_LIBFLAGS_2)
+	$(CXX) $^ $(LIBFLAGS) $(EXTRA_LIBFLAGS) -o $(TARGET_PYLIB)
 
 # build catch2 test
 $(TARGET_TEST): $(OBJECT_TST)
@@ -120,12 +118,12 @@ $(TARGET_TEST): $(OBJECT_TST)
 # build shared c++ lib
 $(TARGET_CLIB): $(OBJECT_LIB)
 	@echo " Linking shared lib ..."
-	$(CXX) $^ $(LIBFLAGS) -o $(TARGET_CLIB) $(EXTRA_LIBFLAGS_2)
+	$(CXX) $^ $(LIBFLAGS) $(EXTRA_LIBFLAGS) -o $(TARGET_CLIB)
 
 # build c++ app
 $(TARGET_APP): $(OBJECT_APP)
 	@echo " Linking c++ app ..."
-	$(CXX) $^ $(LIBFLAGS_TEST) $(EXTRA_LIBFLAGS) $(EXTRA_LIBFLAGS_2) -o $(TARGET_APP)
+	$(CXX) $^ $(LIBFLAGS_TEST) $(EXTRA_LIBFLAGS) -o $(TARGET_APP)
 
 #----------------------------------------------------------------
 

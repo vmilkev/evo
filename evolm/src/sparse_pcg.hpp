@@ -35,6 +35,7 @@ namespace evolm
 #endif
 
                 void get_solution(const std::string &fname);
+                void get_solution(std::vector<double> &out_sol);
 
 #ifdef UTEST
                 std::vector<double> test_dval();

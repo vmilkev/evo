@@ -1,7 +1,19 @@
 #include "lmm.hpp"
+#include <sstream>
 
 namespace evolm
 {
+    //===============================================================================================================
+    lmm::lmm()
+    {
+        std::vector<std::string> sol_header(5);
+        sol_header[0] = "Trait";
+        sol_header[1] = "Group";
+        sol_header[2] = "Name";
+        sol_header[3] = "Levels (name x group)";
+        sol_header[4] = "Estimate";
+        sol_table.push_back(sol_header);
+    }  
     //===============================================================================================================
     lmm::~lmm()
     {
@@ -16,17 +28,17 @@ namespace evolm
         }
         catch(const std::exception& e)
         {
-            std::cerr << "define(const std::string &): " << e.what() << '\n';
+            std::cerr << "lmm::define(const std::string &): " << e.what() << '\n';
             throw e;
         }
         catch(const std::string & e)
         {
-            std::cerr << "define(const std::string &): " << e <<'\n';
+            std::cerr << "lmm::define(const std::string &): " << e <<'\n';
             throw e;
         }
         catch(...)
         {
-            std::cerr << "define(const std::string &): " << "Unknown exception." << '\n';
+            std::cerr << "lmm::define(const std::string &): " << "Unknown exception." << '\n';
             throw;
         }        
     }
@@ -44,49 +56,69 @@ namespace evolm
         }
         catch(const std::exception& e)
         {
-            std::cerr << "define_infile(const std::string &): " << e.what() << '\n';
+            std::cerr << "lmm::define_infile(const std::string &): " << e.what() << '\n';
             throw e;
         }
         catch(const std::string & e)
         {
-            std::cerr << "define_infile(const std::string &): " << e <<'\n';
+            std::cerr << "lmm::define_infile(const std::string &): " << e <<'\n';
             throw e;
         }
         catch(...)
         {
-            std::cerr << "define_infile(const std::string &): " << "Unknown exception." << '\n';
+            std::cerr << "lmm::define_infile(const std::string &): " << "Unknown exception." << '\n';
             throw;
         }        
     }
     //===============================================================================================================
-    void lmm::solve(const std::string &use_method, const std::string &sol_file)
+    void lmm::solve(const std::string &use_method, int available_memory, int available_cpu, const std::string &log_file, const std::string &sol_file)
     {
         try
         {
+            if ( available_memory <= (int)0 )
+                throw std::string("The provided memory limit (available memory) should be greater than zerro!");
+
+            if ( available_cpu <= (int)0 )
+                throw std::string("The provided cpu limit (available cpu) should be greater than zerro!");
+
             sparse_pcg solver;
             model_sparse model;
 
             set_model(model);
-            
-            solver.append_model(model);
-            solver.solve();
-            solver.get_solution(sol_file);
 
-            // need to clean solver and model here !!!
+//parser.print();
+            parser.report(log_file);
+
+            solver.append_model(model);
+
+            solver.set_memory_limit( double(available_memory) );
+            solver.set_cpu_limit( available_cpu );
+            solver.set_logfile( log_file );
+
+            //solver.set_tolerance(1e-6); // 1e-6 is the default value in the solver
+            //solver.set_maxiter(1000); // should depend on the size of RHS
+
+            solver.solve();
+
+            std::vector<double> sol_vect;
+            
+            solver.get_solution(sol_vect);
+
+            process_solution(sol_vect, sol_file);
         }
         catch(const std::exception& e)
         {
-            std::cerr << "solve(const std::string &, const std::string &): " << e.what() << '\n';
+            std::cerr << "lmm::solve(const std::string &, int, int, const std::string &, const std::string &): " << e.what() << '\n';
             throw e;
         }
         catch(const std::string & e)
         {
-            std::cerr << "solve(const std::string &, const std::string &): " << e <<'\n';
+            std::cerr << "lmm::solve(const std::string &, int, int, const std::string &, const std::string &): " << e <<'\n';
             throw e;
         }
         catch(...)
         {
-            std::cerr << "solve(const std::string &, const std::string &): " << "Unknown exception." << '\n';
+            std::cerr << "lmm::solve(const std::string &, int, int, const std::string &, const std::string &): " << "Unknown exception." << '\n';
             throw;
         }        
     }
@@ -137,22 +169,23 @@ namespace evolm
             // (3) ----------- Effects ----------------
             for (auto  const &m: parser.model_definition)
             {
-                compact_storage<float> eff_as_storage;
-
                 std::vector<size_t> effects_list = m.second;
+                size_t obs = m.first;
 
                 for (auto const &v: effects_list)
                 {
+                    compact_storage<float> eff_as_storage;
+
                     int pos_in_extra = parser.random_and_fixed_in_extra_storage[v];
 
                     if ( pos_in_extra == -1 )
-                        parser.random_and_fixed_effects[v].get(eff_as_storage);                    
+                        parser.random_and_fixed_effects[v].get(eff_as_storage);
                     else
                         parser.extra_effects[ (size_t)pos_in_extra ].get(eff_as_storage);
-                    
-                    model.append_effect(eff_as_storage);
 
-                    eff_as_storage.clear();
+                    std::string trait_name = parser.observations_names[obs];
+                    append_solution_table(parser.random_and_fixed_effects_names[v], parser.random_and_fixed_effects_levels[v], trait_name);
+                    model.append_effect(eff_as_storage);
                 }
             }
 
@@ -186,9 +219,22 @@ namespace evolm
                 nrows = var_as_storage.nrows();
 
                 if ( identity.empty() )
+                {
                     model.append_corrstruct(var, nrows, correlation, effects);
+                }
                 else
-                    model.append_corrstruct(var, nrows, identity, effects);
+                {
+                    compact_storage<float> eff_as_storage;
+                    int pos_in_extra = parser.random_and_fixed_in_extra_storage[ effects[0] ];
+                    if ( pos_in_extra == -1 )
+                        parser.random_and_fixed_effects[ effects[0] ].get(eff_as_storage);                    
+                    else
+                        parser.extra_effects[ (size_t)pos_in_extra ].get(eff_as_storage);                    
+                    size_t n_cols = eff_as_storage.ncols();
+                    eff_as_storage.clear();
+
+                    model.append_corrstruct(var, nrows, identity, n_cols, effects);
+                }
 
                 effects.clear(); effects.shrink_to_fit();
                 correlation.clear();
@@ -203,17 +249,17 @@ namespace evolm
         }
         catch(const std::exception& e)
         {
-            std::cerr << "set_model(model_sparse &): " << e.what() << '\n';
+            std::cerr << "lmm::set_model(model_sparse &): " << e.what() << '\n';
             throw e;
         }
         catch(const std::string & e)
         {
-            std::cerr << "set_model(model_sparse &): " << e <<'\n';
+            std::cerr << "lmm::set_model(model_sparse &): " << e <<'\n';
             throw e;
         }
         catch(...)
         {
-            std::cerr << "set_model(model_sparse &): " << "Unknown exception." << '\n';
+            std::cerr << "lmm::set_model(model_sparse &): " << "Unknown exception." << '\n';
             throw;
         }        
     }
@@ -235,17 +281,17 @@ namespace evolm
         }
         catch(const std::exception& e)
         {
-            std::cerr << "read_model_from_file(const std::string &, std::vector<std::string> &): " << e.what() << '\n';
+            std::cerr << "lmm::read_model_from_file(const std::string &, std::vector<std::string> &): " << e.what() << '\n';
             throw e;
         }
         catch(const std::string & e)
         {
-            std::cerr << "read_model_from_file(const std::string &, std::vector<std::string> &): " << e <<'\n';
+            std::cerr << "lmm::read_model_from_file(const std::string &, std::vector<std::string> &): " << e <<'\n';
             throw e;
         }
         catch(...)
         {
-            std::cerr << "read_model_from_file(const std::string &, std::vector<std::string> &): " << "Unknown exception." << '\n';
+            std::cerr << "lmm::read_model_from_file(const std::string &, std::vector<std::string> &): " << "Unknown exception." << '\n';
             throw;
         }        
     }
@@ -255,20 +301,144 @@ namespace evolm
         try
         {
             parser.clear();
+            sol_table.clear();
+            sol_table.shrink_to_fit();
         }
         catch(const std::exception& e)
         {
-            std::cerr << "clear(): " << e.what() << '\n';
+            std::cerr << "lmm::clear(): " << e.what() << '\n';
             throw e;
         }
         catch(const std::string & e)
         {
-            std::cerr << "clear(): " << e <<'\n';
+            std::cerr << "lmm::clear(): " << e <<'\n';
             throw e;
         }
         catch(...)
         {
-            std::cerr << "clear(): " << "Unknown exception." << '\n';
+            std::cerr << "lmm::clear(): " << "Unknown exception." << '\n';
+            throw;
+        }        
+    }
+    //===============================================================================================================
+    std::string lmm::to_string_with_precision(const double value, const int n = 6)
+    {
+        try
+        {
+            std::ostringstream out;
+            out.precision(n);
+            out << std::fixed << value;
+
+            return std::move(out).str();
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << "lmm::to_string_with_precision(const double, const int n = 6): " << e.what() << '\n';
+            throw e;
+        }
+        catch(const std::string & e)
+        {
+            std::cerr << "lmm::to_string_with_precision(const double, const int n = 6): " << e <<'\n';
+            throw e;
+        }
+        catch(...)
+        {
+            std::cerr << "lmm::to_string_with_precision(const double, const int n = 6): " << "Unknown exception." << '\n';
+            throw;
+        }        
+    }
+    //===============================================================================================================
+    void lmm::process_solution(std::vector<double> &sol_vect, const std::string &sol_file)
+    {
+        try
+        {
+            int use_precision = 6;
+
+            if ( sol_vect.size() != (sol_table.size() - 1) )
+                throw std::string("The size of solution vector does not correspond to the expected size: sol_vect.size() != (sol_table.size() - 1)!");
+            
+            std::ofstream solution(sol_file);
+
+            if (solution.is_open())
+            {
+                solution << sol_table[0][0] << "," << sol_table[0][1] << "," << sol_table[0][2] << "," << sol_table[0][3] << "," << sol_table[0][4] << "\n";
+
+                for (size_t i = 1; i < sol_table.size(); i++)
+                    solution << sol_table[i][0] << "," << sol_table[i][1] << "," << sol_table[i][2] << "," << sol_table[i][3] << "," << to_string_with_precision( sol_vect[i-1], use_precision ) << "\n";
+
+                solution.close();
+            }
+            else
+                throw "Unable to open solution file for output!";
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << "lmm::process_solution(std::vector<double> &, const std::string &): " << e.what() << '\n';
+            throw e;
+        }
+        catch(const std::string & e)
+        {
+            std::cerr << "lmm::process_solution(std::vector<double> &, const std::string &): " << e <<'\n';
+            throw e;
+        }
+        catch(...)
+        {
+            std::cerr << "lmm::process_solution(std::vector<double> &, const std::string &): " << "Unknown exception." << '\n';
+            throw;
+        }        
+    }
+    //===============================================================================================================
+    void lmm::append_solution_table(std::string &var_name, std::vector<std::string> &levels, std::string &trait)
+    {
+        try
+        {
+            std::string group;
+            std::string name;
+            std::string bar("|");
+            std::string lhs;
+            std::string rhs;
+            size_t pos = 0;
+            pos = var_name.find(bar);
+            if (pos != std::string::npos)
+            {
+                lhs = var_name.substr(0, pos);
+                rhs = var_name.substr(pos+1, std::string::npos);
+
+                if (lhs == "1")
+                    name = "Intercept";
+                else
+                    name = lhs;
+                
+                group = rhs;
+            }
+            else
+            {
+                group = "none";
+                name = var_name;
+            }
+            for (size_t i = 0; i < levels.size(); i++)
+            {
+                std::vector<std::string> table(5);
+                table[0] = trait;
+                table[1] = group;
+                table[2] = name;
+                table[3] = levels[i];
+                sol_table.push_back(table);
+            }
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << "lmm::append_solution_table(std::string &, std::vector<std::string> &, std::string &): " << e.what() << '\n';
+            throw e;
+        }
+        catch(const std::string & e)
+        {
+            std::cerr << "lmm::append_solution_table(std::string &, std::vector<std::string> &, std::string &): " << e <<'\n';
+            throw e;
+        }
+        catch(...)
+        {
+            std::cerr << "lmm::append_solution_table(std::string &, std::vector<std::string> &, std::string &): " << "Unknown exception." << '\n';
             throw;
         }        
     }

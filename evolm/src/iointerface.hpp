@@ -32,15 +32,22 @@ namespace evolm
         
         void fgetvar(const std::string &var_name,                         // Extract a data for a specific variable accessed by the name 'var_name'
                      float miss_constant,
-                     effects_storage &out_var);         // Reference variable name (observations var name) which used to track missing records
+                     effects_storage &out_var,
+                     std::vector<std::string> &unique_levels);         // Reference variable name (observations var name) which used to track missing records
+        void fgetvar(const std::string &var_name,                         // Extract a data for a specific variable accessed by the name 'var_name'
+                     const std::string &var_name_levels_from, // variable in data file from which levels are used in var_name
+                     float miss_constant,
+                     effects_storage &out_var,
+                     std::vector<std::string> &unique_levels);         // Reference variable name (observations var name) which used to track missing records
         void fget_var_levels(const std::string &var_name,
                              float miss_constant,
                              std::vector<int> &out_int,
                              std::vector<std::string> &out_str);
+        bool is_var_in_header(const std::string &var_name);
         
         void clear();
 
-        void scale_genotypes(std::vector<float> &values, size_t &nrows, size_t &ncols);
+        void scale_genotypes(std::vector<float> &values, size_t &nrows, size_t &ncols, std::vector<std::string> &snp_names);
 
         // temporaly in public!
         bool is_plink_file(const std::string &fname);
@@ -77,9 +84,19 @@ namespace evolm
                            compact_storage<int> &ematrix); // get integers vector and returns an effect matrix
         //template <typename T>
         size_t int_to_cat(std::vector<int> &ivalues,
-                               std::vector<int> &cat_values);             // get integers vector (categorical data) and returns a number of columns of a corresponding effect matrix, and vector of unique values
+                          std::vector<int> &cat_values,
+                          std::vector<std::string> &str_levels);             // get integers vector (categorical data) and returns a number of columns of a corresponding effect matrix, and vector of unique values
+        size_t int_to_cat(std::vector<int> &ivalues,
+                          std::vector<int> &reference_ivalues,
+                          std::vector<int> &cat_values,
+                          std::vector<std::string> &str_levels);             // get integers vector (categorical data) and returns a number of columns of a corresponding effect matrix, and vector of unique values
         size_t int_to_cat(std::vector<std::string> &ivalues,
-                               std::vector<int> &cat_values);             // get integers vector (categorical data) and returns a number of columns of a corresponding effect matrix, and vector of unique values
+                          std::vector<int> &cat_values,
+                          std::vector<std::string> &str_levels);             // get integers vector (categorical data) and returns a number of columns of a corresponding effect matrix, and vector of unique values
+        size_t int_to_cat(std::vector<std::string> &ivalues,
+                          std::vector<std::string> &reference_ivalues,
+                          std::vector<int> &cat_values,
+                          std::vector<std::string> &str_levels);             // get integers vector (categorical data) and returns a number of columns of a corresponding effect matrix, and vector of unique values
 
         template <typename T>
         void get_unique_levels(std::vector<T> &ivalues, std::vector<T> &unique_ivalues);
@@ -88,8 +105,8 @@ namespace evolm
         std::map<size_t, size_t> snp_id;                                  // KEY: the consecutive index; the VALUE: observation ID
 
         //bool is_plink_file(const std::string &fname);
-        void get_m_matrix_plink(evolm::matrix<int> &M);
-        void get_m_matrix_ascii(int data_format, evolm::matrix<int> &out);
+        void get_m_matrix_plink(evolm::matrix<int> &M, std::vector<std::string> &snp_names);
+        void get_m_matrix_ascii(int data_format, evolm::matrix<int> &out, std::vector<std::string> &snp_names);
         void make_zmatrix( evolm::matrix<int> &M, evolm::matrix<float> &Z );
 
         int detect_data_format_in_snp_txt_file(const std::string &fname);

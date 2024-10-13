@@ -476,6 +476,41 @@ namespace evolm
         }
     }
     //===============================================================================================================
+    void effects_storage::optimize()
+    {
+        try
+        {
+            switch (type)
+            {
+            case 0:
+                break;
+            case 1:
+                i_effect.optimize();
+                break;
+            case 2:
+                f_effect.optimize();
+                break;
+            case 3:
+                d_effect.optimize();
+                break;
+            default:
+                throw std::string("Undetermined or invalid data type!");
+                break;
+            }
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in effects_storage::optimize()." << '\n';
+            std::cerr << e.what() << '\n';
+            throw e;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in effects_storage::optimize()." << '\n';
+            throw;
+        }
+    }
+    //===============================================================================================================
     void effects_storage::clear()
     {
         try
@@ -824,19 +859,13 @@ namespace evolm
                         else if (rhs_matr.type == 3)
                             i_effect.to_double(d_tmp);
                         else
-                        {
-                            std::cout<<"HERE 1, type "<<rhs_matr.type<<"\n";
                             throw std::string("Unknown type of rhs_matr during compact_storage conversion!");
-                        }
                         break;
                     case 2:
                         if (rhs_matr.type == 3)
                             f_effect.to_double(d_tmp);
                         else
-                        {
-                            std::cout<<"HERE 2, type "<<rhs_matr.type<<"\n";
                             throw std::string("Unknown type of rhs_matr during compact_storage conversion!");
-                        }
                         break;
                     default:
                         throw std::string("Undetermined or invalid data type!");
@@ -904,18 +933,13 @@ namespace evolm
                         else if (rhs_matr.type == 1)
                             i_effect_rhs.to_double(d_tmp);
                         else
-                        {std::cout<<"HERE 3, type "<<rhs_matr.type<<"\n";
                             throw std::string("Unknown type of rhs_matr during compact_storage conversion!");
-                        }
                         break;
                     case 2:
                         if (rhs_matr.type == 1)
                             i_effect_rhs.to_float(f_tmp);
                         else
-                        {
-                            std::cout<<"HERE 4, type "<<rhs_matr.type<<" type "<<type<<"\n";
                             throw std::string("Unknown type of rhs_matr during compact_storage conversion!");
-                        }
                         break;
                     default:
                         throw std::string("Undetermined or invalid data type!");
@@ -968,6 +992,8 @@ namespace evolm
             i_sm.clear();
             f_sm.clear();
             d_sm.clear();
+
+            optimize(); // not sure if this needed ???
         }
         catch (const std::exception &e)
         {

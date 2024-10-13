@@ -16,6 +16,7 @@ namespace evolm
                 friend class sparse_solver;
                 // ----------------------------------------------
                 model_sparse();
+                ~model_sparse();
                 // ----------------------------------------------
                 void set_missing(float val);
                 // ----------------------------------------------

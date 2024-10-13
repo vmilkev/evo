@@ -105,16 +105,6 @@ def simulate_ancestral_pop(starting_from, proportion_for_reprod, pop_limit, repr
 
         pop_gr.remove()
 
-        # -----------------------
-        # new_pop_size = pop.size()
-        # num_to_kill = new_pop_size - pop_limit
-        # if num_to_kill > 0:
-        #     to_sel = (int)(num_to_kill/2)
-        #     select_parents(True, pop, pop_gr, to_sel, True); # selecting males
-        #     select_parents(False, pop, pop_gr, to_sel, True); # selecting females
-        #     print("going to remove: ", to_sel + to_sel)
-        #     pop_gr.remove()
-
         print("Pop size = ", pop.size(), "; current capacity = ", pop.capacity() )
         
         #print("Clearing ...")

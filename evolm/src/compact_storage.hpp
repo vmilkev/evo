@@ -433,6 +433,8 @@ namespace evolm
         ondisk = false;
         binFilename.clear();
         binFilename2.clear();
+
+        bin_file_read_position = 0;
         
         clear_rows_list();
 
@@ -2113,6 +2115,8 @@ namespace evolm
         if ( empty() )
             throw std::string("compact_storage<T>::make_rows_list(): The container is empty!");
 
+        sort_vectors();
+
         row_first_key.resize(nRows, -1);
         row_last_key.resize(nRows, -1);
 
@@ -2133,7 +2137,9 @@ namespace evolm
             }
 
             if( i_key < keys.size() )
+            {
                 row_first_key[i_row] = i_key;
+            }
         }
 
         i_key = keys.size() - 1; // very last key index
@@ -2155,7 +2161,9 @@ namespace evolm
             }
 
             if( i_key >= 0 )
+            {
                 row_last_key[i_row] = i_key;
+            }
         }
     }
     //===========================================================================================

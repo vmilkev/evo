@@ -54,7 +54,7 @@ int main(void)
 
         m_parser.print();
 
-        m_parser.report();
+        //m_parser.report();
 
         std::cout << "Completed model parsing ..."<< "\n";
 

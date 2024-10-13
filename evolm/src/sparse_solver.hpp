@@ -14,6 +14,7 @@ namespace evolm
         void set_memory_limit(double limit);
         double get_memory_limit();
         void set_cpu_limit(int limit);
+        void set_logfile( const std::string &log_file );
         
         sparse_solver();
         ~sparse_solver();
@@ -58,7 +59,7 @@ namespace evolm
         //std::vector<std::string> bin_fnames;
         //std::vector<std::vector<size_t>> blocks_ranges;
         const double gb_constant = 1073741824.0; // num of bytes in 1 GB
-        double available_memory = 100; // default available memory in GB
+        double available_memory = 10; // default available memory in GB
         double data_size = 0.0;
 
     protected:
@@ -80,6 +81,9 @@ namespace evolm
         size_t first_row_ondisk = 0;
         std::string bin_fname;
         double row_size_upper_bound = 0.0;
+
+        std::ofstream writelog;
+        bool log_stream_open = false;
 
         matrix<float> rhs;
 

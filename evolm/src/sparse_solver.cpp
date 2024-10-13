@@ -13,6 +13,9 @@ namespace evolm
         try
         {
             remove_model();
+            if ( writelog.is_open() )
+                writelog.close();
+            log_stream_open = false;
         }
         catch (const std::exception &e)
         {
@@ -42,6 +45,34 @@ namespace evolm
         catch (...)
         {
             std::cerr << "Exception in sparse_solver::append_model(const model_sparse &)." << '\n';
+            throw;
+        }
+    }
+
+    void sparse_solver::set_logfile( const std::string &log_file )
+    {
+        try
+        {
+            writelog.open(log_file, std::ofstream::out | std::ofstream::app);
+            if ( !writelog.is_open() )
+                throw "Unable to open log file " + log_file + " for output!";
+            log_stream_open = true;
+
+            writelog << '\n';
+            writelog <<"--------------------------------------"<<'\n';
+            writelog << "PCG Solver" << '\n';
+            writelog <<"--------------------------------------"<<'\n';
+            writelog << '\n';
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in sparse_solver::set_logfile( const std::string &)." << '\n';
+            std::cerr << e.what() << '\n';
+            throw e;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in sparse_solver::set_logfile( const std::string &)." << '\n';
             throw;
         }
     }
@@ -684,8 +715,9 @@ namespace evolm
     void sparse_solver::clear_model_matrix()
     {
         fclear();
-        for (size_t i = 0; i < model_matrix.size(); i++)
-                model_matrix[i].clear();
+        std::vector<evolm::compact_storage<float>>().swap(model_matrix);
+        //for (size_t i = 0; i < model_matrix.size(); i++)
+        //        model_matrix[i].clear();
     }
 
     std::string sparse_solver::create_fname()
@@ -699,7 +731,7 @@ namespace evolm
 
     void sparse_solver::set_memory_limit(double limit)
     {
-        available_memory = limit * 0.95;
+        available_memory = limit * 0.95; // the multiplyer is to account uncontrolled std::vector re-allocation
     }
 
     double sparse_solver::get_memory_limit()
@@ -953,6 +985,7 @@ namespace evolm
                     }
                 }
             }
+
             model_matrix_row.append(vect_a);
         }
         catch (const std::exception &e)
@@ -1445,7 +1478,6 @@ namespace evolm
         try
         {
             size_t icol[2] = {col_1, col_2};
-
             model.correlations[which_trait].add_row_to_vector(vect_to_add, vect_first_index, variance, which_row, icol);
         }
         catch (const std::string &e)
