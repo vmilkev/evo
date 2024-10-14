@@ -4,7 +4,7 @@
 
 PYBIND11_MODULE(evolm, m)
 {
-    m.doc() = "pybind11 example plugin"; // Optional module docstring
+    m.doc() = "some description ..."; // Optional module docstring
 
     pybind11::class_<evolm::Model>(m, "Model")
 

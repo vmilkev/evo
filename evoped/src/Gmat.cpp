@@ -134,7 +134,7 @@ namespace evoped
      * 
      */
     template <typename T> void Gmat<T>::
-    save_matrix(const std::string &arr)
+    save_matrix2(const std::string &arr)
     {        
         try
         {
@@ -162,8 +162,8 @@ namespace evoped
             throw;
         }
     }
-    template void Gmat<float>::save_matrix(const std::string &arr);
-    template void Gmat<double>::save_matrix(const std::string &arr);
+    template void Gmat<float>::save_matrix2(const std::string &arr);
+    template void Gmat<double>::save_matrix2(const std::string &arr);
     //===============================================================================================================
     /**
      * @brief I/O interface for saving on disk the list of IDs of the internal matrix container.
@@ -298,7 +298,7 @@ namespace evoped
      * 
      */
     template <typename T> void Gmat<T>::
-    get_matrix(const std::string &out_fname)
+    save_matrix(const std::string &out_fname)
     {
         try
         {
@@ -332,8 +332,8 @@ namespace evoped
             throw;
         }
     }
-    template void Gmat<float>::get_matrix(const std::string &out_fname);
-    template void Gmat<double>::get_matrix(const std::string &out_fname);
+    template void Gmat<float>::save_matrix(const std::string &out_fname);
+    template void Gmat<double>::save_matrix(const std::string &out_fname);
     //===============================================================================================================
     /**
      * @brief Constructs G matrix by reading a text file consisting of samples and snp variants.
@@ -1189,17 +1189,33 @@ namespace evoped
      *          Note, scale_matr is symetric and consists of only L-part (L-store format).
      * 
      * @tparam T defines type, float or double
-     * @param scale_matr std vector of the scaler A matrix
+     * @param scale_matr .corbin file of the scaler A matrix
      * @param scaling_weight floatin point scalar, w
      * 
      * @returns none
      * 
      */
     template <typename T> void Gmat<T>::
-    scale_matrix(std::vector<T> &scale_matr, T scaling_weight)
+    scale_matrix(const std::string &scale_matr, T scaling_weight)
     {
         try
         {
+            std::vector<T> values;
+            std::vector<size_t> keys;
+            std::vector<std::int64_t> ids;
+            evolm::matrix<T> amat; // assumed it is in L-stored format
+
+            Utilities2 u;
+            u.fread_matrix(scale_matr, values, keys, ids); // we should read L-store format
+
+            if ( values.size() != keys.size() )
+                throw std::string("values.size() != keys.size()");
+
+            amat.resize(ids.size());
+            
+            for (size_t i = 0; i < values.size(); i++)
+                amat[ keys[i] ] = values[i];
+
             // It is required the scaling matrix is the same dimension as the inverting G
 
             evolm::matrix<size_t> shapeofg;
@@ -1207,14 +1223,11 @@ namespace evoped
             if (shapeofg[0] != shapeofg[1])
                 throw std::string("G matrix has wrong dimension: number of raws is not the same as number of columns!");
 
-            evolm::matrix<T> amat; // assumed it is in L-stored format
-            amat.resize(shapeofg[0]);
+            if (ids.size() != gmatID.size())
+                throw std::string("ids.size() != gmatID.size()");
 
-            if (amat.size() != scale_matr.size())
+            if (amat.size() != G.size())
                 throw std::string("The passed scaleing matrix has wrong dimension: it is not the same as the dimension of inverting G matrix!");
-
-            // build the scalling matrix from the passed vector and call inversion method:
-            amat.from_vector(scale_matr);
 
             scale_matrix(amat, scaling_weight);
 
@@ -1223,24 +1236,24 @@ namespace evoped
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Gmat<T>::scale_matrix(std::vector<T>&, T)" << '\n';
+            std::cerr << "Exception in Gmat<T>::scale_matrix(const std::string &, T)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Gmat<T>::scale_matrix(std::vector<T>&, T)" << '\n';
+            std::cerr << "Exception in Gmat<T>::scale_matrix(const std::string &, T)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Gmat<T>::scale_matrix(std::vector<T>&, T)" << '\n';
+            std::cerr << "Exception in Gmat<T>::scale_matrix(const std::string &, T)" << '\n';
             throw;
         }
     }
-    template void Gmat<float>::scale_matrix(std::vector<float> &scale_matr, float scaling_weight);
-    template void Gmat<double>::scale_matrix(std::vector<double> &scale_matr, double scaling_weight);
+    template void Gmat<float>::scale_matrix(const std::string &scale_matr, float scaling_weight);
+    template void Gmat<double>::scale_matrix(const std::string &scale_matr, double scaling_weight);
     //===============================================================================================================
     /**
      * @brief Scaling G matrix by the A matrix:
@@ -1487,7 +1500,7 @@ namespace evoped
             ped.open(gmat_file, std::fstream::in);
 
             if (!ped.good())
-                throw std::string("Cannot open G-matrix file!");
+                throw std::string("Cannot open G-matrix file: " + gmat_file);
 
             while (getline(ped, line))
             {

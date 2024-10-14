@@ -3019,6 +3019,50 @@ namespace evoped
     //===============================================================================================================
 
     template <typename T>
+    void Amat<T>::get_inbreeding(const std::string &fname)
+    {
+        try
+        {
+            if ( traced_pedID.size() != inbrF.size() )
+                throw std::string("traced_pedID.size() != inbrF.size()");
+            
+            std::ofstream result(fname);
+
+            if (result.is_open())
+            {
+                for (size_t i = 0; i < inbrF.size(); i++)
+                    result << traced_pedID[i] << ", " << inbrF[i] << "\n";
+
+                result.close();
+            }
+            else
+                throw std::string("Unable to open file for output!");
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Amat<T>::get_inbreeding(const std::string &)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Amat<T>::get_inbreeding(const std::string &)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Amat<T>::get_inbreeding(const std::string &)" << '\n';
+            throw;
+        }
+    }
+
+    template void Amat<float>::get_inbreeding(const std::string &fname);
+    template void Amat<double>::get_inbreeding(const std::string &fname);
+
+    //===============================================================================================================
+
+    template <typename T>
     void Amat<T>::clear()
     {
         try

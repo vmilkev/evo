@@ -369,7 +369,7 @@ namespace evolm
                 solution.close();
             }
             else
-                throw "Unable to open solution file for output!";
+                throw std::string("Unable to open solution file for output!");
         }
         catch(const std::exception& e)
         {

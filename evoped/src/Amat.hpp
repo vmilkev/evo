@@ -36,7 +36,8 @@ namespace evoped
 
         // Getting results:
         
-        void get_inbreeding(std::vector<T> &out);        
+        void get_inbreeding(std::vector<T> &out);
+        void get_inbreeding(const std::string &fname);
         void get_matrix(const std::string &name,
                         evolm::matrix<T> &arr,
                         std::vector<std::int64_t> &out);

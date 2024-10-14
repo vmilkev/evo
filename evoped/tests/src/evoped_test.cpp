@@ -2010,7 +2010,7 @@ TEST_CASE( "Testing Gmat class" )
             std::vector<std::int64_t> g_id;
 
             gmat.read_matrix("tests/data/g_mat");
-            gmat.get_matrix("g_matr");
+            gmat.save_matrix("g_matr");
 
             evoped::Utilities2 u;
             std::vector<double> values;

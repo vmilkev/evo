@@ -106,14 +106,14 @@ OBJECT_APP += $(BDIR_APP)/sparse_matrix.o
 
 SOURCES_TST := $(wildcard $(TESTDIR)/$(SRCDIR)/*.cpp)
 OBJECT_TST := $(patsubst $(TSRCDIR)/%,$(BDIR_TST)/%,$(SOURCES_TST:.cpp=.o))
-OBJECT_TST += $(patsubst $(SRCDIR)/%,$(BDIR_PYLIB)/%,$(SOURCES:.cpp=.o))
+OBJECT_TST += $(filter-out $(BDIR_PYLIB)/wrapper.o, $(patsubst $(SRCDIR)/%,$(BDIR_PYLIB)/%,$(SOURCES:.cpp=.o)))
 OBJECT_TST += $(BDIR_APP)/sparse_matrix.o
 
 #----------------------------------------------------------------
 # build lib for python
 $(TARGET_PYLIB): $(OBJECT_PYL)
 	@echo " Linking python lib ..."
-	$(CXX) $^ $(LIBFLAGS_PY) -o $(TARGET_PYLIB) $(EXTRA_LIBFLAGS)
+	$(CXX) $^ $(LIBFLAGS_PY) $(EXTRA_LIBFLAGS) -o $(TARGET_PYLIB)
 
 # build catch2 test
 $(TARGET_TEST): $(OBJECT_TST)

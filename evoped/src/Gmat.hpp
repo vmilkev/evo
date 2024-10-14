@@ -35,28 +35,27 @@ namespace evoped
         void make_matrix(const std::string &fname, const std::string &fname_ids);
         
         void scale_genotypes(const std::string &fname);
-        void scale_genotypes(const std::string &fname, const std::string &fname_ids);        
+        void scale_genotypes(const std::string &fname, const std::string &fname_ids);
         
-        void scale_diag(T scale_coef);        
+        void scale_diag(T scale_coef);
         void scale_matrix(evolm::matrix<T>& scale_matr, T scaling_weight);
+        void scale_matrix(const std::string &scale_matr, T scaling_weight);
         
         void invert_matrix();
-        void invert_matrix(bool full_store);        
-        void invert_matrix(std::vector<std::int64_t>& core_id); // sparse inverse (APY)        
+        void invert_matrix(bool full_store);
+        void invert_matrix(std::vector<std::int64_t>& core_id); // sparse inverse (APY)
+        void invert_matrix(const std::string &core_id); // sparse inverse (APY), <= NEEDS IMPLEMENTATION!
         
         void get_matrix(evolm::matrix<T> &arr, std::vector<std::int64_t> &ids);
         void get_matrix(evolm::matrix<T> &arr);
         void get_ids(std::vector<std::int64_t> &ids);
 
         void save_matrix(const std::string &arr, const std::string &ids);
-        void save_matrix(const std::string &arr);
+        void save_matrix2(const std::string &arr); // saving just dense matrix in binary file
         void save_ids(const std::string &ids);
+        void save_matrix(const std::string &out_fname); // saving in .corbin file
         
         void clear();
-
-        // Python specific interfaces
-        void scale_matrix(std::vector<T>& scale_matr, T scaling_weight);
-        void get_matrix(const std::string &out_fname);
 
 #ifdef UTEST
         void get_alpha_beta(T &alpha,

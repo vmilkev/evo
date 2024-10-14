@@ -77,6 +77,7 @@ namespace evoped
 
             a.make_matrix_forgenotyped( ped_file, g_id, false );
             a.get_matrix("A22", A22, a22_id);
+
             A22.fread();
             
             g.scale_matrix(A22,0.25);
@@ -85,7 +86,7 @@ namespace evoped
             a.clear();
 
             g.invert_matrix(true); // inverting as a full-store            
-            g.save_matrix("iG.dmat");            
+            g.save_matrix2("iG.dmat");
             g.clear();
 
             a.make_matrix( ped_file, true ); // A(-1)
