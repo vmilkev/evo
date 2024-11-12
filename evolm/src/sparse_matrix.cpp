@@ -468,6 +468,7 @@ namespace evolm
         {
             A.clear();
             fclear();
+            //A.clear();
         }
         catch(const std::exception& e)
         {

@@ -51,6 +51,7 @@ PYBIND11_MODULE(evoped, m)
         .def("invert_matrix", pybind11::overload_cast<bool>(&evoped::Gmat<double>::invert_matrix))
         .def("invert_matrix", pybind11::overload_cast<>(&evoped::Gmat<double>::invert_matrix))
         .def("save_matrix", pybind11::overload_cast<const std::string &>(&evoped::Gmat<double>::save_matrix))
+        .def("save_ids", &evoped::Gmat<double>::save_ids)
         ;
 
     pybind11::class_< evoped::Gmat<float> >( m, "Gmat" )
@@ -66,6 +67,7 @@ PYBIND11_MODULE(evoped, m)
         .def("invert_matrix", pybind11::overload_cast<bool>(&evoped::Gmat<float>::invert_matrix))
         .def("invert_matrix", pybind11::overload_cast<>(&evoped::Gmat<float>::invert_matrix))
         .def("save_matrix", pybind11::overload_cast<const std::string &>(&evoped::Gmat<float>::save_matrix))
+        .def("save_ids", &evoped::Gmat<float>::save_ids)
         ;
 
     pybind11::class_< evoped::Hmat<double> >( m, "Hmatd" )

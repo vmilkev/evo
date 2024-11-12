@@ -1,10 +1,20 @@
 import evolm
+import evoped
 
-def example_7_1_pp_110():
+def example_5_2_pp_78():
+    amat = evoped.Amat()
     model = evolm.lmm()
     
+def example_7_1_pp_110():
+    
+    amat = evoped.Amat()
+    model = evolm.lmm()
+
+    amat.make_matrix("tests/data/model_2/pedigree.dat", True) # making full A(-1)
+    amat.save_matrix("iA", "tests/data/model_2/ped_corr") # saving matrix to .corbin file
+    
     model.define("weight ~ herd + pen + (1|id) + (1|dam2{id})b + (1|dam); data = tests/data/model_2/model_2_data.dat; obs_missing_value = [-9.0]")
-    model.define("var = (id, b)*A1*G1 + (dam)*I*G2 + R; A1 = tests/data/model_2/A1.corbin; G1 = [150 -40, -40 90]; G2 = [40]; R = [350]")
+    model.define("var = (id, b)*A1*G1 + (dam)*I*G2 + R; A1 = tests/data/model_2/ped_corr.corbin; G1 = [150 -40, -40 90]; G2 = [40]; R = [350]")
         
     model.solve("pcg", 10, 5, "example_7_1.log", "solution_7_1.dat")
 

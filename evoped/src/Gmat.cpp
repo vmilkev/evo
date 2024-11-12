@@ -179,9 +179,18 @@ namespace evoped
     {        
         try
         {
-            Utilities2 u;
+            //Utilities2 u;
+            //u.vect_to_binary(gmatID, ids);
 
-            u.vect_to_binary(gmatID, ids);
+            std::ofstream out(ids);
+            if (out.is_open())
+            {
+                for (size_t i = 0; i < gmatID.size(); i++)
+                    out << gmatID[i]<<'\n';
+                out.close();
+            }
+            else
+                throw std::string("Unable to open solution file for output!");
         }
         catch (const std::exception &e)
         {

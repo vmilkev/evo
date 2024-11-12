@@ -1039,6 +1039,7 @@ namespace evoped
 
                     A_s.fwrite(); // 1. Wrire to binary
                     iA22_s = A_s; // 2. Copy matrix by just exchanging the internal binary file name
+                    
                     A_s.resize(); // 3. Clears the memory and gets new name for internal binary file
 
                     IsEmpty.iA22_s = false;

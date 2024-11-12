@@ -98,12 +98,11 @@ namespace evogen
         {
             for (size_t i = 0; i < structure.size(); i++) // for each chromosome
             {
-                float resolution = (float)structure[i][1];
                 float n_snp_chr = snp_table[i][1] - snp_table[i][0] + 1; // length of chromosome in terms of number of markers
-                size_t n_hotspot = std::ceil(n_snp_chr * freq_hotspot / resolution);
+                size_t n_hotspot = std::ceil(n_snp_chr * freq_hotspot);
 
                 if (n_hotspot < 2)
-                    throw std::string("The chromosome resolution/density id too high leading to zerro number of recombination hotspots in the chromosome!");
+                    throw std::string("The chromosome resolution/density is too coarse leading to zerro number of recombination hotspots in the chromosome!");
 
                 std::vector<size_t> locations;
                 size_t step = n_snp_chr / n_hotspot;

@@ -11,7 +11,9 @@ case "$uname" in
         export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:/Users/au383883/Documents/MY/codebase/evo/libplinkio/release_lib
         # adding path to the python evolm library/package
         export PYTHONPATH=$PYTHONPATH:/Users/au383883/Documents/MY/codebase/evo/evolm/release
-        echo "$DYLD_LIBRARY_PATH"
+        # adding path to the python evoped library/package
+        export PYTHONPATH=$PYTHONPATH:/Users/au383883/Documents/MY/codebase/evo/evoped/release
+        #echo "$DYLD_LIBRARY_PATH"
         ;;
     *)
         echo -n "Unknown OS"
@@ -19,4 +21,4 @@ case "$uname" in
 esac;
 
 # calling the python script
-python3 model_new.py
+python3 test_models.py

@@ -11,7 +11,7 @@ case "$uname" in
         export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:/Users/au383883/Documents/MY/codebase/evo/libplinkio/release_lib
         # adding path to the python evoped library/package
         export PYTHONPATH=$PYTHONPATH:/Users/au383883/Documents/MY/codebase/evo/evoped/release
-        echo "$DYLD_LIBRARY_PATH"
+        #echo "$DYLD_LIBRARY_PATH"
         ;;
     *)
         echo -n "Unknown OS"

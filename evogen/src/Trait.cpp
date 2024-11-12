@@ -160,7 +160,6 @@ namespace evogen
             std::vector<float> dist_par = py_tovect(py_dist_par);
 
             // call the native c++ method
-
             cleared = true;
             set_trait(pop, trmean, qtl_prop_chrom, corr_g, varr_g, corr_e, varr_e, envr, dist_model, dist_par);
         }

@@ -1,0 +1,81 @@
+
+--------------------------------------
+Model Parser
+--------------------------------------
+
+List of variables defined outside the model equation(s):
+    name & position: G1 0
+    name & position: G2 1
+    name & position: R 2
+    name & position: A1 3
+
+Model variables: 
+    name & position: herd 0
+    name & position: pen 1
+    name & position: 1|id 2
+    name & position: 1|dam2_b 3
+    name & position: 1|dam 4
+
+Observations:
+    name, position, records: weight 0 14
+
+Effects:
+    name, position, levels: herd 0 3
+    name, position, levels: pen 1 2
+    name, position, levels: 1|id 2 14
+    name, position, levels: 1|dam2_b 3 14
+    name, position, levels: 1|dam 4 4
+
+Model variance
+correlation 1:
+    variable & position: 1|id 2
+    variable & position: 1|dam2_b 3
+    matrix & position (in extra): A1 3
+    variance & position in extra.: G1 0
+correlation 2:
+    variable & position: 1|dam 4
+    matrix & position (in extra): I -1
+    variance & position in extra.: G2 1
+
+residual:
+    name & position in extra: R 2
+
+Model equation(s), as defined:
+    weight ~ herd + pen + 1|id + 1|dam2_b + 1|dam
+
+Model equation(s), as submitted:
+    weight ~ herd + pen + 1|id + 1|dam2_b + 1|dam
+
+Model equation(s), as variables indeces:
+    0 ~ 0 + 1 + 2 + 3 + 4
+
+Correlations, in variables indeces as submitted:
+    correlation: (2 ,3)
+    correlation: (4)
+
+--------------------------------------
+PCG Solver
+--------------------------------------
+
+Loading data ... completed in 5 milliseconds.
+Constructing RHS vector ... completed in 0 seconds.
+Constructing model matrix ... completed in 0 seconds.
+Loading model matrix into memory ... completed in 0 milliseconds.
+Starting PCG iterations (stops when rate values lower or equal to 0.0) ... 
+
+Iteration & Convergence Rate:
+
+2  0.101481
+4  0.0163096
+6  0.00536044
+8  0.00226733
+10  0.000366258
+12  3.49409e-05
+14  8.66992e-06
+16  2.40889e-06
+18  7.08062e-07
+20  1.6617e-07
+22  1.73835e-08
+24  9.65408e-10
+
+PCG completed in 0 seconds.

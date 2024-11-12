@@ -134,7 +134,7 @@ namespace evogen
                 {
                         FILE *in_stream = fopen(io_file.c_str(), "rb");
 
-                        size_t nbytes = std::ceil(double(samples) / 4);
+                        size_t nbytes = ceil(double(samples) / 4);
 
                         unsigned char *buffer = (unsigned char *)malloc(nbytes);
 

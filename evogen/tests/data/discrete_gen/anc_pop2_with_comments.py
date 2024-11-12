@@ -1,9 +1,6 @@
-import sys
 import numpy as np
 from random import randint
 import math
-
-sys.path.append('/Users/au383883/Documents/MY/codebase/evo/evogen/release') # cluster
 import evogen
 
 def select_parents(select_male, from_pop, to_group, n_select, do_random):
@@ -54,7 +51,7 @@ def simulate_ancestral_pop(starting_from, proportion_for_reprod, pop_limit, repr
     #print("expected offsprings per mmating: ", n_offsprings)
 
     pop = evogen.Population() #simulated
-    pop.set_population(starting_from, "struct_haplotypes_pop1.dat", 1.0, 2); #Needs description in the doc for the haplotype structure
+    pop.set_population(starting_from, "tests/data/discrete_gen/struct_haplotypes_pop1.dat", 1.0, 2); #Needs description in the doc for the haplotype structure
     
     par_gr = evogen.Group() # group for parents
     off_gr = evogen.Group() # group for offspring
@@ -117,7 +114,7 @@ def simulate_ancestral_pop(starting_from, proportion_for_reprod, pop_limit, repr
             pop.reshape()
             print("Reshaped pop size = ", pop.size(), "; current capacity = ", pop.capacity() )
     
-    pop.get_ld("last_ld_file");
+    pop.get_ld("test_results/last_ld_file");
 
 def main():
 

@@ -4,6 +4,7 @@ sys.path.append('release')
 
 import evogen
 import unittest
+import numpy
 
 class TestEVO( unittest.TestCase ):
 
