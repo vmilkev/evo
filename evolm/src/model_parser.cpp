@@ -252,19 +252,22 @@ namespace evolm
 
             switch (expression_type)
             {
-            case 1: // process model equation, for example: obs ~ 1 + x1 + (1|z)                                
-                eval_model_expr(expression, obs_vars, lhs_randomvars, rhs_randomvars, fixedvars, random_vars_identifiers); // parsing the model expression to specific vaariables                                
+            case 1: // process model equation, for example: obs ~ 1 + x1 + (1|z)
+                eval_model_expr(expression, obs_vars, lhs_randomvars, rhs_randomvars, fixedvars, random_vars_identifiers); // parsing the model expression to specific vaariables
                 process_observation_vars(obs_vars); // append observations container, and var names to observations_names
-                obs_vars.clear(); obs_vars.shrink_to_fit();                                
+                obs_vars.clear(); obs_vars.shrink_to_fit();
+
+                get_missing_obs(); // update missing data structure
+
                 process_fixed_vars(fixedvars); // append random_and_fixed_effects container, and var names to random_and_fixed_effects_names
-                fixedvars.clear(); fixedvars.shrink_to_fit();                                
+                fixedvars.clear(); fixedvars.shrink_to_fit();
                 process_random_vars(lhs_randomvars, rhs_randomvars, random_vars_identifiers); // append random_and_fixed_effects container, and var names to random_and_fixed_effects_names
                 lhs_randomvars.clear(); lhs_randomvars.shrink_to_fit();
                 rhs_randomvars.clear(); rhs_randomvars.shrink_to_fit();
                 random_vars_identifiers.clear(); random_vars_identifiers.shrink_to_fit();
                 
                 break;
-            case 2: // process name-value expression, for example: var1 = var1_file.dat                
+            case 2: // process name-value expression, for example: var1 = var1_file.dat
                 separate_name_file_values(expression, name_value_pair);
                 process_name_value_pair(name_value_pair); // append processed data matrices to extra_effects container, corresponding var names to extra_effects_names                
                 name_value_pair.clear();
@@ -307,11 +310,17 @@ namespace evolm
     {
         try
         {
-            // handle the keywords: data, obs_missing_value, and suffix .corbin
+            // handle the keywords: data, effect, obs_missing_value, and suffix .corbin
 
             if (name_value_pair[0] == "data")
             {
                 data_file_name = name_value_pair[1];
+                return;
+            }
+
+            if (name_value_pair[0] == "effect")
+            {
+                effect_file_name = name_value_pair[1];
                 return;
             }
 
@@ -927,7 +936,6 @@ namespace evolm
         try
         {
             evolm::IOInterface in;
-            in.set_fname(data_file_name);
 
             for (size_t i = 0; i < observ_vars.size(); i++)
             {
@@ -947,11 +955,10 @@ namespace evolm
                 
                 obs_in_extra_storage.push_back(-1); // this vector should be the same size as observations
 
-                if ( data_file_name.empty() )
-                    throw std::string("The data file name is empty!");
+                set_fname(in, observ_vars[i]);
 
                 std::vector<std::string> levels; // this is needed here just to pass all required parameters to the function fgetvar !
-                in.fgetvar(observ_vars[i], obs_missing_value, s, levels); // convert string obs[i] to vector data observations[i]
+                in.fgetvar(observ_vars[i], obs_missing_value, missing_obs, s, levels); // convert string obs[i] to vector data observations[i]
 
                 std::vector<size_t> obs_shape = s.shape();
 
@@ -984,12 +991,56 @@ namespace evolm
         }
     }
     // -------------------------------------------------------------
+    void model_parser::get_missing_obs()
+    {
+        // missing_obs (class member) vector - holding the method's results of detection missing observations structure;
+        // missing records defined as TRUE elements. 
+        try
+        {
+            evolm::effects_storage s;
+            evolm::compact_storage<float> c;
+            std::vector<float> obs;
+            
+            int extra_str_index = obs_in_extra_storage.back(); // check where to find very last observation
+            
+            if (extra_str_index == -1)
+                s = observations.back(); // observation is in normal obs storage
+            else
+                s = extra_effects[extra_str_index]; // observation is in extra eff storage
+
+            s.get(c); // convert effects_storage to compact_storage
+            s.clear();
+            c.to_dense(obs); // convert compact_storage to std::vector
+            c.clear();
+
+            if ( obs.empty() )
+                throw std::string("Vector of very last submitted observation is empty.");
+            
+            std::vector<bool> missing(obs.size(), false);
+
+            for (size_t i = 0; i < obs.size(); i++)
+                if ( obs[i] == obs_missing_value )
+                    missing[i] = true;
+
+            missing_obs = missing;
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << "Exception in model_parser::get_missing_obs(std::vector<bool> &)"<< "\n";
+            std::cerr << e.what() << '\n';
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in model_parser::get_missing_obs(std::vector<bool> &)"<< "\n";
+            throw;
+        }
+    }
+    // -------------------------------------------------------------
     void model_parser::process_fixed_vars(std::vector<std::vector<std::string>> &fixed_vars)
     {
         try
         {
             evolm::IOInterface in;
-            in.set_fname(data_file_name);
 
             for (size_t i = 0; i < fixed_vars.size(); i++) // loop over variables in the model (except random) separated by '+' operator
             {
@@ -1011,13 +1062,16 @@ namespace evolm
                     random_and_fixed_in_extra_storage.push_back(var_find_res); // we now know where to (not) find observ_vars[i] variable
                     random_and_fixed_effects.push_back(s_effect); // push empty effect to keep the vector size consistent
                     random_and_fixed_effects_names.push_back(var_name);
+                    // need to provide some levels description (as strings) for this variable (obtained not from a data file!)
+                    std::vector<size_t> shape_ofvar = extra_effects[var_find_res].shape();
+                    std::vector<std::string> s_effect_levels(shape_ofvar[1]);
+                    for (size_t i = 1; i <= shape_ofvar[1]; i++ )
+                        s_effect_levels[i-1] = std::to_string(i);
+                    random_and_fixed_effects_levels.push_back(s_effect_levels);
                     continue; // move to the next variable
                 }
 
                 random_and_fixed_in_extra_storage.push_back(-1);
-
-                if ( data_file_name.empty() )
-                    throw std::string("The data file name is empty!");
 
                 std::string s_effect_name; // parocessed effect name
                 std::vector<std::string> s_effect_levels;
@@ -1057,7 +1111,6 @@ namespace evolm
         try
         {
             evolm::IOInterface in;
-            in.set_fname(data_file_name);
 
             if ( lhs_random.size() != rand_vars_identifiers.size() )
                 throw std::string("lhs_random.size() != rand_vars_identifiers.size()");
@@ -1230,9 +1283,24 @@ namespace evolm
                 // if success - call overloaded fgetvar
                 std::unordered_map<std::string, std::string>::const_iterator found = borroow_levels_from.find( in_var_vect[0] );
                 if ( found != borroow_levels_from.end() )
-                    in_data.fgetvar(in_var_vect[0], found->second, obs_missing_value, out_s, lhs_levels); // very first var
+                {
+                    set_fname(in_data, found->second);
+
+                    std::vector<int> ref_int_var;
+                    std::vector<std::string> ref_str_var;
+
+                    in_data.fget_var_levels(found->second, obs_missing_value, ref_int_var, ref_str_var); // get unique ref. (borroow_levels_from) variable levels
+
+                    set_fname(in_data, in_var_vect[0]);
+
+                    in_data.fgetvar(in_var_vect[0], ref_int_var, ref_str_var, obs_missing_value, missing_obs, out_s, lhs_levels); // very first var
+                }
                 else
-                    in_data.fgetvar(in_var_vect[0], obs_missing_value, out_s, lhs_levels); // very first var
+                {
+                    set_fname(in_data, in_var_vect[0]);
+
+                    in_data.fgetvar(in_var_vect[0], obs_missing_value, missing_obs, out_s, lhs_levels); // very first var
+                }
             }
 
             std::vector<size_t> var_shape = out_s.shape();
@@ -1261,9 +1329,23 @@ namespace evolm
                     // if success - call overloaded fgetvar
                     std::unordered_map<std::string, std::string>::const_iterator found = borroow_levels_from.find( in_var_vect[j] );
                     if ( found != borroow_levels_from.end() )
-                        in_data.fgetvar(in_var_vect[j], found->second, obs_missing_value, s2, rhs_levels); // convert var string to data matrix
+                    {
+                        set_fname(in_data, found->second);
+
+                        std::vector<int> ref_int_var;
+                        std::vector<std::string> ref_str_var;
+                        in_data.fget_var_levels(found->second, obs_missing_value, ref_int_var, ref_str_var); // get unique ref. (borroow_levels_from) variable levels
+
+                        set_fname(in_data, in_var_vect[j]);
+
+                        in_data.fgetvar(in_var_vect[j], ref_int_var, ref_str_var, obs_missing_value, missing_obs, s2, rhs_levels); // very first var
+                    }
                     else
-                        in_data.fgetvar(in_var_vect[j], obs_missing_value, s2, rhs_levels); // convert var string to data matrix
+                    {
+                        set_fname(in_data, in_var_vect[j]);
+
+                        in_data.fgetvar(in_var_vect[j], obs_missing_value, missing_obs, s2, rhs_levels); // convert var string to data matrix
+                    }
                 }
 
                 var_shape = s2.shape();
@@ -1315,7 +1397,16 @@ namespace evolm
 
             // process observation variables
             get_obsvars(rhs_exp, observ_vars); // extract and parse LHS to the container obs_vars
-            make_unique(observ_vars);
+
+            // Checking if the list of obs variables is unique;
+            // NOTE: no sorting on obs variables, since it might affect covariance matrix order!!!
+            std::vector<std::string> obs_copy(observ_vars);
+            make_unique(obs_copy);
+
+            if ( obs_copy.size() != observ_vars.size() )
+                throw std::string("The list of provided observation variables is not unique!");
+
+            obs_copy.clear();
 
             // process random variables
             std::vector<std::string> rand_vars;
@@ -2251,6 +2342,55 @@ namespace evolm
         catch (...)
         {
             std::cerr << "Exception in model_parser::is_space(std::string)"<< "\n";
+            throw;
+        }
+    }
+    // -------------------------------------------------------------
+    void model_parser::set_fname(evolm::IOInterface &io_class_instance, const std::string &var)
+    {
+        try
+        {
+            // check where is variable, in which file
+            bool in_file = false;
+            if ( !data_file_name.empty() )
+            {
+                io_class_instance.set_fname(data_file_name);
+
+                if ( var == "1" )
+                    return;
+                
+                in_file = io_class_instance.is_var_in_header(var);
+            }
+            
+            if ( !in_file ) // if variable is not in main data file or the file is not defined
+            {
+                if ( !effect_file_name.empty() )
+                {
+                    io_class_instance.set_fname(effect_file_name);
+                    in_file = io_class_instance.is_var_in_header(var);
+                }
+                else
+                    throw std::string("Trying to find variable in supplemental effects file which is not defined. Variable -> " + var);
+                
+                if ( !in_file )
+                    throw std::string("Failed to find variable in provided file(s). Variable -> " + var);
+            }
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in model_parser::set_fname(evolm::IOInterface &, std::string &)"<< "\n";
+            std::cerr << "Reason => " << e << "\n";
+            throw e;
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in model_parser::set_fname(evolm::IOInterface &, std::string &)"<< "\n";
+            std::cerr << "Reason => " << e.what() << "\n";
+            throw e;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in model_parser::set_fname(evolm::IOInterface &, std::string &)"<< "\n";
             throw;
         }
     }

@@ -2,6 +2,11 @@
 #include "sparse_matrix.hpp"
 #include <chrono>
 
+TEST_CASE("Starting info smatrix class")
+{
+    std::cout<<"Testing smatrix class type double ..."<<'\n';
+}
+
 TEST_CASE("Sparse matrix, checking class constructors, type = double")
 {
     // Data:

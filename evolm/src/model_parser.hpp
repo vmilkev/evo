@@ -17,6 +17,8 @@ namespace evolm
         // Data:
         std::string data_file_name;
         float obs_missing_value = -999.0f;
+        std::string effect_file_name;
+        std::vector<bool> missing_obs;
 
         std::vector<std::vector<std::string>> special_corr_vars; // strings of name = value for corr matrices (.corbin), to be processed separately
         
@@ -107,6 +109,9 @@ namespace evolm
         void check_borrowed_levels(std::vector<std::string> &in_vars);
 
         void element_wise_dot(std::vector<std::string> &lhs, std::vector<std::string> &rhs);
+
+        void set_fname(evolm::IOInterface &io_class_instance, const std::string &var);
+        void get_missing_obs();
 
     public:
         model_parser();

@@ -6,6 +6,13 @@
 #include <string>
 #include <float.h>
 
+// Testing NEW (sparse) solver
+
+TEST_CASE("Starting info sparse solver")
+{
+    std::cout<<"Testing sparse solver ..."<<'\n';
+}
+
 TEST_CASE("Testing model set-up")
 {
     bool is_ok = true;

@@ -501,7 +501,7 @@ namespace evolm
         }
     }
     //===============================================================================================================
-    void IOInterface::fgetvar(const std::string &var_name, float miss_constant, effects_storage &out_var, std::vector<std::string> &unique_levels)
+    void IOInterface::fgetvar(const std::string &var_name, float miss_constant, std::vector<bool> &missing_vect, effects_storage &out_var, std::vector<std::string> &unique_levels)
     {
         /*
                 Extract data for a specific variable accessed by the name 'var_name';
@@ -708,11 +708,12 @@ namespace evolm
                 if (c_values.size() == 0)
                     throw std::string("The estimated number of rows of the effect matrix is zero!");
 
-                // std::vector<std::vector<int>> ematrix(c_values.size(), std::vector<int>(n_columns));
-
                 compact_storage<int> ematrix(c_values.size(), n_columns);
 
-                cat_to_effect(c_values, ematrix);
+                if ( !missing_vect.empty() && ( c_values.size() != missing_vect.size() ) )
+                    throw std::string("c_values.size() != missing_vect.size() while getting variable -> " + var_name);
+
+                cat_to_effect(c_values, missing_vect, ematrix);
 
                 out_var.set(ematrix);
 
@@ -728,48 +729,25 @@ namespace evolm
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in IOInterface::fgetvar(const std::string &, float, effects_storage &, std::vector<std::string> &)" << '\n';
+            std::cerr << "Exception in IOInterface::fgetvar(const std::string &, float, std::vector<bool> &, effects_storage &, std::vector<std::string> &)" << '\n';
             std::cerr << "Reason => " << e.what() << '\n';
             throw e;
         }
         catch (const std::string err)
         {
-            std::cerr << "Exception in IOInterface::fgetvar(const std::string &, float, effects_storage &, std::vector<std::string> &)" << '\n';
+            std::cerr << "Exception in IOInterface::fgetvar(const std::string &, float, std::vector<bool> &, effects_storage &, std::vector<std::string> &)" << '\n';
             std::cerr << "Reason => " << err << '\n';
             throw err;
         }
         catch (...)
         {
-            std::cerr << "Exception in IOInterface::fgetvar(const std::string &, float, effects_storage &, std::vector<std::string> &)" << '\n';
+            std::cerr << "Exception in IOInterface::fgetvar(const std::string &, float, std::vector<bool> &, effects_storage &, std::vector<std::string> &)" << '\n';
             throw;
         }
     }
     //===============================================================================================================
-    void IOInterface::fgetvar(const std::string &var_name, const std::string &var_name_levels_from, float miss_constant, effects_storage &out_var, std::vector<std::string> &unique_levels)
+    void IOInterface::fgetvar(const std::string &var_name, std::vector<int> &ref_vals_int, std::vector<std::string> &ref_vals_str, float miss_constant, std::vector<bool> &missing_vect, effects_storage &out_var, std::vector<std::string> &unique_levels)
     {
-        /*
-                Extract data for a specific variable accessed by the name 'var_name';
-                convert it to effects matrix according to a determined type of the data;
-                Variable ref_var (usually observation var) is used as reference to track missing records,
-                the missing values pointed by miss_constant member.
-
-                File format:
-
-                [header]
-                [list of data of different types with "space" delimiter]
-
-                Example:
-                var_f1 var_i1 var_f2 var_cat var_str
-                12.2   20     51.1   1       aple
-                15.5   30     10     2       plum
-                21.0   45     562    3       aple
-                30.5   50     452    3       plum
-                40     61     231    4       tomato
-                51.3   71     125    2       tomato
-                60.6   80     121    1       plum
-                70.001 91     121    1       aple
-                82.012 10     110.0  4       tomato
-        */
         try
         {
             missing_constant = miss_constant;
@@ -783,7 +761,6 @@ namespace evolm
             std::vector<int> var_types;
 
             std::vector<std::string> data_str2;
-            std::vector<int> var_types2;
 
             // -------------- Opening file --------------------
 
@@ -818,7 +795,6 @@ namespace evolm
             // ---------- Detect var_name column number ------
 
             int var_col = find_value(vars_header, var_name);
-            int var_col2 = find_value(vars_header, var_name_levels_from);
 
             if (var_col == -1)
             {
@@ -849,12 +825,6 @@ namespace evolm
                 throw s;
             }
 
-            if (var_col2 == -1)
-            {
-                std::string s("The following variable name is not in the data file header: ");
-                s = s + var_name_levels_from;
-                throw s;
-            }
             // ----------------- Read data ------------------
 
             while (getline(snpF, line))
@@ -881,12 +851,6 @@ namespace evolm
                         data_str.push_back(token);
                     }
 
-                    if (which_col == (size_t)var_col2) // do something if at right column
-                    {
-                        var_types2.push_back(get_datatype(token));
-                        data_str2.push_back(token);
-                    }
-
                     which_col++;
                 }
 
@@ -897,11 +861,6 @@ namespace evolm
                     data_str.push_back(line);
                 }
 
-                if (which_col == (size_t)var_col2) // do something if at right column
-                {
-                    var_types2.push_back(get_datatype(line));
-                    data_str2.push_back(line);
-                }
             }
 
             snpF.close();
@@ -913,33 +872,18 @@ namespace evolm
                 if (var_types[i] == 5)
                     where_is_missing[i] = true;
 
-            std::vector<bool> where_is_missing2(var_types2.size(), false);
-            for (size_t i = 0; i < var_types2.size(); i++)
-                if (var_types2[i] == 5)
-                    where_is_missing2[i] = true;
-
             int detected_type = define_vartype(var_types);
-            int detected_type2 = define_vartype(var_types2);
 
             var_types.clear();
             var_types.shrink_to_fit();
 
-            var_types2.clear();
-            var_types2.shrink_to_fit();
-
-            if ( detected_type != detected_type2 )
-                throw std::string("In attempt of extracting data for variable " + var_name + " using levels of " + var_name_levels_from + " variable: the data types of these variables are noot the same.");
-
             if ( detected_type == 2 )
-                throw std::string("In attempt of extracting data for variable " + var_name + " using levels of " + var_name_levels_from + " variable: there is only one level for a continious variable.");
+                throw std::string("In attempt of extracting data for variable " + var_name + " using reference levels: there is only one level for a continious variable.");
 
             // ----------- Return specific data matrix --------
 
             if ( data_str.size() != where_is_missing.size() )
                 throw std::string("data_str.size() != where_is_missing.size()");
-
-            if ( data_str2.size() != where_is_missing2.size() )
-                throw std::string("data_str2.size() != where_is_missing2.size()");
 
             switch (detected_type)
             {
@@ -974,24 +918,27 @@ namespace evolm
                 if (detected_type == 3)
                 {
                     std::vector<int> ivalues;      // temporal container for integer-type values converted from string-type data
-                    std::vector<int> ref_ivalues;
                     
                     str_to_int(data_str, where_is_missing, ivalues); // convert string-type data to integer (which will be processed further as a categorical-type data)
-                    str_to_int(data_str2, where_is_missing2, ref_ivalues);
 
-                    n_columns = int_to_cat(ivalues, ref_ivalues, c_values, unique_levels); // estimate the number of columns in an effect matrix, and convert integers to categorical data
+                    if ( ref_vals_int.empty() )
+                        throw std::string("The expected integer-type vector of reference levels is empty.");
+
+                    n_columns = int_to_cat(ivalues, ref_vals_int, c_values, unique_levels); // estimate the number of columns in an effect matrix, and convert integers to categorical data
 
                     ivalues.clear();
                     ivalues.shrink_to_fit();
                 }
                 else
-                    n_columns = int_to_cat(data_str, data_str2, c_values, unique_levels); // estimate the number of columns in an effect matrix, and convert integers to categorical data
+                {
+                    if ( ref_vals_str.empty() )
+                        throw std::string("The expected string-type vector of reference levels is empty.");
+                    
+                    n_columns = int_to_cat(data_str, ref_vals_str, c_values, unique_levels); // estimate the number of columns in an effect matrix, and convert integers to categorical data
+                }
 
                 data_str.clear();
                 data_str.shrink_to_fit();
-
-                data_str2.clear();
-                data_str2.shrink_to_fit();
 
                 if (n_columns == 0)
                     throw std::string("The estimated number of columns of the effect matrix is zero!");
@@ -999,11 +946,12 @@ namespace evolm
                 if (c_values.size() == 0)
                     throw std::string("The estimated number of rows of the effect matrix is zero!");
 
-                // std::vector<std::vector<int>> ematrix(c_values.size(), std::vector<int>(n_columns));
-
                 compact_storage<int> ematrix(c_values.size(), n_columns);
 
-                cat_to_effect(c_values, ematrix);
+                if ( !missing_vect.empty() && ( c_values.size() != missing_vect.size() ) )
+                    throw std::string("c_values.size() != missing_vect.size() while getting variable -> " + var_name);
+
+                cat_to_effect(c_values, missing_vect, ematrix);
 
                 out_var.set(ematrix);
 
@@ -1019,19 +967,19 @@ namespace evolm
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in IOInterface::fgetvar(const std::string &, const std::string &, float, effects_storage &, std::vector<std::string> &)" << '\n';
+            std::cerr << "Exception in IOInterface::fgetvar(const std::string &, std::vector<int> &, std::vector<std::string> &, float, std::vector<bool> &, effects_storage &, std::vector<std::string> &)" << '\n';
             std::cerr << "Reason => " << e.what() << '\n';
             throw e;
         }
         catch (const std::string err)
         {
-            std::cerr << "Exception in IOInterface::fgetvar(const std::string &, const std::string &, float, effects_storage &, std::vector<std::string> &)" << '\n';
+            std::cerr << "Exception in IOInterface::fgetvar(const std::string &, std::vector<int> &, std::vector<std::string> &, float, std::vector<bool> &, effects_storage &, std::vector<std::string> &)" << '\n';
             std::cerr << "Reason => " << err << '\n';
             throw err;
         }
         catch (...)
         {
-            std::cerr << "Exception in IOInterface::fgetvar(const std::string &, const std::string &, float, effects_storage &, std::vector<std::string> &)" << '\n';
+            std::cerr << "Exception in IOInterface::fgetvar(const std::string &, std::vector<int> &, std::vector<std::string> &, float, std::vector<bool> &, effects_storage &, std::vector<std::string> &)" << '\n';
             throw;
         }
     }
@@ -1261,7 +1209,7 @@ namespace evolm
             if (var_col == -1)
             {
                 if (var_name == "1") // in the case of the intercept variable
-                    throw std::string("Trying to obtain unique levels for the intercept.");
+                    throw std::string("Trying to obtain unique levels for intercept variable.");
             }
             else
                 present = true;
@@ -1393,13 +1341,16 @@ namespace evolm
             if (adjacent_find(in_values.begin(), in_values.end()) != in_values.end())         // if not unique
                 in_values.erase(unique(in_values.begin(), in_values.end()), in_values.end()); // make the vector unique
 
-            int last_value = 0;
-
             std::string last = in_values.back();
-            last_value = stoi( last );
 
-            if ( last_value == missing_int )
-                in_values.pop_back(); // remove missing constant to obtain correct number of levels in effect
+            if ( is_number(last) )
+            {
+                int last_value = 0;
+                last_value = stoi( last );
+
+                if ( last_value == missing_int )
+                    in_values.pop_back(); // remove missing constant to obtain correct number of levels in effect
+            }
 
             // recoding integer values in the 'ivalues' vector to the vcategorical data
             // for missing values: cat_values = -1
@@ -1432,6 +1383,13 @@ namespace evolm
         }
     }
     //===============================================================================================================
+    bool IOInterface::is_number(const std::string& s)
+    {
+        std::string::const_iterator it = s.begin();
+        while (it != s.end() && std::isdigit(*it)) ++it;
+        return !s.empty() && it == s.end();
+    }
+    //===============================================================================================================
 
     size_t IOInterface::int_to_cat(std::vector<std::string> &ivalues, std::vector<std::string> &reference_ivalues, std::vector<int> &cat_values, std::vector<std::string> &str_levels)
     {
@@ -1443,14 +1401,16 @@ namespace evolm
 
             if (adjacent_find(in_values.begin(), in_values.end()) != in_values.end())         // if not unique
                 in_values.erase(unique(in_values.begin(), in_values.end()), in_values.end()); // make the vector unique
-
-            int last_value = 0;
-
             std::string last = in_values.back();
-            last_value = stoi( last );
 
-            if ( last_value == missing_int )
-                in_values.pop_back(); // remove missing constant to obtain correct number of levels in effect
+            if ( is_number(last) )
+            {
+                int last_value = 0;
+                last_value = stoi( last );
+
+                if ( last_value == missing_int )
+                    in_values.pop_back(); // remove missing constant to obtain correct number of levels in effect
+            }
 
             // recoding integer values in the 'ivalues' vector to the vcategorical data
             // for missing values: cat_values = -1
@@ -1523,13 +1483,26 @@ namespace evolm
 
     //===============================================================================================================
 
-    void IOInterface::cat_to_effect(std::vector<int> &cvalues, compact_storage<int> &ematrix)
+    void IOInterface::cat_to_effect(std::vector<int> &cvalues, std::vector<bool> &missing_vect, compact_storage<int> &ematrix)
     {
         try
         {
-            for (size_t i = 0; i < cvalues.size(); i++)
-                if ( cvalues[i] != -1 )
-                    ematrix.append(1, i, cvalues[i]);
+            if ( missing_vect.empty() )
+            {
+                for (size_t i = 0; i < cvalues.size(); i++)
+                    if ( cvalues[i] != -1 )
+                        ematrix.append(1, i, cvalues[i]);
+            }
+            else
+            {
+                for (size_t i = 0; i < cvalues.size(); i++)
+                {
+                    if ( missing_vect[i] ) // keep the row empty if observation is missed
+                        continue;
+                    if ( cvalues[i] != -1 )
+                        ematrix.append(1, i, cvalues[i]);
+                }
+            }
 
             ematrix.optimize();
         }
@@ -1709,9 +1682,13 @@ namespace evolm
         {
             std::regex boolean_expr = std::regex("^false|true$");                       // type 1, boolean
             std::regex float_expr = std::regex("^[+-]?([0-9]+([.][0-9]*)|[.][0-9]+)$"); // type 2, float
-            std::regex integer_expr = std::regex("^\\d+$");                             // type 3, integer
+            //std::regex integer_expr = std::regex("^\\d+$");                             // type 3, integer
+            std::regex integer_expr = std::regex("^-?[0-9]+$");                         // type 3, integer
             std::regex string_expr = std::regex("[a-zA-Z_#0-9]+");                      // type 4, string
-            std::string missing = std::to_string(missing_constant);                     // type 5, missing data
+            
+            //std::string missing = std::to_string(missing_constant); This is unsreliable method of conversion !!!
+            std::ostringstream ss; ss << missing_constant;
+            std::string missing(ss.str()); // type 5, missing data
 
             int datatype = 0;
 
@@ -1719,13 +1696,18 @@ namespace evolm
                 datatype = 1;
             else if (std::regex_match(str_token, float_expr))
             {
-                if ( missing.find(str_token) !=std::string::npos )
+                if ( missing.compare(str_token) == 0 ) // identical if strcmp == 0
                     datatype = 5;
                 else
                     datatype = 2;
             }
             else if (std::regex_match(str_token, integer_expr))
-                datatype = 3;
+            {
+                if ( missing.compare(str_token) == 0 ) // identical if strcmp == 0
+                    datatype = 5;
+                else
+                    datatype = 3;
+            }
             else if (std::regex_match(str_token, string_expr))
                 datatype = 4;
             else

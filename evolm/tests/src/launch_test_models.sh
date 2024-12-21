@@ -21,4 +21,4 @@ case "$uname" in
 esac;
 
 # calling the python script
-python3 test_models.py
+python3 tests/src/test_models.py

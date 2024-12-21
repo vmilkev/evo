@@ -160,17 +160,17 @@ clean:
 
 rclean:
 	@echo " Cleaning..."
-	@rm amatrix_* py_out_solution_model_* cpp_solution_model_* 2>/dev/null || true
+	@rm amatrix_* py_out_solution_model_* cpp_solution_model_* model_matrix_* sparse_solution_* solution_* *.log 2>/dev/null || true
 
 test:
-	@echo " Testing ..."
-#	python3 $(TESTDIR)/$(SRCDIR)/*.py
+	@echo " Testing Python interface ..."
+	$(TESTDIR)/$(SRCDIR)/launch_test_models.sh
 ifeq ($(UNAME_OS),Darwin)
+	@echo " Testing Compiled version ..."
 	@export DYLD_LIBRARY_PATH=$(LIBRARY_PATH); $(TARGET_TEST)
 else
 	$(TARGET_TEST)
 endif
-#	@export  LD_LIBRARY_PATH=$(PWDADDR)/$(BDIR_CLIB):"$(LIBRARY_PATH)"; $(TARGET_TEST)
 
 run:
 	@echo " Running ..."
@@ -179,7 +179,6 @@ ifeq ($(UNAME_OS),Darwin)
 else
 	time $(TARGET_APP)
 endif
-#	@export  LD_LIBRARY_PATH=$(PWDADDR)/$(BDIR_CLIB):"$(LIBRARY_PATH)"; $(TARGET_APP)
 
 cleanlogs:
 	@echo " Cleaning logs ..."

@@ -119,7 +119,7 @@ def simulate_ancestral_pop(starting_from, proportion_for_reprod, pop_limit, repr
 def main():
 
     init_num_animals = 18
-    generations = 500
+    generations = 5
     reproduction_rate = 1.5
     proportion_in_reproduction = 1.0
     population_limit = 30

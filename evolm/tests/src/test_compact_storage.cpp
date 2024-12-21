@@ -2,6 +2,11 @@
 #include "compact_storage.hpp"
 #include <chrono>
 
+TEST_CASE("Starting info compact_storage class")
+{
+    std::cout<<"Testing compact_storage class ..."<<'\n';
+}
+
 TEST_CASE("Compact storage, checking class constructors, type = double")
 {
     SECTION("1. Default empty constructor")

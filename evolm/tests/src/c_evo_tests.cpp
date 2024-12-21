@@ -4,11 +4,18 @@
  Class instance of type 'mytype'.
 */
 
+// Testing OLD (dense) solver
+
 #include "catch_amalgamated.hpp"
 #include "model.hpp"
 #include "solver_pcg.hpp"
 #include "iointerface.hpp"
 #include <string>
+
+TEST_CASE("Starting info dense solver")
+{
+    std::cout<<"Testing dense solver ..."<<'\n';
+}
 
 TEST_CASE("Testing set-up")
 {

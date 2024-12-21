@@ -8,6 +8,7 @@
 #include <map>
 #include <cstring>
 #include <regex>
+#include <sstream>
 
 #include "effects_storage.hpp"
 #include <plinkio/plinkio.h>
@@ -30,15 +31,18 @@ namespace evolm
         template <typename T>
         void fgetdata(std::vector<std::vector<T>> &out);                  // Reads general ASCII formated data
         
-        void fgetvar(const std::string &var_name,                         // Extract a data for a specific variable accessed by the name 'var_name'
+        void fgetvar(const std::string &var_name,                         // Extract data for a specific variable accessed by the name 'var_name'
                      float miss_constant,
+                     std::vector<bool> &missing_vect,
                      effects_storage &out_var,
                      std::vector<std::string> &unique_levels);         // Reference variable name (observations var name) which used to track missing records
-        void fgetvar(const std::string &var_name,                         // Extract a data for a specific variable accessed by the name 'var_name'
-                     const std::string &var_name_levels_from, // variable in data file from which levels are used in var_name
+        void fgetvar(const std::string &var_name,
+                     std::vector<int> &ref_vals_int,
+                     std::vector<std::string> &ref_vals_str,
                      float miss_constant,
+                     std::vector<bool> &missing_vect,
                      effects_storage &out_var,
-                     std::vector<std::string> &unique_levels);         // Reference variable name (observations var name) which used to track missing records
+                     std::vector<std::string> &unique_levels);
         void fget_var_levels(const std::string &var_name,
                              float miss_constant,
                              std::vector<int> &out_int,
@@ -81,6 +85,7 @@ namespace evolm
                         std::vector<bool> &missing_pos,
                         std::vector<int> &fvalues);                        // converts vector of strings to a vector of integer numbers
         void cat_to_effect(std::vector<int> &cvalues,
+                           std::vector<bool> &missing_vect,
                            compact_storage<int> &ematrix); // get integers vector and returns an effect matrix
         //template <typename T>
         size_t int_to_cat(std::vector<int> &ivalues,
@@ -110,6 +115,8 @@ namespace evolm
         void make_zmatrix( evolm::matrix<int> &M, evolm::matrix<float> &Z );
 
         int detect_data_format_in_snp_txt_file(const std::string &fname);
+
+        bool is_number(const std::string& s);
     };
 
 } // end of namespace evolm

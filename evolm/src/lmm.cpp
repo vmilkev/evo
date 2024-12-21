@@ -86,7 +86,7 @@ namespace evolm
 
             set_model(model);
 
-//parser.print();
+parser.print();
             parser.report(log_file);
 
             solver.append_model(model);
@@ -95,7 +95,7 @@ namespace evolm
             solver.set_cpu_limit( available_cpu );
             solver.set_logfile( log_file );
 
-            //solver.set_tolerance(1e-6); // 1e-6 is the default value in the solver
+            //solver.set_tolerance(1e-8); // 1e-6 is the default value in the solver
             //solver.set_maxiter(1000); // should depend on the size of RHS
 
             solver.solve();
@@ -119,6 +119,110 @@ namespace evolm
         catch(...)
         {
             std::cerr << "lmm::solve(const std::string &, int, int, const std::string &, const std::string &): " << "Unknown exception." << '\n';
+            throw;
+        }        
+    }
+    //===============================================================================================================
+    void lmm::solve(const std::string &use_method, int available_memory, int available_cpu, const std::string &log_file, const std::string &sol_file, double err_tol)
+    {
+        try
+        {
+            if ( available_memory <= (int)0 )
+                throw std::string("The provided memory limit (available memory) should be greater than zerro!");
+
+            if ( available_cpu <= (int)0 )
+                throw std::string("The provided cpu limit (available cpu) should be greater than zerro!");
+
+            sparse_pcg solver;
+            model_sparse model;
+
+            set_model(model);
+
+parser.print();
+            parser.report(log_file);
+
+            solver.append_model(model);
+
+            solver.set_memory_limit( double(available_memory) );
+            solver.set_cpu_limit( available_cpu );
+            solver.set_logfile( log_file );
+
+            solver.set_tolerance(err_tol); // 1e-6 is the default value in the solver
+            //solver.set_maxiter(1000); // should depend on the size of RHS
+
+            solver.solve();
+
+            std::vector<double> sol_vect;
+            
+            solver.get_solution(sol_vect);
+
+            process_solution(sol_vect, sol_file);
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << "lmm::solve(const std::string &, int, int, const std::string &, const std::string &, double): " << e.what() << '\n';
+            throw e;
+        }
+        catch(const std::string & e)
+        {
+            std::cerr << "lmm::solve(const std::string &, int, int, const std::string &, const std::string &, double): " << e <<'\n';
+            throw e;
+        }
+        catch(...)
+        {
+            std::cerr << "lmm::solve(const std::string &, int, int, const std::string &, const std::string &, double): " << "Unknown exception." << '\n';
+            throw;
+        }        
+    }
+    //===============================================================================================================
+    void lmm::solve(const std::string &use_method, int available_memory, int available_cpu, const std::string &log_file, const std::string &sol_file, double err_tol, size_t max_iter)
+    {
+        try
+        {
+            if ( available_memory <= (int)0 )
+                throw std::string("The provided memory limit (available memory) should be greater than zerro!");
+
+            if ( available_cpu <= (int)0 )
+                throw std::string("The provided cpu limit (available cpu) should be greater than zerro!");
+
+            sparse_pcg solver;
+            model_sparse model;
+
+            set_model(model);
+
+parser.print();
+            parser.report(log_file);
+
+            solver.append_model(model);
+
+            solver.set_memory_limit( double(available_memory) );
+            solver.set_cpu_limit( available_cpu );
+            solver.set_logfile( log_file );
+
+            solver.set_tolerance(err_tol); // 1e-6 is the default value in the solver
+            solver.set_maxiter(max_iter); // default value depends on the size of RHS
+
+            solver.solve();
+
+            std::vector<double> sol_vect;
+            
+            solver.get_solution(sol_vect);
+
+            process_solution(sol_vect, sol_file);
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << "lmm::solve(const std::string &, int, int, const std::string &, const std::string &, double, size_t): " << e.what() << '\n';
+            throw e;
+        }
+        catch(const std::string & e)
+        {
+            std::cerr << "lmm::solve(const std::string &, int, int, const std::string &, const std::string &, double, size_t): " << e <<'\n';
+            throw e;
+        }
+        catch(...)
+        {
+            std::cerr << "lmm::solve(const std::string &, int, int, const std::string &, const std::string &, double, size_t): " << "Unknown exception." << '\n';
             throw;
         }        
     }

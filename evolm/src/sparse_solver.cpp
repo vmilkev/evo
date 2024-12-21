@@ -1289,12 +1289,17 @@ namespace evolm
             matrix<float> R = model.residuals[0].fget(); // Note! This is only for the very first submitted residual matrix.
 
             if (R.size() < k)
-                throw std::string("The number of elements in the provided residual covariance matrix is not correspond to the number of traitsin the model!");
+                throw std::string("The number of elements in the provided residual covariance matrix is not correspond to the number of traits in the model!");
 
             std::vector<float> r_init(k, 0.0); // inverse of residual covariance for the  trivial case when all traits are unrelated
             for (size_t i = 0; i < n_trait; i++)
                 for (size_t j = 0; j <= i; j++)
-                    r_init[i * (i + 1) / 2 + j] = 1.0 / R(i, j); // using lower triangular part
+                {
+                    if ( R(i, j) != 0.0f )
+                        r_init[i * (i + 1) / 2 + j] = 1.0 / R(i, j); // using lower triangular part
+                    else
+                        r_init[i * (i + 1) / 2 + j] = 0.0f;
+                }
 
             for (size_t i = 0; i < n_obs[0]; i++) // create hash list for each row of observations
             {

@@ -498,7 +498,7 @@ namespace evogen
     {
         try
         {
-            auto start = std::chrono::high_resolution_clock::now();
+            //auto start = std::chrono::high_resolution_clock::now();
 
             Utilites u;
 
@@ -602,9 +602,9 @@ namespace evogen
                     }
                 }
             }
-            auto stop = std::chrono::high_resolution_clock::now();
-            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-            std::cout <<"==> maating duration, millisec "<< duration.count() << std::endl;
+            //auto stop = std::chrono::high_resolution_clock::now();
+            //auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+            //std::cout <<"==> maating duration, millisec "<< duration.count() << std::endl;
 
         }
         catch (const std::exception &e)

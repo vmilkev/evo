@@ -24,6 +24,8 @@ namespace evolm
         void define( const std::string &expression );
         void define_infile( const std::string &fname );
         void solve( const std::string &use_method, int available_memory, int available_cpu, const std::string &log_file, const std::string &sol_file );
+        void solve( const std::string &use_method, int available_memory, int available_cpu, const std::string &log_file, const std::string &sol_file, double err_tol );
+        void solve( const std::string &use_method, int available_memory, int available_cpu, const std::string &log_file, const std::string &sol_file, double err_tol, size_t max_iter );
         void clear();
     };    
 } // end of namespace evolm

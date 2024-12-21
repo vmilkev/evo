@@ -10,6 +10,11 @@
 
 typedef double mytype;
 
+TEST_CASE("Starting info matrix class")
+{
+    std::cout<<"Testing matrix class type double ..."<<'\n';
+}
+
 TEST_CASE("Checking class constructors, type = double"){
     
     SECTION("Default constructor"){

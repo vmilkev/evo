@@ -9,6 +9,11 @@
 
 typedef float mytype;
 
+TEST_CASE("Starting info matrix class type float")
+{
+    std::cout<<"Testing matrix class type float ..."<<'\n';
+}
+
 TEST_CASE("Checking class constructors, type = float"){
     
     SECTION("Default constructor"){
