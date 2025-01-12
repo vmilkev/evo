@@ -40,6 +40,7 @@ namespace evolm
 
         std::unordered_map<std::string, std::string> identifier_to_eff_name; // aliases for random effects, if used
         std::unordered_map<std::string, std::string> borroow_levels_from; // key <- variable which uses levels from other variable -> value; uses levels but not observations
+        std::unordered_map<std::string, std::string> effects_with_logical_and; // holds effect of the form: var1 & var2, where key <- var2 (main external effect), var1 -> value (effect from data relaated to observations)
 
         size_t next_subm_eff = 0;
         size_t next_subm_obs = 0;
@@ -82,6 +83,8 @@ namespace evolm
         void process_random_vars(std::vector<std::vector<std::vector<std::string>>> &lhs_random,
                                  std::vector<std::vector<std::vector<std::string>>> &rhs_random,
                                  std::vector<std::string> &rand_vars_identifiers);
+        void process_external_vars();
+        void process_effects_with_logical_and(std::string it_first, std::string it_second);
         
         void get_effect_from_data(evolm::IOInterface &in_data,
                                   std::vector<std::string> &in_var_vect,
@@ -101,12 +104,14 @@ namespace evolm
                                        std::string delim_closed,
                                        std::vector<std::string> &out_vars);
         void find_corr_vars_in_effects(std::vector<std::vector<std::string>> &corr_vars);
-        void load_corbin_file(std::string &cor_matr_file, std::string &cor_variable, std::vector<std::string> &var_levels, compact_storage<float> &corr_storage);
+        void load_corr_file(std::string &cor_matr_file, std::string &cor_variable, std::vector<std::string> &var_levels, compact_storage<float> &corr_storage);
+        void load_eff_file(std::string &eff_matr_file, smatrix<float> &s_matr, matrix<float> &d_matr, std::vector<std::int64_t> &i_ids, std::vector<std::string> &s_ids);
 
         void get_list_of_subm_eff();
         void def_corr_struct();
 
         void check_borrowed_levels(std::vector<std::string> &in_vars);
+        void check_logical_and(std::vector<std::string> &in_vars);
 
         void element_wise_dot(std::vector<std::string> &lhs, std::vector<std::string> &rhs);
 

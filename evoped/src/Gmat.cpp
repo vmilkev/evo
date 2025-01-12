@@ -94,12 +94,19 @@ namespace evoped
         {
             Utilities2 u;
 
-            //if ( G.is_ondisk() )
-            //    G.fread();
+            if ( G.size() == (size_t)0 )
+                throw std::string("G.size() == (size_t)0");
+
+            /*std::string name_suffix(".dmbin");
+            if ( sizeof(T) > 4 )
+                name_suffix = ".ddmbin"; // suffix for double precision matrix
+
+            size_t find = arr.find(name_suffix);
+            std::string fname(arr);
+            if( find == std::string::npos ) // there is no suffix
+                fname = arr + name_suffix;*/
 
             G.fwrite(arr);
-            //G.fwrite();
-
             u.vect_to_binary(gmatID, ids);
         }
         catch (const std::exception &e)
@@ -138,11 +145,16 @@ namespace evoped
     {        
         try
         {
-            //if ( G.is_ondisk() )
-            //    G.fread();
+            if ( G.size() == (size_t)0 )
+                throw std::string("Saving the empty matrix, G.size() == (size_t)0.");
 
+            /*std::string name_suffix(".dmbin");
+            size_t find = arr.find(name_suffix);
+            std::string fname(arr);
+            if( find == std::string::npos ) // there is no suffix
+                fname = arr + name_suffix; // add suffix
+            */
             G.fwrite(arr);
-            //G.fwrite();
         }
         catch (const std::exception &e)
         {
@@ -289,7 +301,7 @@ namespace evoped
         }
         catch (...)
         {
-            std::cerr << "Exception in Gmat<T>::get_matrix(std::vector<std::int64_t>&)" << '\n';
+            std::cerr << "Exception in Gmat<T>::get_ids(std::vector<std::int64_t>&)" << '\n';
             throw;
         }
     }
@@ -311,33 +323,35 @@ namespace evoped
     {
         try
         {
-            std::vector<T> values;
-            std::vector<size_t> keys;
+            evolm::matrix<size_t> shp = G.shape();
 
-            G.to_vector(values);
+            if ( G.size() == (size_t)0 )
+                throw std::string("Saving the empty matrix, G.size() == (size_t)0.");
 
-            for (size_t i = 0; i < gmatID.size(); i++)
-                for (size_t j = 0; j <= i; j++)
-                    keys.push_back(i*(i+1)/2 + j);
+            if ( shp[0] != shp[1] )
+                throw std::string("Saving non-square matrix by the method required only the square symmetric matrix.");
+
+            if ( !G.is_symmetric() )
+                throw std::string("Saving non-symmetric matrix by the method required only the square symmetric matrix.");
 
             Utilities2 u;
-            u.fwrite_matrix(out_fname, values, keys, gmatID);
+            u.fwrite_matrix(out_fname, G, gmatID);
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Gmat<T>::get_matrix(const std::string &)" << '\n';
+            std::cerr << "Exception in Gmat<T>::save_matrix(const std::string &)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Gmat<T>::get_matrix(const std::string &)" << '\n';
+            std::cerr << "Exception in Gmat<T>::save_matrix(const std::string &)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Gmat<T>::get_matrix(const std::string &)" << '\n';
+            std::cerr << "Exception in Gmat<T>::save_matrix(const std::string &)" << '\n';
             throw;
         }
     }
@@ -361,7 +375,7 @@ namespace evoped
             if ( is_plink_file(fname) ) // the pipeline for binary (.bad) plink-formated data
             {
                 evolm::matrix<int> M;
-                get_m_matrix(fname, M);
+                make_m_matrix_plink(fname, M);
 
                 make_zmatrix(M); // scalling SNPs
 
@@ -371,6 +385,7 @@ namespace evoped
             {
                 read_snp(fname); // reads SNPs with variant IDs from ASCII fiele and output to the snp_map
                 make_zmatrix(); // scalling SNPs
+                //make_zmatrixf(); // scalling SNPs
                 snp_map.clear();
             }
 
@@ -418,6 +433,7 @@ namespace evoped
         {
             read_snp(fname, fname_ids); // reads SNPs and its IDs from ASCII fieles (one for SNPs, another for IDs)
             make_zmatrix(); // scalling SNPs
+            //make_zmatrixf(); // scalling SNPs
             snp_map.clear();
             make_matrix(); // making G matrix
             Z.fclear();
@@ -501,7 +517,7 @@ namespace evoped
      * 
      */
     template <typename T> void Gmat<T>::
-    get_m_matrix(const std::string &fname, evolm::matrix<int> &M)
+    make_m_matrix_plink(const std::string &fname, evolm::matrix<int> &M)
     {
         try
         {
@@ -557,24 +573,126 @@ namespace evoped
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Gmat<T>::get_m_matrix(const std::string &, evolm::matrix<int> &)" << '\n';
+            std::cerr << "Exception in Gmat<T>::make_m_matrix_plink(const std::string &, evolm::matrix<int> &)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Gmat<T>::get_m_matrix(const std::string &, evolm::matrix<int> &)" << '\n';
+            std::cerr << "Exception in Gmat<T>::make_m_matrix_plink(const std::string &, evolm::matrix<int> &)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Gmat<T>::get_m_matrix(const std::string &, evolm::matrix<int> &)" << '\n';
+            std::cerr << "Exception in Gmat<T>::make_m_matrix_plink(const std::string &, evolm::matrix<int> &)" << '\n';
             throw;
         }
     }
-    template void Gmat<float>::get_m_matrix(const std::string &fname, evolm::matrix<int> &M);
-    template void Gmat<double>::get_m_matrix(const std::string &fname, evolm::matrix<int> &M);
+    template void Gmat<float>::make_m_matrix_plink(const std::string &fname, evolm::matrix<int> &M);
+    template void Gmat<double>::make_m_matrix_plink(const std::string &fname, evolm::matrix<int> &M);
+    //===============================================================================================================
+    /**
+     * @brief Extract variants and samples from ASCII files.
+     * 
+     * @tparam T defines type, float or double
+     * @param fname the data file name
+     * @param M empty object of dense matrix class where the resulting vriants will be copied
+     * 
+     * @returns none
+     * 
+     */
+    template <typename T> void Gmat<T>::
+    make_m_matrix(evolm::matrix<T> &M)
+    {
+        try
+        {
+            // get the number of SNPs
+            std::vector<int> tmpVect;
+
+            if ( snp_map.empty() )
+                throw std::string("snp_map is empty!");
+
+            auto it = snp_map.begin();
+            std::string tmpStr = it->second;
+
+            parse_string(tmpStr, tmpVect);
+
+            size_t snpNum = tmpVect.size();
+
+            tmpVect.clear();
+            tmpVect.shrink_to_fit();
+            tmpStr.clear();
+            tmpStr.shrink_to_fit();
+
+            // declare the matrix M
+            M.resize(snp_map.size(), snpNum);
+
+            /* vector of SNPs frequences and missed values */
+            std::vector<T> P(snpNum, 0.0);
+            std::vector<int> missed(snpNum, 0);
+            std::vector<T> missed2pq(snp_map.size(), 0.0);
+
+            // map of missed values locations
+            std::vector<std::vector<int>> missedLocation;
+            for (size_t i = 0; i < snpNum; i++)
+                missedLocation.push_back(std::vector<int>());
+
+            // parse SNPs and fill matrix M
+            size_t rowI = 0;
+            for (auto const &e : snp_map)
+            {
+                std::vector<int> parsedMarkers;
+                std::string strToParse = e.second;
+
+                parse_string(strToParse, parsedMarkers);
+
+                for (size_t i = 0; i < parsedMarkers.size(); i++)
+                {
+                    M(rowI, i) = static_cast<T>(parsedMarkers[i]);
+                    if (parsedMarkers[i] != 0 && parsedMarkers[i] != 1 && parsedMarkers[i] != 2)
+                    {
+                        missed[i] += 1;
+                        missedLocation[i].push_back(rowI);
+                    }
+                    else
+                        P[i] += static_cast<T>(parsedMarkers[i]);
+                }
+                rowI++;
+            }
+
+            T map_size = (T)snp_map.size();
+
+#pragma omp parallel for
+            for (size_t i = 0; i < P.size(); i++)
+                P[i] = P[i] / ( 2.0 * ( map_size - (T)missed[i] ) );
+
+            // modify M matrix, so instead of missing values we put population average
+#pragma omp parallel for
+            for (size_t i = 0; i < missedLocation.size(); i++)
+                for (size_t j = 0; j < missedLocation[i].size(); j++)
+                    M(missedLocation[i][j], i) = (T)std::round(P[i]);
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Gmat<T>::make_m_matrix(evolm::matrix<T> &)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Gmat<T>::make_m_matrix(evolm::matrix<T> &)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Gmat<T>::make_m_matrix(evolm::matrix<T> &)" << '\n';
+            throw;
+        }
+    }
+    template void Gmat<float>::make_m_matrix(evolm::matrix<float> &M);
+    template void Gmat<double>::make_m_matrix(evolm::matrix<double> &M);
     //===============================================================================================================
     /**
      * @brief Scales SNPs from the text file.
@@ -593,7 +711,7 @@ namespace evoped
             if ( is_plink_file(fname) ) // the pipeline for binary (.bad) plink-formated data
             {
                 evolm::matrix<int> M;
-                get_m_matrix(fname, M);
+                make_m_matrix_plink(fname, M);
                 make_zmatrix(M); // scalling SNPs
                 M.clear();
                 G = Z; // copy to the main container
@@ -604,7 +722,7 @@ namespace evoped
             {
                 read_snp(fname); // reads SNPs with IDs from ASCII fiele
                 make_zmatrix(); // scalling
-                //Z.fwrite(); // move data to a binary file
+                //make_zmatrixf(); // scalling SNPs
                 G = Z; // copy to the main container
                 snp_map.clear();
                 Z.fclear();
@@ -649,7 +767,7 @@ namespace evoped
         {
             read_snp(fname, fname_ids); // reads SNPs and its IDs from ASCII fieles (one for SNPs, another for IDs)
             make_zmatrix(); // scalling
-            //Z.fwrite(); // move data to a binary file
+            //make_zmatrixf(); // scalling SNPs
             G = Z; // copy to the main container
             snp_map.clear();
             Z.fclear();
@@ -675,6 +793,285 @@ namespace evoped
     }
     template void Gmat<float>::scale_genotypes(const std::string &fname, const std::string &fname_ids);
     template void Gmat<double>::scale_genotypes(const std::string &fname, const std::string &fname_ids);
+    //===============================================================================================================
+    /**
+     * @brief Scales SNPs from the text file.
+     * 
+     * @tparam T defines type, float or double
+     * @param fname the text file name consisting the snp variants without samples information (IDs)
+     * @param fname_ids the text file name with samples IDs
+     * 
+     * @returns none
+     * 
+     */
+    template <typename T> void Gmat<T>::
+    impute_genotypes(const std::string &snp_fname, const std::string &snp_fname_ids, const std::string &ped_fname, const std::string &out_fname)
+    {
+        try
+        {
+            // --------- Making M matrix ------------
+            read_snp(snp_fname, snp_fname_ids); // reads SNPs and its IDs from ASCII fieles (one for SNPs, another for IDs)
+            evolm::matrix<T> M;
+            make_m_matrix(M);
+            snp_map.clear();
+
+            //M.print("M");
+            M.fwrite("M.dmbin");
+            // --------------------------------------
+
+            // --------- Loading A(-1) matrix -------
+            std::vector<T> values;
+            std::vector<size_t> keys;
+            std::vector<std::int64_t> ids;
+            evolm::smatrix<T> amat; // assumed it is in L-stored format
+
+            Utilities2 u;
+            u.fread_matrix(ped_fname, values, keys, ids); // we should read L-store format
+
+            if ( !u.is_value_in_vect(ids, gmatID) )
+                throw std::string("There are genotyped IDs which are not part of the A(-1) matrix!");
+
+            if ( values.size() != keys.size() )
+                throw std::string("values.size() != keys.size()");
+
+            amat.resize(ids.size());
+            
+            for (size_t i = 0; i < values.size(); i++)
+                amat[ keys[i] ] = values[i];
+            
+            values.clear();
+            values.shrink_to_fit();
+            keys.clear();
+            keys.shrink_to_fit();
+            // --------------------------------------
+
+            // --------- Creating IDs lists ---------
+            std::vector<std::int64_t> nn_ids; // Create the list of IDs which are in ids of A(-1) but not in gmatID vectors
+            for (size_t i = 0; i < ids.size(); i++)
+            {
+                int res = u.find_invect(gmatID, ids[i]);
+                if (res == -1)
+                    nn_ids.push_back(ids[i]);
+            }
+            std::vector<size_t> nn_pos; // positions of non-genotyped IDs in A(-1)
+            for (size_t i = 0; i < nn_ids.size(); i++)
+                nn_pos.push_back(u.find_invect(ids, nn_ids[i]));
+
+            std::vector<size_t> gg_pos; // positions of genotyped IDs in A(-1)
+            for (size_t i = 0; i < gmatID.size(); i++)
+                gg_pos.push_back(u.find_invect(ids, gmatID[i]));
+
+            ids.clear();
+            ids.shrink_to_fit();
+            // --------------------------------------
+
+            // -- Making sub-matrices Ann and Ang ---
+            evolm::matrix<T> Ann( nn_pos.size() );
+
+#pragma omp parallel for
+            for (size_t i = 0; i < nn_pos.size(); i++)
+            {
+                size_t pos_i = nn_pos[i];
+                for (size_t j = 0; j <= i; j++)
+                {
+                    size_t pos_j = nn_pos[j];
+                    if (pos_i >= pos_j)
+                    {
+                        Ann(i, j) = amat.get_nonzero(pos_i, pos_j);
+                    }
+                    else
+                    {
+                        Ann(i, j) = amat.get_nonzero(pos_j, pos_i);
+                    }
+                }
+            }
+
+            //Ann.print("Ann");
+            Ann.fwrite();
+
+            evolm::matrix<T> Ang( nn_pos.size(), gg_pos.size() );
+
+#pragma omp parallel for
+            for (size_t i = 0; i < nn_pos.size(); i++)
+            {
+                size_t pos_i = nn_pos[i];
+                for (size_t j = 0; j < gg_pos.size(); j++)
+                {
+                    size_t pos_j = gg_pos[j];
+                    if (pos_i >= pos_j)
+                    {
+                        Ang(i, j) = amat.get_nonzero(pos_i, pos_j);
+                    }
+                    else
+                    {
+                        Ang(i, j) = amat.get_nonzero(pos_j, pos_i);
+                    }
+                }
+            }
+
+            amat.clear();
+
+            //Ang.print("Ang");
+            // --------------------------------------
+
+            // ----- Calculating: rhs = Ang * M  ----
+            evolm::matrix<T> rhs;
+
+            Ang.scale(-1.0);
+            M.fread("M.dmbin");
+
+            rhs = Ang * M;
+
+            Ang.clear();
+
+            evolm::matrix<size_t> shp_M;
+            shp_M = M.shape();
+
+            // std::vector<T> P(shp_M[1], 0.0); // vectors of SNPs frequences
+            // for (size_t row = 0; row < shp_M[0]; row++)
+            //     for (size_t col = 0; col < shp_M[1]; col++) // summing over each rcolumn in order to calculate average variant over all records (observed & imputed)
+            //         P[col] += M(row, col);
+
+            M.clear();
+
+            //rhs.print("rhs");
+            // --------------------------------------
+
+            // ----- Calculating: L = chol(Ann) -----
+            Ann.fread();
+            Ann.fclear();
+
+            Ann.lchol();
+            Ann.transpose(); // get full matrix L*L' in order to not transpose L in every solve_ls()
+
+            //Ann.print("L*L'");
+            // --------------------------------------
+
+            // --------- Solving: L*L' = rhs --------
+            evolm::matrix<size_t> shp_rhs;
+            shp_rhs = rhs.shape();
+
+            //evolm::matrix<T> M_imp( shp_rhs[0], shp_rhs[1] ); // this is just for imputed genotypes
+            evolm::matrix<T> M_imp( shp_rhs[0] + shp_M[0], shp_rhs[1] ); // this is for all genotypes
+
+#pragma omp parallel for
+            for (size_t i = 0; i < shp_rhs[1]; i++)
+            {
+                T *b = new T [ shp_rhs[0] ];
+                T *x = new T [ shp_rhs[0] ];
+                for (size_t j = 0; j < shp_rhs[0]; j++)
+                    b[j] = rhs(j,i);
+                u.solve_ls(Ann, b, x);
+                for (size_t j = 0; j < shp_rhs[0]; j++)
+                    M_imp(j,i) = x[j];
+                delete [] b;
+                delete [] x;
+            }
+
+            Ann.clear();
+            rhs.clear();
+
+            //M_imp.print("M_imp");
+            // --------------------------------------
+
+            // ---------- Combine genotypes ---------
+            M.fread("M.dmbin");
+
+            for (size_t row = 0; row < shp_M[0]; row++)
+                for (size_t col = 0; col < shp_M[1]; col++)
+                    M_imp(shp_rhs[0]+row, col) = M(row, col);
+            
+            M.clear();
+            M.fclear("M.dmbin");
+
+            M_imp.print("M_imp");
+            // --------------------------------------
+            
+            // --- Calculating variants frequences --
+            std::vector<T> P(shp_M[1], 0.0); // vectors of SNPs frequences
+
+            for (size_t row = 0; row < shp_rhs[0] + shp_M[0]; row++)
+                for (size_t col = 0; col < shp_rhs[1]; col++)
+                    P[col] += M_imp(row, col);
+
+            float all_samples = shp_rhs[0] + shp_M[0];
+            for (size_t i = 0; i < P.size(); i++)
+                P[i] = P[i] / all_samples;
+            // --------------------------------------
+
+            // ---------- Scale genotypes -----------
+            Z.resize(shp_rhs[0] + shp_M[0], shp_rhs[1]); // scaling genotypes
+
+            for (size_t i = 0; i < shp_rhs[0] + shp_M[0]; i++)
+                for (size_t j = 0; j < shp_rhs[1]; j++)
+                    Z(i, j) = M_imp(i, j) - P[j];
+
+            Z.print("Z_all");
+            // ---------- Scale genotypes -----------
+
+            // ------------ Combine IDs -------------
+            std::vector<std::int64_t> all_ids;
+            for (auto const &v: nn_ids)
+                all_ids.push_back(v);
+            for (auto const &v: gmatID)
+                all_ids.push_back(v);
+
+            //std::cout<<"all_ids: ";
+            //for (auto const &v: all_ids)
+            //    std::cout<<v<<" ";
+            //std::cout<<"\n";
+            // --------------------------------------
+            //M_imp.clear();
+            u.fwrite_matrix(out_fname, M_imp, all_ids);
+            //u.fwrite_matrix(out_fname, Z, all_ids);
+
+            Z.clear();
+            all_ids.clear();
+
+            /*Z.print("Z_imp");
+            std::cout<<"nn_ids: ";
+            for (auto const &v: nn_ids)
+                std::cout<<v<<" ";
+            std::cout<<"\n";
+
+            M.fread("M.dmbin");
+            Z.clear();
+            Z.resize(shp_M[0], shp_M[1]); // scaling imputed genotypes
+
+            for (size_t i = 0; i < shp_M[0]; i++)
+                for (size_t j = 0; j < shp_M[1]; j++)
+                    Z(i, j) = M(i, j) - P[j];
+            
+            M.clear();
+            M.fclear("M.dmbin");
+
+            Z.print("Z");
+            std::cout<<"gg_ids: ";
+            for (auto const &v: gmatID)
+                std::cout<<v<<" ";
+            std::cout<<"\n";*/
+
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Gmat<T>::impute_genotypes(const std::string &, const std::string &)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Gmat<T>::impute_genotypes(const std::string &, const std::string &)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Gmat<T>::impute_genotypes(const std::string &, const std::string &)" << '\n';
+            throw;
+        }
+    }
+    template void Gmat<float>::impute_genotypes(const std::string &snp_fname, const std::string &snp_fname_ids, const std::string &ped_fname, const std::string &out_fname);
+    template void Gmat<double>::impute_genotypes(const std::string &snp_fname, const std::string &snp_fname_ids, const std::string &ped_fname, const std::string &out_fname);
     //===============================================================================================================
     /**
      * @brief Inverting G matrix regardless of whether it is in compact or full storage format.
@@ -1914,6 +2311,55 @@ namespace evoped
     template void Gmat<double>::parse_string(std::string &snp_str, std::vector<int> &markers);
     //===============================================================================================================
     /**
+     * @brief Parse std string of snp variants to floats (if variants are in float format)
+     * 
+     * @tparam T defines type, float or double
+     * @param snp_str std string of snp variants
+     * @param markers empty std vector where parsed variants will be copied
+     * 
+     * @returns none
+     * 
+     */
+    template <typename T> void Gmat<T>::
+    parse_string(std::string &snp_str, std::vector<float> &markers)
+    {
+        try
+        {
+            std::vector<std::string> tokens;
+            size_t pos = 0;
+            std::string token;
+            std::string delimiter(" "); // assuming variants are separated by space
+            
+            while ((pos = snp_str.find(delimiter)) != std::string::npos)
+            {
+                token = snp_str.substr(0, pos);
+                markers.push_back( std::stof(token) );
+                snp_str.erase(0, pos + delimiter.length());
+            }
+            markers.push_back( std::stof(snp_str) ); // the last variant
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Gmat<T>::parse_string(std::string& , std::vector<float>&)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Gmat<T>::parse_string(std::string& , std::vector<float>&)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Gmat<T>::parse_string(std::string& , std::vector<float>&)" << '\n';
+            throw;
+        }
+    }
+    template void Gmat<float>::parse_string(std::string &snp_str, std::vector<float> &markers);
+    template void Gmat<double>::parse_string(std::string &snp_str, std::vector<float> &markers);
+    //===============================================================================================================
+    /**
      * @brief Construct scaled variants (snps) matrix
      * 
      * @tparam T defines type, float or double
@@ -1981,19 +2427,21 @@ namespace evoped
 
             // finish to calculate allele frequences, additionally accounting missing values
 
-            auto n_threads = std::thread::hardware_concurrency();
-            auto block_size = static_cast<unsigned int>(P.size() / (n_threads));
+            // auto n_threads = std::thread::hardware_concurrency();
+            // auto block_size = static_cast<unsigned int>(P.size() / (n_threads));
 
-            if (block_size < workload)
-            {
-                block_size = P.size();
-                n_threads = 1;
-            }
+            // if (block_size < workload)
+            // {
+            //     block_size = P.size();
+            //     n_threads = 1;
+            // }
 
-#pragma omp parallel for schedule(static, block_size) num_threads(n_threads)
+            T map_size = (T)snp_map.size();
+
+#pragma omp parallel for //schedule(static, block_size) num_threads(n_threads)
             for (size_t i = 0; i < P.size(); i++)
             {
-                P[i] = P[i] / (2.0 * (T)(snp_map.size() - missed[i]));
+                P[i] = P[i] / ( 2.0 * ( map_size - (T)missed[i] ) );
             }
 
             Z.resize(snp_map.size(), snpNum);
@@ -2008,13 +2456,13 @@ namespace evoped
 
             // modify Z matrix, so instead of missing values we put population average (0.0)
 
-#pragma omp parallel for schedule(static, block_size) num_threads(n_threads)
+#pragma omp parallel for //schedule(static, block_size) num_threads(n_threads)
             for (size_t i = 0; i < missedLocation.size(); i++)
             {
                 for (size_t j = 0; j < missedLocation[i].size(); j++)
                 {
                     Z(missedLocation[i][j], i) = 0.0;
-                    missed2pq[missedLocation[i][j]] = missed2pq[missedLocation[i][j]] + 2 * P[i] * (1.0 - P[i]);
+                    missed2pq[missedLocation[i][j]] = missed2pq[missedLocation[i][j]] + 2.0 * P[i] * (1.0 - P[i]);
                 }
             }
 
@@ -2024,9 +2472,9 @@ namespace evoped
             {
                 freq += P[j] * (1.0 - P[j]);
             }
-            freq = 2 * freq;
+            freq = 2.0 * freq;
 
-#pragma omp parallel for schedule(static, block_size) num_threads(n_threads)
+#pragma omp parallel for //schedule(static, block_size) num_threads(n_threads)
             for (size_t i = 0; i < snp_map.size(); i++)
             {
                 missed2pq[i] = sqrt(freq / (freq - missed2pq[i]));
@@ -2035,7 +2483,7 @@ namespace evoped
             // After centering, adjust for missing markers for each animal;
             // adjust for sqrt[sum of 2pq over all loci /sum of 2pq over non-missing loci.
 
-#pragma omp parallel for schedule(static, block_size) num_threads(n_threads)
+#pragma omp parallel for //schedule(static, block_size) num_threads(n_threads)
             for (size_t i = 0; i < snp_map.size(); i++)
             {
                 for (size_t j = 0; j < snpNum; j++)
@@ -2066,6 +2514,153 @@ namespace evoped
     }
     template void Gmat<float>::make_zmatrix();
     template void Gmat<double>::make_zmatrix();
+    //===============================================================================================================
+    /**
+     * @brief Construct scaled variants (snps) matrix; assuming variants provided in floating type
+     * 
+     * @tparam T defines type, float or double
+     * 
+     * @returns none
+     */
+    template <typename T> void Gmat<T>::
+    make_zmatrixf()
+    {
+        try
+        {
+            // get the number of SNPs
+            std::vector<float> tmpVect;
+
+            if ( snp_map.empty() )
+                throw std::string("snp_map is empty!");
+
+            auto it = snp_map.begin();
+            std::string tmpStr = it->second;
+
+            parse_string(tmpStr, tmpVect);
+
+            size_t snpNum = tmpVect.size();
+
+            tmpVect.clear();
+            tmpVect.shrink_to_fit();
+            tmpStr.clear();
+            tmpStr.shrink_to_fit();
+
+            // declare the matrix M
+            evolm::matrix<float> M(snp_map.size(), snpNum);
+
+            /* vector of SNPs frequences and missed values */
+            std::vector<T> P(snpNum, 0.0);
+            std::vector<int> missed(snpNum, 0);
+            std::vector<T> missed2pq(snp_map.size(), 0.0);
+
+            // map of missed values locations
+            std::vector<std::vector<int>> missedLocation;
+            for (size_t i = 0; i < snpNum; i++)
+                missedLocation.push_back(std::vector<int>());
+
+            // parse SNPs and fill matrix M
+            size_t rowI = 0;
+            for (auto const &e : snp_map)
+            {
+                std::vector<float> parsedMarkers;
+                std::string strToParse = e.second;
+
+                parse_string(strToParse, parsedMarkers);
+
+                for (size_t i = 0; i < parsedMarkers.size(); i++)
+                {
+                    M(rowI, i) = parsedMarkers[i];
+                    if ( parsedMarkers[i] != 0.0f && parsedMarkers[i] != 1.0f && parsedMarkers[i] != 2.0f )
+                    {
+                        missed[i] += 1;
+                        missedLocation[i].push_back(rowI);
+                    }
+                    else
+                        P[i] += static_cast<T>(parsedMarkers[i]);
+                }
+                rowI++;
+            }
+
+            T map_size = (T)snp_map.size();
+
+#pragma omp parallel for
+            for (size_t i = 0; i < P.size(); i++)
+            {
+                P[i] = P[i] / ( 2.0 * ( map_size - (T)missed[i] ) );
+            }
+
+            Z.resize(snp_map.size(), snpNum);
+
+            for (size_t i = 0; i < snp_map.size(); i++)
+            {
+                for (size_t j = 0; j < snpNum; j++)
+                {
+                    Z(i, j) = (T)M(i, j) - 2.0 * P[j];
+                }
+            }
+
+            M.clear();
+
+            // modify Z matrix, so instead of missing values we put population average (0.0)
+
+#pragma omp parallel for
+            for (size_t i = 0; i < missedLocation.size(); i++)
+            {
+                for (size_t j = 0; j < missedLocation[i].size(); j++)
+                {
+                    Z(missedLocation[i][j], i) = 0.0;
+                    missed2pq[missedLocation[i][j]] = missed2pq[missedLocation[i][j]] + 2.0 * P[i] * (1.0 - P[i]);
+                }
+            }
+
+            freq = 0.0;
+//#pragma omp parallel for
+            for (size_t j = 0; j < P.size(); j++)
+            {
+                freq += P[j] * (1.0 - P[j]);
+            }
+            freq = 2.0 * freq;
+
+#pragma omp parallel for //schedule(static, block_size) num_threads(n_threads)
+            for (size_t i = 0; i < snp_map.size(); i++)
+            {
+                missed2pq[i] = sqrt(freq / (freq - missed2pq[i]));
+            }
+
+            // After centering, adjust for missing markers for each animal;
+            // adjust for sqrt[sum of 2pq over all loci /sum of 2pq over non-missing loci.
+
+#pragma omp parallel for //schedule(static, block_size) num_threads(n_threads)
+            for (size_t i = 0; i < snp_map.size(); i++)
+            {
+                for (size_t j = 0; j < snpNum; j++)
+                {
+                    Z(i, j) = Z(i, j) * missed2pq[i];
+                }
+            }
+
+            //M.clear();
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Gmat<T>::make_zmatrixf()" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Gmat<T>::make_zmatrixf()" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Gmat<T>::make_zmatrixf()" << '\n';
+            throw;
+        }
+    }
+    template void Gmat<float>::make_zmatrixf();
+    template void Gmat<double>::make_zmatrixf();
     //===============================================================================================================
     /**
      * @brief Construct scaled variants (snps) matrix

@@ -2159,12 +2159,12 @@ namespace evolm
         if (!fA.is_open())
             throw std::string("IOInterface::fread_matrix(const std::string &, std::vector<T> &, std::vector<size_t> &, std::vector<T2> &): Error while opening a binary file.");
 
-        size_t B[3];
+        size_t B[6];
 
-        fA.read( reinterpret_cast<char *>(&B), 3 * sizeof(size_t) ); // 0. reading a storage info
+        fA.read( reinterpret_cast<char *>(&B), 6 * sizeof(size_t) ); // 0. reading a storage info
 
         // info about matrix values
-        size_t var_inbytes = B[0];
+        size_t var_inbytes = B[3];
         size_t var_type = B[1]; // expected 2 or 3
         
         // info about matrix IDs
@@ -2208,12 +2208,12 @@ namespace evolm
         if (!fA.is_open())
             throw std::string("IOInterface::fread_matrix(const std::string &, std::vector<T> &, std::vector<size_t> &, std::vector<T2> &): Error while opening a binary file.");
 
-        size_t B[3];
+        size_t B[6];
 
-        fA.read( reinterpret_cast<char *>(&B), 3 * sizeof(size_t) ); // 0. reading a storage info
+        fA.read( reinterpret_cast<char *>(&B), 6 * sizeof(size_t) ); // 0. reading a storage info
 
         // info about matrix values
-        size_t var_inbytes = B[0];
+        size_t var_inbytes = B[3];
         size_t var_type = B[1]; // expected 2 or 3
         
         // info about matrix IDs
@@ -2248,23 +2248,44 @@ namespace evolm
     template void IOInterface::fread_matrix(const std::string &fname, std::vector<float> &vals, std::vector<size_t> &keys, std::vector<std::string> &ids);
     template void IOInterface::fread_matrix(const std::string &fname, std::vector<double> &vals, std::vector<size_t> &keys, std::vector<std::string> &ids);
     //===========================================================================================
-    void IOInterface::fread_matrix_info(const std::string &fname, size_t *info)
+    template <typename T>
+    void IOInterface::fread_matrix(const std::string &fname, evolm::matrix<T> &matr, std::vector<std::int64_t> &ids)
     {
-        std::fstream fA;
-        //fA.exceptions(std::ifstream::failbit | std::ifstream::badbit);
-
-        std::string name_suffix(".corbin");
+        std::string name_suffix(".dmbin");
         size_t find = fname.find(name_suffix);
         std::string fname2(fname);
         if( find == std::string::npos ) // there is no suffix
             fname2 = fname + name_suffix;
 
-        fA.open(fname2, fA.binary | fA.in);
+        matr.fread(fname2, ids);
+    }
+    template void IOInterface::fread_matrix(const std::string &fname, evolm::matrix<float> &matr, std::vector<std::int64_t> &ids);
+    template void IOInterface::fread_matrix(const std::string &fname, evolm::matrix<double> &matr, std::vector<std::int64_t> &ids);
+    //===========================================================================================
+    template <typename T>
+    void IOInterface::fread_matrix(const std::string &fname, evolm::matrix<T> &matr, std::vector<std::string> &ids)
+    {
+        std::string name_suffix(".dmbin");
+        size_t find = fname.find(name_suffix);
+        std::string fname2(fname);
+        if( find == std::string::npos ) // there is no suffix
+            fname2 = fname + name_suffix;
+        
+        matr.fread(fname2, ids);
+    }
+    template void IOInterface::fread_matrix(const std::string &fname, evolm::matrix<float> &matr, std::vector<std::string> &ids);
+    template void IOInterface::fread_matrix(const std::string &fname, evolm::matrix<double> &matr, std::vector<std::string> &ids);
+    //===========================================================================================
+    void IOInterface::fread_matrix_info(const std::string &fname, size_t *info)
+    {
+        std::fstream fA;
+
+        fA.open(fname, fA.binary | fA.in);
 
         if (!fA.is_open())
-            throw std::string("IOInterface::fread_matrix_info(const std::string &, size_t &): Error while opening a binary file.");
+            throw std::string("IOInterface::fread_matrix_info(const std::string &, size_t &): Error while opening a binary file: " + fname + ".");
 
-        fA.read( reinterpret_cast<char *>(info), 3 * sizeof(size_t) ); // 0. reading a storage info
+        fA.read( reinterpret_cast<char *>(info), 6 * sizeof(size_t) ); // reading a storage info
 
         fA.close();
     }

@@ -60,6 +60,8 @@ namespace evolm
 
         borroow_levels_from.clear();
 
+        effects_with_logical_and.clear();
+
         model_definition.clear();
 
         next_subm_eff = 0;
@@ -259,6 +261,8 @@ namespace evolm
 
                 get_missing_obs(); // update missing data structure
 
+                process_external_vars();
+
                 process_fixed_vars(fixedvars); // append random_and_fixed_effects container, and var names to random_and_fixed_effects_names
                 fixedvars.clear(); fixedvars.shrink_to_fit();
                 process_random_vars(lhs_randomvars, rhs_randomvars, random_vars_identifiers); // append random_and_fixed_effects container, and var names to random_and_fixed_effects_names
@@ -318,7 +322,7 @@ namespace evolm
                 return;
             }
 
-            if (name_value_pair[0] == "effect")
+            if (name_value_pair[0] == "refeff")
             {
                 effect_file_name = name_value_pair[1];
                 return;
@@ -336,6 +340,15 @@ namespace evolm
                 cor_var.push_back(name_value_pair[0]); // var name
                 cor_var.push_back(name_value_pair[1]); // .corbin file name
                 special_corr_vars.push_back(cor_var);
+                return;
+            }
+
+            if ( is_str_in_expr(name_value_pair[1], ".dmbin") ) // check if there is suffix .dmbin in name_value_pair[1]
+            {
+                std::vector<std::string> dmatr_var;
+                dmatr_var.push_back(name_value_pair[0]); // var name
+                dmatr_var.push_back(name_value_pair[1]); // .dmbin file name
+                special_corr_vars.push_back(dmatr_var);  // we store .dmbin files in the same storage as .corbin files
                 return;
             }
 
@@ -383,7 +396,7 @@ namespace evolm
 
                 for (size_t i = 0; i < var_data.size(); i++)
                     for (size_t j = 0; j < var_data[0].size(); j++)
-                        cs.append(var_data[i][j], i, j);                
+                        cs.append(var_data[i][j], i, j);
                 
                 for (size_t i = 0; i < var_data[0].size(); i++)
                     levels.push_back(std::to_string(i+1));
@@ -588,6 +601,10 @@ namespace evolm
             if ( correlated_vars.size() != correlated_groups.size()-1 )
                 throw std::string("Incorrect expression for the model variance: correlated_vars.size() != correlated_groups.size()-1");
 
+std::cout<<"correlated_vars:"<<'\n';
+for(auto &v1: correlated_vars)
+    for(auto &v2: v1)
+        std::cout<<v2<<'\n';
             find_corr_vars_in_effects(correlated_vars); // for each correlated var find index (position) in effects vector, writing to the class's corr_vars_index_in_effects container
 
             correlated_vars.clear();
@@ -630,7 +647,7 @@ namespace evolm
                                                                 
                                 compact_storage<float> corr_storage;
 
-                                load_corbin_file(cor_matr_file, cor_variable, levels, corr_storage);
+                                load_corr_file(cor_matr_file, cor_variable, levels, corr_storage);
 
                                 // add corr_storage to extra_vars storage
 
@@ -704,8 +721,10 @@ namespace evolm
                     // (1) check the aliases map, return the original name if alias is used
                     std::unordered_map<std::string,std::string>::const_iterator it = identifier_to_eff_name.find(t_var_name);                                        
                     if ( it != identifier_to_eff_name.end() )
+                    {
                         t_var_name = it->second;
-                    
+std::cout<<"2. t_var_name: "<<t_var_name<<'\n';
+                    }
                     // (2) if there is no special identifier provided, check the name as it is
                     int index = in.find_value(random_and_fixed_effects_names, t_var_name);
                     
@@ -742,7 +761,7 @@ namespace evolm
         }
     }
     // -------------------------------------------------------------
-    void model_parser::load_corbin_file(std::string &cor_matr_file, std::string &cor_variable, std::vector<std::string> &var_levels, compact_storage<float> &corr_storage)
+    void model_parser::load_corr_file(std::string &cor_matr_file, std::string &cor_variable, std::vector<std::string> &var_levels, compact_storage<float> &corr_storage)
     {
         try
         {
@@ -771,162 +790,447 @@ namespace evolm
                     str_levels[i] = var_levels[i];
             }
 
-            size_t cor_matr_info[3]; // info storage for a data in .cprbin file
+            size_t cor_matr_info[6]; // info storage for a data in .cprbin file
             in.fread_matrix_info( cor_matr_file, cor_matr_info ); // get info
 
-            std::vector<float> f_vals;
-            std::vector<double> d_vals;
-            std::vector<std::int64_t> i_ids;
-            std::vector<std::string> s_ids;
-            std::vector<size_t> keys;
-
-            std::vector<size_t> pos_map; // permutation vector
-            std::vector<std::int64_t> pos_map_red; // permutation vector, in the case of corr matrix needs to be reduced
+            bool is_dense_matrix = false;
+            if ( cor_matr_info[0] == 1001 )
+                is_dense_matrix = true;
+            else if ( cor_matr_info[0] != 3003 )
+                throw std::string("Cannot detect matrix type in .corbin file!");
             
-            if( cor_matr_info[2] == 5 ) // expected type int64 of ids
-            {       
-                int_levels.resize(str_levels.size());
+            if ( !is_dense_matrix )
+            {
+                std::vector<float> f_vals;
+                std::vector<double> d_vals;
+                std::vector<std::int64_t> i_ids;
+                std::vector<std::string> s_ids;
+                std::vector<size_t> keys;
 
-#pragma omp parallel for
-                for (size_t i = 0; i < str_levels.size(); i++) // conversion from std::string to int64
-                    int_levels[i] = std::stol( str_levels[i] );
-
-                if ( cor_matr_info[1] == 2 ) // get cor matrix of type float and int64 ids
-                {
-                    in.fread_matrix(cor_matr_file, f_vals, keys, i_ids);
-                }
-                else if ( cor_matr_info[1] == 3 ) // get cor matrix of type double and int64 ids
-                {
-                    in.fread_matrix(cor_matr_file, d_vals, keys, i_ids);
-                    
-                    f_vals.resize(d_vals.size());
-                    std::copy( d_vals.begin(), d_vals.end(), f_vals.begin() ); // need convertion to float
-                    d_vals.clear();
-                    d_vals.shrink_to_fit();
-                }
-                else
-                    throw std::string("Undefined type of correlation matrix. Expected float or double.");
+                std::vector<size_t> pos_map; // permutation vector
+                std::vector<std::int64_t> pos_map_red; // permutation vector, in the case of corr matrix needs to be reduced
                 
-                if ( i_ids.size() < int_levels.size() )
-                    throw std::string("The number of rows in the correlation matrix " + cor_variable + " stored in the file " + cor_matr_file + " is lowe than the number of levels in the effect!");
+                if( cor_matr_info[2] == 5 ) // expected type int64 of ids
+                {       
+                    int_levels.resize(str_levels.size());
 
-                if ( i_ids.size() > int_levels.size() ) // require permutation and reduction
-                {
-                    size_t num_of_found = 0;
-                    for (size_t i = 0; i < i_ids.size(); i++) // make permutation vector
+    #pragma omp parallel for
+                    for (size_t i = 0; i < str_levels.size(); i++) // conversion from std::string to int64
+                        int_levels[i] = std::stol( str_levels[i] );
+
+                    if ( cor_matr_info[1] == 2 ) // get cor matrix of type float and int64 ids
                     {
-                        int found = in.find_value(int_levels, i_ids[i]);
-                        pos_map_red.push_back(found);
-                        if ( found != -1 )
-                            num_of_found++;                                            
+                        in.fread_matrix(cor_matr_file, f_vals, keys, i_ids);
                     }
-                    if ( num_of_found != int_levels.size() )
-                        throw std::string("There are IDs in the correlation matrix which are not in Effect matrix!");
-                }
-                else // require only permutation
-                {
-                    for (size_t i = 0; i < i_ids.size(); i++) // make permutation vector
+                    else if ( cor_matr_info[1] == 3 ) // get cor matrix of type double and int64 ids
                     {
-                        int found = in.find_value(int_levels, i_ids[i]);
-                        if ( found != -1 )
-                            pos_map.push_back(found);
-                        else
-                            throw std::string("The following ID " + std::to_string(i_ids[i]) + " from correlation matrix is not in Effect matrix!");
+                        in.fread_matrix(cor_matr_file, d_vals, keys, i_ids);
+                        
+                        f_vals.resize(d_vals.size());
+                        std::copy( d_vals.begin(), d_vals.end(), f_vals.begin() ); // need convertion to float
+                        d_vals.clear();
+                        d_vals.shrink_to_fit();
                     }
+                    else
+                        throw std::string("Undefined type of correlation matrix. Expected float or double.");
+                    
+                    if ( i_ids.size() < int_levels.size() )
+                        throw std::string("The number of rows in the correlation matrix " + cor_variable + " stored in the file " + cor_matr_file + " is lowe than the number of levels in the effect!");
+
+                    if ( i_ids.size() > int_levels.size() ) // require permutation and reduction
+                    {
+                        size_t num_of_found = 0;
+                        for (size_t i = 0; i < i_ids.size(); i++) // make permutation vector
+                        {
+                            int found = in.find_value(int_levels, i_ids[i]);
+                            pos_map_red.push_back(found);
+                            if ( found != -1 )
+                                num_of_found++;                                            
+                        }
+                        if ( num_of_found != int_levels.size() )
+                            throw std::string("There are IDs in the correlation matrix which are not in Effect matrix!");
+                    }
+                    else // require only permutation
+                    {
+                        for (size_t i = 0; i < i_ids.size(); i++) // make permutation vector
+                        {
+                            int found = in.find_value(int_levels, i_ids[i]);
+                            if ( found != -1 )
+                                pos_map.push_back(found);
+                            else
+                                throw std::string("The following ID " + std::to_string(i_ids[i]) + " from correlation matrix is not in Effect matrix!");
+                        }
+                    }
+
+                    corr_storage.resize( i_ids.size() ); // expected symmeric matrix in .corbin
+
+                    i_ids.clear();
+                    i_ids.shrink_to_fit();
                 }
 
-                corr_storage.resize( i_ids.size() ); // expected symmeric matrix in .corbin
+                if ( cor_matr_info[2] == 4 ) // expected type std::string of ids
+                {                
+                    if ( cor_matr_info[1] == 2 )
+                    {
+                        in.fread_matrix(cor_matr_file, f_vals, keys, s_ids);
+                    }
+                    else if ( cor_matr_info[1] == 3 )
+                    {
+                        in.fread_matrix(cor_matr_file, d_vals, keys, s_ids);
 
-                i_ids.clear();
-                i_ids.shrink_to_fit();
-            }
+                        f_vals.resize(d_vals.size());
+                        std::copy( d_vals.begin(), d_vals.end(), f_vals.begin() ); // need convertion to float
+                        d_vals.clear();
+                        d_vals.shrink_to_fit();
+                    }
+                    else
+                        throw std::string("Undefined type of correlation matrix. Expected float or double.");
 
-            if ( cor_matr_info[2] == 4 ) // expected type std::string of ids
-            {                
-                if ( cor_matr_info[1] == 2 )
-                {
-                    in.fread_matrix(cor_matr_file, f_vals, keys, s_ids);
+                    if ( s_ids.size() < str_levels.size() )
+                        throw std::string("The number of rows in the correlation matrix " + cor_variable + " stored in the file " + cor_matr_file + " is lowe than the number of levels in the effect!");
+
+                    if ( s_ids.size() > str_levels.size() ) // require permutation and reduction
+                    {
+                        size_t num_of_found = 0;
+                        for (size_t i = 0; i < s_ids.size(); i++) // make permutation vector
+                        {
+                            int found = in.find_value(str_levels, s_ids[i]);
+                            pos_map_red.push_back(found);
+                            if ( found != -1 )
+                                num_of_found++;                                            
+                        }
+                        if ( num_of_found != str_levels.size() )
+                            throw std::string("There are IDs in the correlation matrix which are not in Effect matrix!");
+                    }
+                    else // require only permutation
+                    {
+                        for (size_t i = 0; i < s_ids.size(); i++) // make permutation vector
+                        {
+                            int found = in.find_value(str_levels, s_ids[i]);
+                            if ( found != -1 )
+                                pos_map.push_back(found);
+                            else
+                                throw std::string("The following ID " + s_ids[i] + " from correlation matrix is not in Effect matrix!");
+                        }
+                    }
+
+                    corr_storage.resize( s_ids.size() );
+
+                    s_ids.clear();
+                    s_ids.shrink_to_fit();
                 }
-                else if ( cor_matr_info[1] == 3 )
-                {
-                    in.fread_matrix(cor_matr_file, d_vals, keys, s_ids);
 
-                    f_vals.resize(d_vals.size());
-                    std::copy( d_vals.begin(), d_vals.end(), f_vals.begin() ); // need convertion to float
-                    d_vals.clear();
-                    d_vals.shrink_to_fit();
-                }
+                corr_storage.append_with_keys(f_vals, keys);
+
+                f_vals.clear();
+                f_vals.shrink_to_fit();
+                keys.clear();
+                keys.shrink_to_fit();
+
+                if ( !pos_map.empty() )
+                    corr_storage.permute(pos_map); // rearrange matrix according to effect ids list
                 else
-                    throw std::string("Undefined type of correlation matrix. Expected float or double.");
-
-                if ( s_ids.size() < str_levels.size() )
-                    throw std::string("The number of rows in the correlation matrix " + cor_variable + " stored in the file " + cor_matr_file + " is lowe than the number of levels in the effect!");
-
-                if ( s_ids.size() > str_levels.size() ) // require permutation and reduction
-                {
-                    size_t num_of_found = 0;
-                    for (size_t i = 0; i < s_ids.size(); i++) // make permutation vector
-                    {
-                        int found = in.find_value(str_levels, s_ids[i]);
-                        pos_map_red.push_back(found);
-                        if ( found != -1 )
-                            num_of_found++;                                            
-                    }
-                    if ( num_of_found != str_levels.size() )
-                        throw std::string("There are IDs in the correlation matrix which are not in Effect matrix!");
-                }
-                else // require only permutation
-                {
-                    for (size_t i = 0; i < s_ids.size(); i++) // make permutation vector
-                    {
-                        int found = in.find_value(str_levels, s_ids[i]);
-                        if ( found != -1 )
-                            pos_map.push_back(found);
-                        else
-                            throw std::string("The following ID " + s_ids[i] + " from correlation matrix is not in Effect matrix!");
-                    }
-                }
-
-                corr_storage.resize( s_ids.size() );
-
-                s_ids.clear();
-                s_ids.shrink_to_fit();
+                    corr_storage.permute_and_reduce(pos_map_red); // rearrange and reduce matrix according to effect ids list
+                
+                pos_map.clear();
+                pos_map.shrink_to_fit();
+                pos_map_red.clear();
+                pos_map_red.shrink_to_fit();
+                
+                corr_storage.sym_to_rec(); // make it rectangular
             }
+            else // working with dense matrix in .corbin file
+            {
+                evolm::matrix<float> f_vals;
+                evolm::matrix<double> d_vals;
+                std::vector<std::int64_t> i_ids;
+                std::vector<std::string> s_ids;
 
-            corr_storage.append_with_keys(f_vals, keys);
+                std::vector<size_t> pos_map; // permutation vector
+                std::vector<std::int64_t> pos_map_red; // permutation vector, in the case of corr matrix needs to be reduced
+                
+                if( cor_matr_info[5] == 0 ) // expected type int64 of ids
+                {       
+                    int_levels.resize(str_levels.size());
 
-            f_vals.clear();
-            f_vals.shrink_to_fit();
-            keys.clear();
-            keys.shrink_to_fit();
+    #pragma omp parallel for
+                    for (size_t i = 0; i < str_levels.size(); i++) // conversion from std::string to int64
+                        int_levels[i] = std::stol( str_levels[i] );
 
-            if ( !pos_map.empty() )
-                corr_storage.permute(pos_map); // rearrange matrix according to effect ids list
-            else
-                corr_storage.permute_and_reduce(pos_map_red); // rearrange and reduce matrix according to effect ids list
-            
-            pos_map.clear();
-            pos_map.shrink_to_fit();
-            pos_map_red.clear();
-            pos_map_red.shrink_to_fit();
-            
-            corr_storage.sym_to_rec(); // make it rectangular
+                    if ( cor_matr_info[4] == sizeof(float) ) // get cor matrix of type float and int64 ids
+                    {
+                        in.fread_matrix(cor_matr_file, f_vals, i_ids);
+                    }
+                    else if ( cor_matr_info[4] == sizeof(double) ) // get cor matrix of type double and int64 ids
+                    {
+                        in.fread_matrix(cor_matr_file, d_vals, i_ids);
+                        
+                        f_vals = d_vals._float(); // convert to float
+                        d_vals.clear();
+                    }
+                    else
+                        throw std::string("Undefined type of correlation matrix. Expected float or double.");
+                    
+                    if ( i_ids.size() < int_levels.size() )
+                        throw std::string("The number of rows in the correlation matrix " + cor_variable + " stored in the file " + cor_matr_file + " is lowe than the number of levels in the effect!");
+
+                    if ( i_ids.size() > int_levels.size() ) // require permutation and reduction
+                    {
+                        size_t num_of_found = 0;
+                        for (size_t i = 0; i < i_ids.size(); i++) // make permutation vector
+                        {
+                            int found = in.find_value(int_levels, i_ids[i]);
+                            pos_map_red.push_back(found);
+                            if ( found != -1 )
+                                num_of_found++;                                            
+                        }
+                        if ( num_of_found != int_levels.size() )
+                            throw std::string("There are IDs in the correlation matrix which are not in Effect matrix!");
+                    }
+                    else // require only permutation
+                    {
+                        for (size_t i = 0; i < i_ids.size(); i++) // make permutation vector
+                        {
+                            int found = in.find_value(int_levels, i_ids[i]);
+                            if ( found != -1 )
+                                pos_map.push_back(found);
+                            else
+                                throw std::string("The following ID " + std::to_string(i_ids[i]) + " from correlation matrix is not in Effect matrix!");
+                        }
+                    }
+
+                    corr_storage.resize( i_ids.size() ); // expected symmeric matrix in .corbin
+
+                    i_ids.clear();
+                    i_ids.shrink_to_fit();
+                }
+
+                if ( cor_matr_info[5] == 1 ) // expected type std::string of ids
+                {                
+                    if ( cor_matr_info[4] == sizeof(float) )
+                    {
+                        in.fread_matrix(cor_matr_file, f_vals, s_ids);
+                    }
+                    else if ( cor_matr_info[4] == sizeof(double) )
+                    {
+                        in.fread_matrix(cor_matr_file, d_vals, s_ids);
+
+                        f_vals = d_vals._float(); // convert to float
+                        d_vals.clear();
+                    }
+                    else
+                        throw std::string("Undefined type of correlation matrix. Expected float or double.");
+
+                    if ( s_ids.size() < str_levels.size() )
+                        throw std::string("The number of rows in the correlation matrix " + cor_variable + " stored in the file " + cor_matr_file + " is lowe than the number of levels in the effect!");
+
+                    if ( s_ids.size() > str_levels.size() ) // require permutation and reduction
+                    {
+                        size_t num_of_found = 0;
+                        for (size_t i = 0; i < s_ids.size(); i++) // make permutation vector
+                        {
+                            int found = in.find_value(str_levels, s_ids[i]);
+                            pos_map_red.push_back(found);
+                            if ( found != -1 )
+                                num_of_found++;                                            
+                        }
+                        if ( num_of_found != str_levels.size() )
+                            throw std::string("There are IDs in the correlation matrix which are not in Effect matrix!");
+                    }
+                    else // require only permutation
+                    {
+                        for (size_t i = 0; i < s_ids.size(); i++) // make permutation vector
+                        {
+                            int found = in.find_value(str_levels, s_ids[i]);
+                            if ( found != -1 )
+                                pos_map.push_back(found);
+                            else
+                                throw std::string("The following ID " + s_ids[i] + " from correlation matrix is not in Effect matrix!");
+                        }
+                    }
+
+                    corr_storage.resize( s_ids.size() );
+
+                    s_ids.clear();
+                    s_ids.shrink_to_fit();
+                }
+
+                std::vector<float> vect_data;
+                f_vals.to_vector(vect_data);
+
+                corr_storage.append(vect_data);
+
+                f_vals.clear();
+                vect_data.clear();
+                vect_data.shrink_to_fit();
+
+                if ( !pos_map.empty() )
+                    corr_storage.permute(pos_map); // rearrange matrix according to effect ids list
+                else
+                    corr_storage.permute_and_reduce(pos_map_red); // rearrange and reduce matrix according to effect ids list
+                
+                pos_map.clear();
+                pos_map.shrink_to_fit();
+                pos_map_red.clear();
+                pos_map_red.shrink_to_fit();
+                
+                corr_storage.sym_to_rec(); // make it rectangular
+            }
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in model_parser::load_corbin_file(std::string &, std::string &, std::vector<std::string> &, compact_storage<float> &)"<< "\n";
+            std::cerr << "Exception in model_parser::load_corr_file(std::string &, std::string &, std::vector<std::string> &, compact_storage<float> &)"<< "\n";
             std::cerr << "Reason => " << e << "\n";
             throw e;
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in model_parser::load_corbin_file(std::string &, std::string &, std::vector<std::string> &, compact_storage<float> &)"<< "\n";
+            std::cerr << "Exception in model_parser::load_corr_file(std::string &, std::string &, std::vector<std::string> &, compact_storage<float> &)"<< "\n";
             std::cerr << "Reason => " << e.what() << "\n";
             throw e;
         }
         catch (...)
         {
-            std::cerr << "Exception in model_parser::load_corbin_file(std::string &, std::string &, std::vector<std::string> &, compact_storage<float> &)"<< "\n";
+            std::cerr << "Exception in model_parser::load_corr_file(std::string &, std::string &, std::vector<std::string> &, compact_storage<float> &)"<< "\n";
+            throw;
+        }
+    }
+    // -------------------------------------------------------------
+    void model_parser::load_eff_file(std::string &eff_matr_file, smatrix<float> &s_matr, matrix<float> &d_matr, std::vector<std::int64_t> &i_ids, std::vector<std::string> &s_ids)
+    {
+        try
+        {
+            IOInterface in;
+            
+            size_t matr_info[6]; // info storage for a data in .cprbin file
+            in.fread_matrix_info( eff_matr_file, matr_info ); // get matrix info
+
+            bool is_dense_matrix = false;
+            if ( matr_info[0] == 1001 )
+                is_dense_matrix = true;
+            else if ( matr_info[0] != 3003 )
+                throw std::string("Cannot detect matrix type in .corbin/.dmbin file!");
+            
+            if ( !is_dense_matrix ) // the data has .corbin structure
+            {
+                std::vector<float> f_vals;
+                std::vector<double> d_vals;
+                std::vector<size_t> keys;
+                size_t n_rows = matr_info[4];
+                size_t n_cols = matr_info[5];
+
+                if( matr_info[2] == 5 ) // expected type int64 of ids
+                {       
+                    if ( matr_info[1] == 2 ) // get eff matrix of type float and int64 ids
+                    {
+                        in.fread_matrix(eff_matr_file, f_vals, keys, i_ids);
+                    }
+                    else if ( matr_info[1] == 3 ) // get eff matrix of type double and int64 ids
+                    {
+                        in.fread_matrix(eff_matr_file, d_vals, keys, i_ids);
+                        
+                        f_vals.resize(d_vals.size());
+                        std::copy( d_vals.begin(), d_vals.end(), f_vals.begin() ); // need convertion to float
+                        d_vals.clear();
+                        d_vals.shrink_to_fit();
+                    }
+                    else
+                        throw std::string("Undefined type of effect matrix. Expected float or double.");
+                }
+                else if ( matr_info[2] == 4 ) // expected type std::string of ids
+                {                
+                    if ( matr_info[1] == 2 )
+                    {
+                        in.fread_matrix(eff_matr_file, f_vals, keys, s_ids);
+                    }
+                    else if ( matr_info[1] == 3 )
+                    {
+                        in.fread_matrix(eff_matr_file, d_vals, keys, s_ids);
+
+                        f_vals.resize(d_vals.size());
+                        std::copy( d_vals.begin(), d_vals.end(), f_vals.begin() ); // need convertion to float
+                        d_vals.clear();
+                        d_vals.shrink_to_fit();
+                    }
+                    else
+                        throw std::string("Undefined type of effect matrix. Expected float or double.");
+
+                    n_rows = s_ids.size();
+                }
+                else
+                    throw std::string("Cannot define the type of records/observations IDs in .corbin file " + eff_matr_file + ".");
+
+                if ( n_cols == 0 ) // assumeed symmetryc in compact form
+                    s_matr.resize( n_rows );
+                else
+                    s_matr.resize( n_rows, n_cols );
+
+                for (size_t i = 0; i < keys.size(); i++)
+                    s_matr[ keys[i] ] = f_vals[i];
+
+                if ( n_cols == 0 )
+                    s_matr.symtorec();
+
+                f_vals.clear();
+                f_vals.shrink_to_fit();
+                keys.clear();
+                keys.shrink_to_fit();
+            }
+            else // working with dense matrix in .dmbin file
+            {
+                evolm::matrix<double> dbl_vals;
+                
+                if( matr_info[5] == 0 ) // expected type int64 of ids
+                {       
+                    if ( matr_info[4] == sizeof(float) ) // get cor matrix of type float and int64 ids
+                    {
+                        in.fread_matrix(eff_matr_file, d_matr, i_ids);
+                    }
+                    else if ( matr_info[4] == sizeof(double) ) // get cor matrix of type double and int64 ids
+                    {
+                        in.fread_matrix(eff_matr_file, dbl_vals, i_ids);
+                        
+                        d_matr = dbl_vals._float(); // convert to float
+                        dbl_vals.clear();
+                    }
+                    else
+                        throw std::string("Undefined type of effect matrix. Expected float or double.");
+                }
+                else if ( matr_info[5] == 1 ) // expected type std::string of ids
+                {                
+                    if ( matr_info[4] == sizeof(float) )
+                    {
+                        in.fread_matrix(eff_matr_file, d_matr, s_ids);
+                    }
+                    else if ( matr_info[4] == sizeof(double) )
+                    {
+                        in.fread_matrix(eff_matr_file, dbl_vals, s_ids);
+
+                        d_matr = dbl_vals._float(); // convert to float
+                        dbl_vals.clear();
+                    }
+                    else
+                        throw std::string("Undefined type of effect matrix. Expected float or double.");
+                }
+                else
+                    throw std::string("Cannot define the type of records/observations IDs in .dmbin file " + eff_matr_file + ".");
+            }
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in model_parser::load_eff_file(std::string &, smatrix<float> &, matrix<float> &, std::vector<std::int64_t> &, std::vector<std::string> &)"<< "\n";
+            std::cerr << "Reason => " << e << "\n";
+            throw e;
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in model_parser::load_eff_file(std::string &, smatrix<float> &, matrix<float> &, std::vector<std::int64_t> &, std::vector<std::string> &)"<< "\n";
+            std::cerr << "Reason => " << e.what() << "\n";
+            throw e;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in model_parser::load_eff_file(std::string &, smatrix<float> &, matrix<float> &, std::vector<std::int64_t> &, std::vector<std::string> &)"<< "\n";
             throw;
         }
     }
@@ -1055,11 +1359,12 @@ namespace evolm
 
                 // look at the extra_effects storage if the variable observ_vars[i] is already processed
                 int var_find_res = in.find_value(extra_effects_names, var_name);
+                // and look at the effects_with_logical_and storage if the variable observ_vars[i] is already processed
+                std::unordered_map<std::string, std::string>::const_iterator in_map = effects_with_logical_and.find (var_name);
 
-                if ( var_find_res != -1 )
+                if ( var_find_res != -1 ) // variable is in the extra storage
                 {
-                    // variable is in the extra storage
-                    random_and_fixed_in_extra_storage.push_back(var_find_res); // we now know where to (not) find observ_vars[i] variable
+                    /**/random_and_fixed_in_extra_storage.push_back(var_find_res); // we now know where to (not) find observ_vars[i] variable
                     random_and_fixed_effects.push_back(s_effect); // push empty effect to keep the vector size consistent
                     random_and_fixed_effects_names.push_back(var_name);
                     // need to provide some levels description (as strings) for this variable (obtained not from a data file!)
@@ -1070,6 +1375,11 @@ namespace evolm
                     random_and_fixed_effects_levels.push_back(s_effect_levels);
                     continue; // move to the next variable
                 }
+                /*else if ( in_map != effects_with_logical_and.end() )
+                {
+                    process_effects_with_logical_and(in_map->first, in_map->second);
+                    continue;
+                }*/
 
                 random_and_fixed_in_extra_storage.push_back(-1);
 
@@ -1104,6 +1414,290 @@ namespace evolm
         }
     }
     // -------------------------------------------------------------
+    void model_parser::process_external_vars()
+    {
+        try
+        {
+            for (auto const & in_map: effects_with_logical_and)
+                process_effects_with_logical_and(in_map.first, in_map.second);
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in model_parser::process_external_vars()"<< "\n";
+            std::cerr << "Reason => " << e << "\n";
+            throw e;
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in model_parser::process_external_vars()"<< "\n";
+            std::cerr << "Reason => " << e.what() << "\n";
+            throw e;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in model_parser::process_external_vars()"<< "\n";
+            throw;
+        }
+    }
+    // -------------------------------------------------------------
+    void model_parser::process_effects_with_logical_and(std::string it_first, std::string it_second)
+    {
+        // process vars in the form 'var1 & var2', which are not in the fixed_vars list
+        try
+        {
+            evolm::IOInterface in;
+
+            std::string extern_eff_var = it_first;
+            std::string ref_data_var = it_second;
+
+            evolm::matrix<float> d_ext_eff;
+            evolm::smatrix<float> s_ext_eff;
+            size_t ext_irow = 0;
+            size_t ext_icol = 0;
+
+            smatrix<float> ref_effect;
+            size_t ref_irow = 0;
+            size_t ref_icol = 0;
+            
+            std::vector<std::string> ref_levels;
+            std::vector<std::int64_t> int_levels;
+            std::vector<std::int64_t> i_ids;
+            std::vector<std::string> s_ids;
+
+            std::vector<std::int64_t> raws_in_extern_eff; // permutation vector of ids
+
+            // 1. getting ref_data_var
+            int var_find = in.find_value(extra_effects_names, ref_data_var); // look at the extra_effects storage if the variable is already processed
+            if ( var_find != -1 ) // it is already processed
+            {
+                evolm::effects_storage ref_data_effect;
+                ref_data_effect = extra_effects[var_find];
+                std::vector<size_t> shape_of_from_data = ref_data_effect.shape();
+                ref_irow = shape_of_from_data[0];
+                ref_icol = shape_of_from_data[1];
+                ref_levels = extra_effects_levels[var_find];
+
+                size_t t_irow[] = { 0, ref_irow };
+                size_t t_icol[] = { 0, ref_icol };
+                ref_data_effect.get_fcast(ref_effect, t_irow, t_icol);
+                ref_data_effect.clear();
+            }
+            else if ( ref_data_var != "I" ) // it is not processed and is not I; therefore, extracting it from a data file
+            {
+                evolm::effects_storage ref_data_effect;
+                std::vector<std::string> var_vect;
+                var_vect.push_back(ref_data_var);
+                std::string s_effect_name; // parocessed effect name
+                get_effect_from_data(in, var_vect, ref_data_effect, s_effect_name, ref_levels);
+                std::vector<size_t> shape_of_from_data = ref_data_effect.shape();
+                ref_irow = shape_of_from_data[0];
+                ref_icol = shape_of_from_data[1];
+                
+                size_t t_irow[] = { 0, ref_irow-1 };
+                size_t t_icol[] = { 0, ref_icol-1 };
+                ref_data_effect.get_fcast(ref_effect, t_irow, t_icol);
+                ref_data_effect.clear();
+            }
+
+            if ( ref_data_var != "I" && ( ref_irow == 0 || ref_icol == 0 ) )
+                throw std::string("The number of rows/columns of effect " + ref_data_var + " is zerro: ref_irow == 0 || ref_icol == 0.");
+
+            // 2. getting extern_eff_var
+            var_find = in.find_value(extra_effects_names, extern_eff_var); // look at extra_effects_names for already submitted matrix
+            if ( var_find != -1 ) // it is already processed
+                throw std::string("The variable " + extern_eff_var + " has already been processed as an effect in the model. In order to use & operator submit the effect as a .corbin or .dmbin file.");
+
+            std::string eff_matr_file;
+
+            raws_in_extern_eff.resize(ref_irow, -1);
+
+            // Check in the special_corr_vars for corresponding .corbin or .dmbin file
+            for (size_t l = 0; l < special_corr_vars.size(); l++) // loop over saved variables (and associated .corbin or .dmbin files) in special_corr_vars
+            {
+                eff_matr_file = special_corr_vars[l][1];
+
+                std::vector<std::string> t_str{ special_corr_vars[l][0] }; // make vector of l-th variable name from special_corr_vars container
+                
+                var_find = in.find_value(t_str, extern_eff_var); // check if l-th var name special_corr_vars[l][0] is the same as extern_eff_var var name
+                t_str.clear();
+                
+                if (var_find != -1) // special_corr_vars[l][0] == extern_eff_var, hence there is .corbin or .dmbin file in the storage needs to be processed
+                {
+                    load_eff_file(eff_matr_file, s_ext_eff, d_ext_eff, i_ids, s_ids);
+
+                    if ( s_ext_eff.empty() && d_ext_eff.empty() )
+                        throw std::string("The matrix provided by load_eff_file(...) method is empty: s_ext_eff.empty() && d_ext_eff.empty().");
+                    
+                    if (s_ext_eff.empty())
+                    {
+                        matrix<size_t> shp = d_ext_eff.shape();
+                        ext_irow = shp[0];
+                        ext_icol = shp[1];
+                    }
+                    else
+                    {
+                        ext_irow = s_ext_eff.nrows();
+                        ext_icol = s_ext_eff.ncols();
+                    }
+                    break; // exit from the loop, do not need to search further
+                }
+            }
+
+            if (var_find == -1) // Cannot find in special_corr_vars
+                throw std::string("Cannot find the variable " + extern_eff_var + ", or its .corbin or .dmbin files.");
+
+            if ( i_ids.empty() && s_ids.empty() )
+                throw std::string("Both vectors of records IDs in the file " + eff_matr_file + " are empty: i_ids.empty() && s_ids.empty().");
+
+            if ( !i_ids.empty() ) // variable extern_eff_var has int64_t type of ids
+            {
+                int_levels.resize(ref_levels.size(), -1);
+#pragma omp parallel for
+                for (size_t i = 0; i < ref_levels.size(); i++) // convert ref_var levels from std::string to int64
+                    int_levels[i] = std::stol( ref_levels[i] );
+
+                if ( i_ids.size() < int_levels.size() )
+                    throw std::string("The number of rows/records IDs in the effect matrix " + extern_eff_var + " stored in the file " + eff_matr_file + " is lower than the number of levels in the effect " + ref_data_var + ".");
+
+                if ( i_ids.size() > int_levels.size() )
+                    std::cout<<"WARNING NOTE: the number of rows/records IDs in the effect matrix " + extern_eff_var + " stored in the file " + eff_matr_file + " is higher than the number of levels in the effect " + ref_data_var + "."<<'\n';
+                
+                std::vector<std::int64_t> pos_map(ref_irow, -1); // permutation vector of ids
+
+                for (size_t i = 0; i < ref_irow; i++) // loop over reference effect to define permutation map for the main (external) effect
+                {
+                    for ( size_t j = 0; j < ref_icol; j++ )
+                    {
+                        if ( ref_effect.get_nonzero(i,j) != 0.0f )
+                        {
+                            pos_map[i] = int_levels[j]; // put the ref_var id at the col j in the position i
+                            continue;
+                        }
+                    }
+                }
+
+                ref_effect.clear();
+
+                for (size_t i = 0; i < pos_map.size(); i++)
+                {
+                    if ( pos_map[i] == -1 )
+                        continue;
+                    int found_pos = in.find_value(i_ids, pos_map[i]);
+                    if ( found_pos == -1 )
+                        throw std::string("There is no id " + std::to_string(pos_map[i]) + " of the variable " + ref_data_var + " at the ids list of the variable " + extern_eff_var + ".");
+                    else
+                        raws_in_extern_eff[i] = found_pos;
+                }
+            }
+            else // variable extern_eff_var has string type of ids
+            {
+                if ( s_ids.size() < ref_levels.size() )
+                    throw std::string("The number of rows/records IDs in the effect matrix " + extern_eff_var + " stored in the file " + eff_matr_file + " is lower than the number of levels in the effect " + ref_data_var + ".");
+                
+                if ( s_ids.size() > ref_levels.size() )
+                    std::cout<<"WARNING NOTE: the number of rows/records IDs in the effect matrix " + extern_eff_var + " stored in the file " + eff_matr_file + " is higher than the number of levels in the effect " + ref_data_var + "."<<'\n';
+                
+                std::vector<std::string> pos_map(ref_irow, "-1"); // permutation vector of ids
+
+                for (size_t i = 0; i < ref_irow; i++) // loop over reference effect to define permutation map for the main (external) effect
+                {
+                    for ( size_t j = 0; j < ref_icol; j++ )
+                    {
+                        if ( ref_effect.get_nonzero(i,j) != 0.0f )
+                        {
+                            pos_map[i] = ref_levels[j]; // put the ref_var id at the col j in the position i
+                            continue;
+                        }
+                    }
+                }
+
+                ref_effect.clear();
+
+                for (size_t i = 0; i < pos_map.size(); i++)
+                {
+                    if ( pos_map[i] == "-1" )
+                        continue;
+                    int found_pos = in.find_value(s_ids, pos_map[i]);
+                    if ( found_pos == -1 )
+                        throw std::string("There is no id " + pos_map[i] + " of the variable " + ref_data_var + " at the ids list of the variable " + extern_eff_var + ".");
+                    else
+                        raws_in_extern_eff[i] = found_pos;
+                }
+            }
+
+            compact_storage<float> e_stor(raws_in_extern_eff.size(), ext_icol);
+
+            if (s_ext_eff.empty()) // working with dense matrix
+            {
+                for (size_t i = 0; i < raws_in_extern_eff.size(); i++)
+                {
+                    if ( raws_in_extern_eff[i] == -1 )
+                        continue;
+                    size_t irow = raws_in_extern_eff[i];
+                    for (size_t j = 0; j < ext_icol; j++)
+                        e_stor.append( d_ext_eff(irow,j), i, j );
+                }
+
+                d_ext_eff.clear();
+            }
+            else // working with sparse matrix
+            {
+                for (size_t i = 0; i < raws_in_extern_eff.size(); i++)
+                {
+                    if ( raws_in_extern_eff[i] == -1 )
+                        continue;
+                    size_t irow = raws_in_extern_eff[i];
+                    float value = 0.0f;
+                    for (size_t j = 0; j < ext_icol; j++)
+                    {
+                        value = s_ext_eff.get_nonzero(irow,j);
+                        if (value != 0.0f)
+                            e_stor.append( value, i, j );
+                    }
+                }
+
+                s_ext_eff.clear();
+            }
+
+            e_stor.optimize();
+
+            effects_storage eff;
+            eff.set(e_stor);
+            e_stor.clear();
+
+            std::vector<std::string> ext_levels;
+            for (size_t i = 1; i < ext_icol+1; i++)
+                ext_levels.push_back( std::to_string(i) );
+
+            extra_effects.push_back(eff); eff.clear();
+            extra_effects_names.push_back(extern_eff_var);
+            extra_effects_levels.push_back(ext_levels);
+
+            //random_and_fixed_in_extra_storage.push_back( extra_effects.size()-1 ); // add very last index of extra_effects storage, we now know where to (not) find observ_vars[i] variable
+            //random_and_fixed_effects.push_back( eff ); // push empty effect to keep the vector size consistent
+            //random_and_fixed_effects_names.push_back(extern_eff_var);
+            //random_and_fixed_effects_levels.push_back(ext_levels); // need to provide some levels description (as strings) for this variable
+
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in model_parser::process_effects_with_logical_and(std::string, std::string)"<< "\n";
+            std::cerr << "Reason => " << e << "\n";
+            throw e;
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in model_parser::process_effects_with_logical_and(std::string, std::string)"<< "\n";
+            std::cerr << "Reason => " << e.what() << "\n";
+            throw e;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in model_parser::process_effects_with_logical_and(std::string, std::string)"<< "\n";
+            throw;
+        }
+    }
+    // -------------------------------------------------------------
     void model_parser::process_random_vars(std::vector<std::vector<std::vector<std::string>>> &lhs_random,
                                            std::vector<std::vector<std::vector<std::string>>> &rhs_random,
                                            std::vector<std::string> &rand_vars_identifiers)
@@ -1134,10 +1728,12 @@ namespace evolm
                             std::string var_name = rhs_random[i][0][0];
 
                             int var_find_res = in.find_value(extra_effects_names, var_name); // look at the extra_effects storage if the variable observ_vars[i] is already processed
+                            // and look at the effects_with_logical_and storage if the variable observ_vars[i] is already processed
+                            std::unordered_map<std::string, std::string>::const_iterator in_map = effects_with_logical_and.find (var_name);
 
                             if ( var_find_res != -1 ) // variable is in the extra storage
                             {
-                                random_and_fixed_in_extra_storage.push_back(var_find_res); // we now know where to (not) find var_name variable
+                                /**/random_and_fixed_in_extra_storage.push_back(var_find_res); // we now know where to (not) find var_name variable
                                 lhs_effect_name = lhs_random[i][0][0] + "|" + rhs_random[i][0][0];
                                 random_and_fixed_effects.push_back(i_lhs_eff); // stack the processed effect (empty!)
                                 random_and_fixed_effects_names.push_back(lhs_effect_name);
@@ -1145,11 +1741,28 @@ namespace evolm
                                 lhs_levels = extra_effects_levels[var_find_res];
                                 random_and_fixed_effects_levels.push_back(lhs_levels);
 
+                                //lhs_effect_name = lhs_random[i][0][0] + "|" + rhs_random[i][0][0];
+                                //random_and_fixed_effects_names[var_find_res] = lhs_effect_name;
+
+                                if ( !rand_vars_identifiers[i].empty() )
+                                {
+                                    //identifier_to_eff_name[rand_vars_identifiers[i]] = var_name;
+                                    identifier_to_eff_name[rand_vars_identifiers[i]] = lhs_effect_name;
+                                }
+std::cout<<"HERE 1"<<'\n';
+                                continue; // move to the next random variable
+                            }
+                            /*else if ( in_map != effects_with_logical_and.end() )
+                            {
+                                process_effects_with_logical_and(in_map->first, in_map->second);
+
+                                random_and_fixed_in_extra_storage.push_back(extra_effects_names.size()-1); // add last index of extra_effects storage; we now know where to (not) find var_name variable
+                                
                                 if ( !rand_vars_identifiers[i].empty() )
                                     identifier_to_eff_name[rand_vars_identifiers[i]] = lhs_effect_name;
 
-                                continue; // move to the next random variable
-                            }
+                                continue;
+                            }*/
                         }
                     }
                 }
@@ -1163,10 +1776,14 @@ namespace evolm
                 
                 if (!simple_lhs)
                 {
+std::cout<<"HERE 2"<<'\n';
+for(auto &v:lhs_random[i][0])
+    std::cout<<v<<"\n";
                     get_effect_from_data(in, lhs_random[i][0], i_lhs_eff, lhs_effect_name, lhs_levels); // extract very first LHS effect from data and do .* if needed
 
                     for (size_t j = 1; j < lhs_random[i].size(); j++) // loop over all parsed variables of i-th effect
                     {
+std::cout<<"HERE 2.2"<<'\n';
                         std::vector<std::string> i_rhs_levels;
 
                         evolm::effects_storage j_effect; // parocessed effect
@@ -1194,8 +1811,11 @@ namespace evolm
 
                 std::vector<std::string> rhs_levels;
 
-                evolm::effects_storage i_rhs_eff;                
+                evolm::effects_storage i_rhs_eff;
                 std::string rhs_effect_name;
+std::cout<<"HERE 3"<<'\n';
+for(auto &v:rhs_random[i][0])
+    std::cout<<v<<"\n";
 
                 get_effect_from_data(in, rhs_random[i][0], i_rhs_eff, rhs_effect_name, rhs_levels); // extract very first RHS effect from data and do .* if needed
 
@@ -1229,7 +1849,7 @@ namespace evolm
                 }
 
                 lhs_effect_name = lhs_effect_name + "|" + rhs_effect_name;
-                
+std::cout<<"lhs_effect_name "<<lhs_effect_name<<"\n";
                 if ( !rand_vars_identifiers[i].empty() ) // we need this because if the same effect is used multiple times they should have a different names
                     lhs_effect_name = lhs_effect_name + "_" + rand_vars_identifiers[i];
 
@@ -1409,7 +2029,7 @@ namespace evolm
             obs_copy.clear();
 
             // process random variables
-            std::vector<std::string> rand_vars;
+            std::vector<std::string> rand_vars; // holds expressions between brackets
 
             extract_randvars(rhs_exp, rand_vars, rand_vars_identifiers); // extract random effects parts (between brackets) to the container rand_vars
 
@@ -1419,10 +2039,10 @@ namespace evolm
                 std::vector<std::vector<std::string>> rhs_vars; // processed random variables
 
                 std::string lhs, rhs;
-                split_random(rand_vars[i], lhs, rhs);
+                split_random(rand_vars[i], lhs, rhs); // splits by bar delimiter lhs|rhs to the lhs and rhs variables
+
                 parse_expr(lhs, lhs_vars);
                 parse_expr(rhs, rhs_vars);
-
 
                 if (lhs_vars.empty())
                     throw std::string("Incorect syntaxis in the random term: " + rand_vars[i] + " leaing to empty design matrix!");
@@ -1471,18 +2091,32 @@ namespace evolm
             make_unique(minus_fixedvars);
 
             get_plusvars(in_exp, plus_fixedvars); // extract fixed effects variables with plus sign into the container minus_fixedvars
+for(auto &v: plus_fixedvars)
+    std::cout<<"1: "<<v<<'\n';
 
             split_colon(plus_fixedvars);
+for(auto &v: plus_fixedvars)
+    std::cout<<"2: "<<v<<'\n';
 
             split_star(plus_fixedvars);
+for(auto &v: plus_fixedvars)
+    std::cout<<"3: "<<v<<'\n';
 
             make_unique(plus_fixedvars);
 
             exclude_vars(plus_fixedvars, minus_fixedvars);
 
             check_borrowed_levels(plus_fixedvars);
+for(auto &v: plus_fixedvars)
+    std::cout<<"4: "<<v<<'\n';
+            check_logical_and(plus_fixedvars);
+for(auto &v: plus_fixedvars)
+    std::cout<<"5: "<<v<<'\n';
 
             split_dot(plus_fixedvars, out_container);
+for(auto &v: out_container)
+    for(auto &v1: v)
+    std::cout<<"6: "<<v1<<'\n';
 
             minus_fixedvars.clear();
             plus_fixedvars.clear();
@@ -1551,7 +2185,7 @@ namespace evolm
         }
     }
     // -------------------------------------------------------------
-    int model_parser:: detect_expression_type(const std::string &expr)
+    int model_parser::detect_expression_type(const std::string &expr)
     {
         try
         {
@@ -1702,7 +2336,7 @@ namespace evolm
         // Get variables between brackets ( )
         try
         {
-            // extract identifier: '... + (expression)identifier + ...'
+            // extract identifier: (expression)identifier
             // we need to remove identifier from the expression string at the end
 
             std::string operator1 = "+";
@@ -1728,7 +2362,7 @@ namespace evolm
 
                 out_identifiers.push_back(t_str);
                 expr.erase( pos1+1, pos2-(pos1+1) ); // erase identifier from the expression string
-                search_pos = pos1 + 1;                
+                search_pos = pos1 + 1;
             }
 
             extract_expr_btw_brackets(expr, "(", ")", out_vars);
@@ -1810,6 +2444,9 @@ namespace evolm
             }
             else
                 throw std::string("Incorect syntaxis in the random term: " + expr);
+            
+            if ( out_lhs.empty() || out_rhs.empty() )
+                throw std::string("Incorect syntaxis in the random term: " + expr + ": out_lhs.empty() || out_rhs.empty().");
         }
         catch (const std::string &e)
         {
@@ -2077,6 +2714,78 @@ namespace evolm
         catch (...)
         {
             std::cerr << "Exception in model_parser::check_borrowed_levels(std::vector<std::string> &)"<< "\n";
+            throw;
+        }
+    }
+    // -------------------------------------------------------------
+    void model_parser::check_logical_and(std::vector<std::string> &in_vars)
+    {
+        try
+        {
+            std::vector<std::string> all_res;
+
+            for (size_t i = 0; i < in_vars.size(); i++)
+            {
+                std::vector<std::string> res;
+                std::string s = in_vars[i];
+
+                split_str("&", s, res);
+
+                if (res.size() > 2)
+                    throw std::string("Error while processing the binary operator '&': expected two operands!");
+
+                if ( res.size() == 2 )
+                {
+                    std::size_t found_right = res[1].find_first_of(".");
+                    std::size_t found_left = res[0].find_last_of(".");
+                    
+                    std::string key;
+                    std::string value;
+                    std::string whole_var;
+
+                    if ( found_right != std::string::npos )
+                        key = res[1].substr(0, found_right);
+                    else
+                        key = res[1];
+
+                    if ( found_left != std::string::npos )
+                    {
+                        value = res[0].substr(found_left+1, std::string::npos);
+                        whole_var = res[0].substr(0, found_left+1);
+                    }
+                    else
+                        value = res[0];
+
+                    effects_with_logical_and[key] = value;
+
+                    whole_var = whole_var + res[1];
+                    all_res.push_back( whole_var );
+                }
+                else
+                    all_res.push_back(in_vars[i]);
+            }
+
+            in_vars.clear();
+            in_vars.shrink_to_fit();
+
+            in_vars = all_res;
+            all_res.clear();
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in model_parser::check_logical_and(std::vector<std::string> &)"<< "\n";
+            std::cerr << "Reason => " << e << "\n";
+            throw e;
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in model_parser::check_logical_and(std::vector<std::string> &)"<< "\n";
+            std::cerr << "Reason => " << e.what() << "\n";
+            throw e;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in model_parser::check_logical_and(std::vector<std::string> &)"<< "\n";
             throw;
         }
     }

@@ -82,15 +82,20 @@ namespace evolm
         void rectosym();                              /* Transform square matrix to triangular compact form (only for symmetric matrices). */
         void transpose();                             /* Transpose matrix. */
         void fwrite(const std::string &fname);        /* Save matrix to disk, and not clear memory. */
+        void fwrite(const std::string &fname, std::vector<std::int64_t> &vect_data); /* Save matrix to disk with additional data in vector, and not clear memory. */
+        void fwrite(const std::string &fname, std::vector<std::string> &vect_data);  /* Save matrix to disk with additional data in vector, and not clear memory. */
         void fwrite();                                /* Move matrix to the disk and clear memory. */
         void invert();                                /* Matrix inversion. */
         void lchol();                                 /* Cholesky factorisation, gives lower triangular outpur. */
         void fread();                                 /* Restore matrix saved on disk into the memory. */
         void fread(const std::string &fname);         /* Restore matrix from the disk into the memory. */
+        void fread(const std::string &fname, std::vector<std::int64_t> &vect_data); /* Restore matrix from the disk into the memory with additional data into vector. */
+        void fread(const std::string &fname, std::vector<std::string> &vect_data); /* Restore matrix from the disk into the memory with additional data into vector. */
         bool is_ondisk();                             /* Checking if data is located on disk or in memory. */
         matrix<T> fget(size_t irow[], size_t icol[]); /* Reads and returns just part of data from a file.*/
         matrix<T> fget();                             /* Overloaded. Reads and returns all of data from a file.*/
         bool eq(const matrix &rhs);                   /* Compare dimensins and shapes of two matrix objects. */
+        bool is_symmetric();                          /* Checks is matrix is symmetric */
 
         T *return_array()
         {
@@ -1370,7 +1375,7 @@ namespace evolm
             if (!allocated)
                 throw std::string("Matrix is empty. matrix<T>::rectosym()");
             else
-                throw std::string("Matrix is in a compact form. matrix<T>::rectosym()");
+                std::cout<<"Warning matrix<T>::rectosym(): Matrix is already in a compact form."<<'\n';
         }
     }
 
@@ -2494,6 +2499,24 @@ namespace evolm
 
         return true;
     }
+
+    //===============================================================================================================
+
+    template <typename T>
+    bool matrix<T>::is_symmetric()
+    {
+        /*
+            Checks if a matrix is symmetric.
+
+            Return value: logical TRUE if matrix is symmetric, otherwise returns FALSE.
+        */
+
+        if (symetric)
+            return true;
+
+        return true;
+    }
+
     //===============================================================================================================
 
     template <typename T>
@@ -2635,20 +2658,129 @@ namespace evolm
 
         size_t sz;
         if (!compact)
+        {
             sz = numRow * numCol;
+        }
         else
+        {
             sz = (numCol * numCol + numCol) / 2;
+        }
 
-        size_t B[5];
+        size_t B[6];
         B[0] = matrix_type;
         B[1] = (size_t)compact;
         B[2] = numRow;
         B[3] = numCol;
-        B[4] = (size_t)sizeof(T); // points to a type of matrix     
+        B[4] = (size_t)sizeof(T); // points to a type of matrix
+        B[5] = 0;
         
-        fA.write(reinterpret_cast<char *>(&B), 5 * sizeof(size_t));
+        fA.write(reinterpret_cast<char *>(&B), 6 * sizeof(size_t));
 
         fA.write(reinterpret_cast<char *>(A), sz * sizeof(T));
+
+        fA.close();
+    }
+
+    //===============================================================================================================
+
+    template <typename T>
+    void matrix<T>::fwrite(const std::string &fname, std::vector<std::int64_t> &vect_data)
+    {
+        /*
+            Saves matrix to a DISK and not clears memory allocated for the container A.
+
+            Return value: none.
+        */
+        fA.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+        fA.open(fname, fA.binary | fA.trunc | fA.out);
+
+        if (!fA.is_open())
+        {
+            failbit = true;
+            throw std::string("Error while opening a binary file. matrix<T>::fwrite(const std::string &, std::vector<std::int64_t> &)");
+        }
+
+        size_t sz;
+        if (!compact)
+        {
+            sz = numRow * numCol;
+        }
+        else
+        {
+            sz = (numCol * numCol + numCol) / 2;
+        }
+
+        size_t B[6];
+        B[0] = matrix_type;
+        B[1] = (size_t)compact;
+        B[2] = numRow;
+        B[3] = numCol;
+        B[4] = (size_t)sizeof(T); // points to a type of matrix
+        B[5] = 0; // type of vect_data: 1 - string; 0 - int64_t
+
+        size_t vect_data_size = vect_data.size();
+        
+        fA.write(reinterpret_cast<char *>(&B), 6 * sizeof(size_t));
+
+        fA.write(reinterpret_cast<char *>(A), sz * sizeof(T));
+
+        fA.write( reinterpret_cast<const char *>( &vect_data_size ), sizeof(size_t) ); // 5. writing size of vect_data
+        fA.write( reinterpret_cast<const char *>( vect_data.data() ), vect_data_size * sizeof(std::int64_t) ); // 6. writing all vect_data
+
+        fA.close();
+    }
+
+    //===============================================================================================================
+
+    template <typename T>
+    void matrix<T>::fwrite(const std::string &fname, std::vector<std::string> &vect_data)
+    {
+        /*
+            Saves matrix to a DISK and not clears memory allocated for the container A.
+
+            Return value: none.
+        */
+        fA.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+        fA.open(fname, fA.binary | fA.trunc | fA.out);
+
+        if (!fA.is_open())
+        {
+            failbit = true;
+            throw std::string("Error while opening a binary file. matrix<T>::fwrite(const std::string &, std::vector<std::int64_t> &)");
+        }
+
+        size_t sz;
+        if (!compact)
+        {
+            sz = numRow * numCol;
+        }
+        else
+        {
+            sz = (numCol * numCol + numCol) / 2;
+        }
+
+        size_t B[6];
+        B[0] = matrix_type;
+        B[1] = (size_t)compact;
+        B[2] = numRow;
+        B[3] = numCol;
+        B[4] = (size_t)sizeof(T); // points to a type of matrix
+        B[5] = 1; // type of vect_data: 1 - string; 0 - int64_t
+       
+        size_t vect_data_size = vect_data.size();
+        
+        fA.write(reinterpret_cast<char *>(&B), 6 * sizeof(size_t));
+
+        fA.write(reinterpret_cast<char *>(A), sz * sizeof(T));
+
+        fA.write( reinterpret_cast<const char *>( &vect_data_size ), sizeof(size_t) ); // 5. writing size of vect_data
+        for (size_t i = 0; i < vect_data_size; i++)
+        {
+            std::string str = vect_data[i];
+            size_t str_size = str.size();
+            fA.write( reinterpret_cast<const char *>( &str_size ), sizeof(size_t) ); // 5. writing size of vect_data
+            fA.write( reinterpret_cast<const char *>( &str[0] ), str_size ); // 6. writing all vect_data
+        }
 
         fA.close();
     }
@@ -2735,9 +2867,9 @@ namespace evolm
                 throw std::string("Error while opening a binary file. matrix<T>::fread(const std::string &)");
             }
 
-            size_t B[5];
+            size_t B[6];
 
-            fA.read(reinterpret_cast<char *>(&B), 5 * sizeof(size_t));
+            fA.read(reinterpret_cast<char *>(&B), 6 * sizeof(size_t));
 
             size_t matr_type = B[0];
             compact = (bool)B[1];
@@ -2749,11 +2881,13 @@ namespace evolm
                 throw std::string("The wrong kind of matrix trying to read the data from file! matrix<T>::fread(const std::string &)");
 
             if ( var_inbytes != sizeof(T) )
-                throw std::string("The data type stored in file is not consistent with type of the matrix trying to read the data. matrix<T>::fread(const std::string &)");
+                throw std::string("The data type stored in file ("+ std::to_string(var_inbytes) + "-bytes data) is not consistent with type of the matrix trying to read the data. matrix<T>::fread(const std::string &)");
 
             size_t sz;
             if (!compact)
             {
+                rectangular = true;
+                symetric = false;
 
                 sz = numRow * numCol;
 
@@ -2765,6 +2899,9 @@ namespace evolm
             }
             else
             {
+                rectangular = false;
+                symetric = true;
+
                 sz = (numCol * numCol + numCol) / 2;
 
                 int status = allocate(numCol);
@@ -2783,7 +2920,187 @@ namespace evolm
             resizedElements = sz;
         }
         else
-            throw std::string("matrix<T>::fread(const std::string &) => Cannot open the binary file to read from!");
+            throw std::string("matrix<T>::fread(const std::string &) => Cannot open the binary file: " + fname + " to read from!");
+    }
+
+    //===============================================================================================================
+
+    template <typename T>
+    void matrix<T>::fread(const std::string &fname, std::vector<std::int64_t> &vect_data)
+    {
+        /*
+            Moves saved on DISK matrix back to the memory.
+
+            Return value: none.
+        */
+
+        std::ifstream f( fname.c_str() );
+        if ( f.good() )
+        {
+
+            fA.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+            fA.open(fname, fA.binary | fA.in);
+
+            if (!fA.is_open())
+            {
+                failbit = true;
+                throw std::string("Error while opening a binary file. matrix<T>::fread(const std::string &, std::vector<std::int64_t> &)");
+            }
+
+            size_t B[6];
+
+            fA.read(reinterpret_cast<char *>(&B), 6 * sizeof(size_t));
+
+            size_t matr_type = B[0];
+            compact = (bool)B[1];
+            numRow = B[2];
+            numCol = B[3];
+            size_t var_inbytes = B[4];
+
+            if ( matr_type != matrix_type )
+                throw std::string("The wrong kind of matrix trying to read the data from file! matrix<T>::fread(const std::string &)");
+
+            if ( var_inbytes != sizeof(T) )
+                throw std::string("The data type stored in file ("+ std::to_string(var_inbytes) + "-bytes data) is not consistent with type of the matrix trying to read the data. matrix<T>::fread(const std::string &)");
+
+            size_t sz;
+            if (!compact)
+            {
+                rectangular = true;
+                symetric = false;
+
+                sz = numRow * numCol;
+
+                int status = allocate(numRow, numCol);
+                if (status != 0)
+                    throw std::string("Memory allocation error. matrix<T>::fread(const std::string &, std::vector<std::string> &)");
+
+                allocated = true;
+            }
+            else
+            {
+                rectangular = false;
+                symetric = true;
+
+                sz = (numCol * numCol + numCol) / 2;
+
+                int status = allocate(numCol);
+                if (status != 0)
+                    throw std::string("Memory allocation error. matrix<T>::fread(const std::string &fname, std::vector<std::string> &)");
+
+                allocated = true;
+            }
+
+            size_t vect_data_size;
+
+            fA.read(reinterpret_cast<char *>(A), sz * sizeof(T));
+
+            fA.read( reinterpret_cast<char *>( &vect_data_size ), sizeof(size_t) ); // 3. reading size of keys
+            vect_data.resize(vect_data_size);
+            fA.read( reinterpret_cast<char *>( vect_data.data() ), vect_data_size * sizeof(std::int64_t) ); // 4. reading all keys
+
+            fA.close();
+
+            ondisk = false;
+
+            resizedElements = sz;
+        }
+        else
+            throw std::string("matrix<T>::fread(const std::string &, std::vector<std::string> &) => Cannot open the binary file: " + fname +" to read from!");
+    }
+
+    //===============================================================================================================
+
+    template <typename T>
+    void matrix<T>::fread(const std::string &fname, std::vector<std::string> &vect_data)
+    {
+        /*
+            Moves saved on DISK matrix back to the memory.
+
+            Return value: none.
+        */
+
+        std::ifstream f( fname.c_str() );
+        if ( f.good() )
+        {
+
+            fA.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+            fA.open(fname, fA.binary | fA.in);
+
+            if (!fA.is_open())
+            {
+                failbit = true;
+                throw std::string("Error while opening a binary file. matrix<T>::fread(const std::string &, std::vector<std::int64_t> &)");
+            }
+
+            size_t B[6];
+
+            fA.read(reinterpret_cast<char *>(&B), 6 * sizeof(size_t));
+
+            size_t matr_type = B[0];
+            compact = (bool)B[1];
+            numRow = B[2];
+            numCol = B[3];
+            size_t var_inbytes = B[4];
+            
+            if ( matr_type != matrix_type )
+                throw std::string("The wrong kind of matrix trying to read the data from file! matrix<T>::fread(const std::string &)");
+
+            if ( var_inbytes != sizeof(T) )
+                throw std::string("The data type stored in file ("+ std::to_string(var_inbytes) + "-bytes data) is not consistent with type of the matrix trying to read the data. matrix<T>::fread(const std::string &)");
+
+            size_t sz;
+            if (!compact)
+            {
+                rectangular = true;
+                symetric = false;
+
+                sz = numRow * numCol;
+
+                int status = allocate(numRow, numCol);
+                if (status != 0)
+                    throw std::string("Memory allocation error. matrix<T>::fread(const std::string &)");
+
+                allocated = true;
+            }
+            else
+            {
+                rectangular = false;
+                symetric = true;
+
+                sz = (numCol * numCol + numCol) / 2;
+
+                int status = allocate(numCol);
+                if (status != 0)
+                    throw std::string("Memory allocation error. matrix<T>::fread(const std::string &, std::vector<std::string> &)");
+
+                allocated = true;
+            }
+
+            size_t vect_data_size;
+
+            fA.read(reinterpret_cast<char *>(A), sz * sizeof(T));
+
+            fA.read( reinterpret_cast<char *>( &vect_data_size ), sizeof(size_t) ); // 3. reading size of keys
+            vect_data.resize(vect_data_size);
+            for (size_t i = 0; i < vect_data_size; i++)
+            {
+                size_t str_size;
+                std::string str;
+                fA.read( reinterpret_cast<char *>( &str_size ), sizeof(size_t) ); // 5. writing size of ids
+                str.resize(str_size);
+                fA.read( reinterpret_cast<char *>( &str[0] ), str_size ); // 6. reading specific id
+                vect_data[i] = str;
+            }
+
+            fA.close();
+
+            ondisk = false;
+
+            resizedElements = sz;
+        }
+        else
+            throw std::string("matrix<T>::fread(const std::string &, , std::vector<std::string> &) => Cannot open the binary file: " + fname + " to read from!");
     }
 
     //===============================================================================================================
@@ -4959,13 +5276,11 @@ namespace evolm
             Example:
 
                 matrix <double> M(n,n);
-                matrix <double> res;    // empty matrix
 
                 for (auto i = 0; i < M.size(); i++)
                     M[i] = i;
 
-                M.lchol(); // now M is (n,n) inverted matrix
-                res = M;       // now res is (n,n) inverted matrix
+                M.lchol(); // now M is (n,n) lower triangular matrix, so L*L' -> original M
 
         */
 
@@ -5172,7 +5487,7 @@ namespace evolm
         FILE *dbgFile;
         dbgFile = fopen(debug_file.c_str(), "a");
 
-        size_t maxRows = 20;
+        size_t maxRows = 30;
         fprintf(dbgFile, "%s", whiichMatrix.c_str());
         // fprintf (dbgFile, "\n");
         if (rectangular)

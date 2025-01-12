@@ -15,6 +15,7 @@ namespace evoped
     class Utilities2
     {
     private:
+        const size_t matrix_type = 3003;
     public:
         Utilities2();
         ~Utilities2();
@@ -54,15 +55,30 @@ namespace evoped
         size_t fget_matrix_kind(const std::string &fname);
 
         template <typename T>
-        void fwrite_matrix(const std::string &fname, std::vector<T> &vals, std::vector<size_t> &keys, std::vector<std::int64_t> &ids);
+        void fwrite_matrix(const std::string &fname, std::vector<T> &vals, std::vector<size_t> &keys, std::vector<std::int64_t> &ids, size_t n_cols = 0);
         template <typename T>
-        void fwrite_matrix(const std::string &fname, std::vector<T> &vals, std::vector<size_t> &keys, std::vector<std::string> &ids);
+        void fwrite_matrix(const std::string &fname, std::vector<T> &vals, std::vector<size_t> &keys, std::vector<std::string> &ids, size_t n_cols = 0);
+        template <typename T>
+        void fwrite_matrix(const std::string &fname, evolm::matrix<T> &matr, std::vector<std::int64_t> &ids);
+        template <typename T>
+        void fwrite_matrix(const std::string &fname, evolm::matrix<T> &matr, std::vector<std::string> &ids);
 
         template <typename T>
         void fread_matrix(const std::string &fname, std::vector<T> &vals, std::vector<size_t> &keys, std::vector<std::int64_t> &ids);
         template <typename T>
         void fread_matrix(const std::string &fname, std::vector<T> &vals, std::vector<size_t> &keys, std::vector<std::string> &ids);
+        template <typename T>
+        void fread_matrix(const std::string &fname, evolm::matrix<T> &matr, std::vector<std::int64_t> &ids);
+        template <typename T>
+        void fread_matrix(const std::string &fname, evolm::matrix<T> &matr, std::vector<std::string> &ids);
         void fread_matrix_info(const std::string &fname, size_t &info);
+
+        template <typename T>
+        void solve_ls(evolm::matrix<T> &L, T *b, T *x);
+
+        template <typename T>
+        bool is_float(T val);
+
     };
 
 } // end of namespace evoped

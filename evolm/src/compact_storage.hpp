@@ -1183,7 +1183,7 @@ namespace evolm
         size_t n_cols = col_range[1] - col_range[0] + 1;
 
         if ( symmetric )
-            throw std::string("to_dense(smatrix<T> &, size_t *, size_t *): The method isnot allowed on symmetric storage!");
+            throw std::string("to_sparse(smatrix<T> &, size_t *, size_t *): The method isnot allowed on symmetric storage!");
 
         out.resize(n_rows, n_cols);
 

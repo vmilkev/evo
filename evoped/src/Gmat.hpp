@@ -34,9 +34,12 @@ namespace evoped
         void make_matrix(const std::string &fname);
         void make_matrix(const std::string &fname, const std::string &fname_ids);
         
-        void scale_genotypes(const std::string &fname);
+        void scale_genotypes(const std::string &fname); // assumes snp ids are in the same file
         void scale_genotypes(const std::string &fname, const std::string &fname_ids);
-        
+
+        void impute_genotypes(const std::string &snp_fname, const std::string &ped_fname, const std::string &out_fname); // assumes snp ids are in the same file
+        void impute_genotypes(const std::string &snp_fname, const std::string &snp_fname_ids, const std::string &ped_fname, const std::string &out_fname);
+
         void scale_diag(T scale_coef);
         void scale_matrix(evolm::matrix<T>& scale_matr, T scaling_weight);
         void scale_matrix(const std::string &scale_matr, T scaling_weight);
@@ -51,9 +54,9 @@ namespace evoped
         void get_ids(std::vector<std::int64_t> &ids);
 
         void save_matrix(const std::string &arr, const std::string &ids);
-        void save_matrix2(const std::string &arr); // saving just dense matrix in binary file
+        void save_matrix2(const std::string &arr); // saving just dense matrix in binary .dmbin file.
         void save_ids(const std::string &ids);
-        void save_matrix(const std::string &out_fname); // saving in .corbin file
+        void save_matrix(const std::string &out_fname); // saving symmetric matrix in .dmbin file
         
         void clear();
 
@@ -78,13 +81,16 @@ namespace evoped
         void read_snp(const std::string &snp_file);
         void read_snp(const std::string &snp_file, const std::string& ids_file);
         void parse_string(std::string &snp_str, std::vector<int> &markers);
+        void parse_string(std::string &snp_str, std::vector<float> &markers);
         void make_zmatrix();
+        void make_zmatrixf();
         void make_zmatrix( evolm::matrix<int> &M );
         void make_matrix();
         void read_matrix(const std::string &gmat_file, std::vector<std::int64_t> &g_row, std::vector<std::int64_t> &g_col, std::vector<T> &g_val);
         
         bool is_plink_file(const std::string &fname);
-        void get_m_matrix(const std::string &fname, evolm::matrix<int> &M);
+        void make_m_matrix_plink(const std::string &fname, evolm::matrix<int> &M);
+        void make_m_matrix(evolm::matrix<T> &M);
 
 
 #ifdef UTEST

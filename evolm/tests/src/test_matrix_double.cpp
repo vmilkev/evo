@@ -1187,6 +1187,60 @@ TEST_CASE("Chacking fread(const std::string &)/fwrite(const std::string &) metho
     }
 }
 
+TEST_CASE("Chacking fread(const std::string &, std::vector<std::int64_t> &)/fwrite(const std::string &, std::vector<std::int64_t> &) methods, type = double"){
+
+    SECTION("Rectangular matrix (5,3)"){
+        
+        size_t dim1 = 5;
+        size_t dim2 = 3;
+        evolm::matrix <mytype> M(dim1,dim2);
+        evolm::matrix <mytype> N;
+
+        std::vector<std::int64_t> v_dat{10, 20, 30 , 40, 50};
+        std::vector<std::int64_t> v_dat2;
+
+        REQUIRE_FALSE(M.failbit);
+
+        mytype m[] = {-0.0, -0.3, -0.6, -0.9, -1.2, -0.1, -0.4, -0.7, -1.0, -1.3, -0.2, -0.5, -0.8, -1.1, -1.4};
+
+        for(size_t i = 0; i < M.size(); i++){
+            M[i] = i * static_cast <mytype> (-0.1);
+        }
+
+        M.transpose();
+
+        REQUIRE_FALSE(M.failbit);
+
+        for(size_t i = 0; i < M.size(); i++){
+            CHECK(M[i] == Catch::Approx(m[i]));
+        }
+
+        M.fwrite("M.dmat", v_dat);
+
+        REQUIRE_FALSE(M.failbit);
+        CHECK(M.failbit == false);
+        REQUIRE(M.empty() == false);
+
+        N.fread("M.dmat", v_dat2);
+        N.fclear("M.dmat");
+
+        REQUIRE_FALSE(N.failbit);
+        CHECK(N.failbit == false);
+        CHECK(N.size() == 15);
+        CHECK(N.capacity() == 15);
+
+        for(size_t i = 0; i < N.size(); i++){
+            CHECK(N[i] == Catch::Approx(m[i]));
+        }
+
+        CHECK( v_dat.size() == v_dat2.size() );
+        REQUIRE_FALSE( v_dat2.empty() );
+
+        for (size_t i = 0; i < v_dat.size(); i++)
+            CHECK( v_dat[i] == v_dat2[i] );
+    }
+}
+
 TEST_CASE("Checking the invert() method, type = double"){
     
     SECTION("Positive square matrix (3,3)"){

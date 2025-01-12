@@ -151,33 +151,36 @@ namespace evoped
             std::vector<int64_t> iA22_id;
 
             g.make_matrix(g_file, g_id_file); // build G matrix from ASCII SNP file with IDs in sepaarate file
-            g.scale_diag(0.01);
+
             g.get_ids(g_id); // here we need just IDs
 
             a.make_matrix_forgenotyped( ped_file, g_id, false );
             a.get_matrix("A22", A22, a22_id);
+
             A22.fread();
-            
-            g.scale_matrix(A22,0.25);
+
+            g.scale_matrix(A22,0.05);
 
             A22.clear();
             a.clear();
 
-            g.invert_matrix(true); // inverting as a full-store            
-            g.save_matrix("iG.dmat");            
+            g.invert_matrix(true); // inverting as a full-store
+            g.save_matrix2("iG.dmbin");
+
             g.clear();
 
             a.make_matrix( ped_file, true ); // A(-1)
-            a.make_matrix_forgenotyped( ped_file, g_id, true ); // A22(-1)            
-            a.get_matrix("iA", iA, iA_id);            
+            a.make_matrix_forgenotyped( ped_file, g_id, true ); // A22(-1)
+            a.get_matrix("iA", iA, iA_id);
             a.get_matrix("iA22", iA22, iA22_id);
 
             iA22.fread();
+
             iA.fread();
 
-            iG.fread("iG.dmat");
+            iG.fread("iG.dmbin");
 
-            make_matrix(iA, iA_id, iA22, iA22_id, iG, g_id);            
+            make_matrix(iA, iA_id, iA22, iA22_id, iG, g_id);
             save_matrix(out_file);
 
             iA.fclear(); iA.clear();

@@ -2796,7 +2796,7 @@ namespace evolm
             FILE *dbgFile;
             dbgFile = fopen(debug_file.c_str(), "a");
 
-            size_t maxRows = 20;
+            size_t maxRows = 30;
 
             fprintf(dbgFile, "%s", whiichMatrix.c_str());
 

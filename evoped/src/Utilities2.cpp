@@ -412,7 +412,7 @@ namespace evoped
     }
     //===========================================================================================
     template <typename T>
-    void Utilities2::fwrite_matrix(const std::string &fname, std::vector<T> &vals, std::vector<size_t> &keys, std::vector<std::int64_t> &ids)
+    void Utilities2::fwrite_matrix(const std::string &fname, std::vector<T> &vals, std::vector<size_t> &keys, std::vector<std::int64_t> &ids, size_t n_cols)
     {
         //int integer_var;
         float float_var;
@@ -432,7 +432,7 @@ namespace evoped
         else if (type_T == type_3)
             var_type = 3;
         else
-            throw std::string("Utilities2::fwrite_matrix(const std::string &, std::vector<T> &, std::vector<size_t> &, std::vector<T2> &): Cannot determine the type of values vector.");
+            throw std::string("Utilities2::fwrite_matrix(const std::string &, std::vector<T> &, std::vector<size_t> &, std::vector<T2> &, size_t): Cannot determine the type of values vector.");
 
         std::string name_suffix(".corbin");
         size_t find = fname.find(name_suffix);
@@ -445,22 +445,25 @@ namespace evoped
         fA.open(fname2, fA.binary | fA.trunc | fA.out);
 
         if (!fA.is_open())
-            throw std::string("Utilities2::fwrite_matrix(const std::string &, std::vector<T> &, std::vector<size_t> &, std::vector<T2> &): Error while opening a binary file.");
+            throw std::string("Utilities2::fwrite_matrix(const std::string &, std::vector<T> &, std::vector<size_t> &, std::vector<T2> &, size_t): Error while opening a binary file.");
 
-        size_t B[3]; // necessary data info
+        size_t B[6]; // necessary data info
 
         // info about matrix values
-        B[0] = (size_t)sizeof(T);
+        B[0] = matrix_type;
         B[1] = var_type; // expected 2 or 3
         
         // info about matrix IDs
         B[2] = var_type2; // expected 4 or 5
+        B[3] = (size_t)sizeof(T);
+        B[4] = ids.size();
+        B[5] = n_cols;
         
         size_t vals_size = vals.size();
         size_t keys_size = keys.size();
         size_t ids_size = ids.size();
 
-        fA.write( reinterpret_cast<const char *>(&B), 3 * sizeof(size_t) ); // 0. writing the data info
+        fA.write( reinterpret_cast<const char *>(&B), 6 * sizeof(size_t) ); // 0. writing the data info
 
         fA.write( reinterpret_cast<const char *>( &vals_size ), sizeof(size_t) ); // 1. writing size of values
         fA.write( reinterpret_cast<const char *>( vals.data() ), vals_size * sizeof(T) ); // 2. writing all values
@@ -473,11 +476,39 @@ namespace evoped
 
         fA.close();
     }
-    template void Utilities2::fwrite_matrix(const std::string &fname, std::vector<float> &vals, std::vector<size_t> &keys, std::vector<std::int64_t> &ids);
-    template void Utilities2::fwrite_matrix(const std::string &fname, std::vector<double> &vals, std::vector<size_t> &keys, std::vector<std::int64_t> &ids);
+    template void Utilities2::fwrite_matrix(const std::string &fname, std::vector<float> &vals, std::vector<size_t> &keys, std::vector<std::int64_t> &ids, size_t n_cols);
+    template void Utilities2::fwrite_matrix(const std::string &fname, std::vector<double> &vals, std::vector<size_t> &keys, std::vector<std::int64_t> &ids, size_t n_cols);
     //===========================================================================================
     template <typename T>
-    void Utilities2::fwrite_matrix(const std::string &fname, std::vector<T> &vals, std::vector<size_t> &keys, std::vector<std::string> &ids)
+    void Utilities2::fwrite_matrix(const std::string &fname, evolm::matrix<T> &matr, std::vector<std::int64_t> &ids)
+    {
+        std::string name_suffix(".dmbin");
+        size_t find = fname.find(name_suffix);
+        std::string fname2(fname);
+        if( find == std::string::npos ) // there is no suffix
+            fname2 = fname + name_suffix;
+
+        matr.fwrite(fname2, ids);
+    }
+    template void Utilities2::fwrite_matrix(const std::string &fname, evolm::matrix<float> &matr, std::vector<std::int64_t> &ids);
+    template void Utilities2::fwrite_matrix(const std::string &fname, evolm::matrix<double> &matr, std::vector<std::int64_t> &ids);
+    //===========================================================================================
+    template <typename T>
+    void Utilities2::fwrite_matrix(const std::string &fname, evolm::matrix<T> &matr, std::vector<std::string> &ids)
+    {
+        std::string name_suffix(".dmbin");
+        size_t find = fname.find(name_suffix);
+        std::string fname2(fname);
+        if( find == std::string::npos ) // there is no suffix
+            fname2 = fname + name_suffix;
+        
+        matr.fwrite(fname2, ids);
+    }
+    template void Utilities2::fwrite_matrix(const std::string &fname, evolm::matrix<float> &matr, std::vector<std::string> &ids);
+    template void Utilities2::fwrite_matrix(const std::string &fname, evolm::matrix<double> &matr, std::vector<std::string> &ids);
+    //===========================================================================================
+    template <typename T>
+    void Utilities2::fwrite_matrix(const std::string &fname, std::vector<T> &vals, std::vector<size_t> &keys, std::vector<std::string> &ids, size_t n_cols)
     {
         //int integer_var;
         float float_var;
@@ -497,7 +528,7 @@ namespace evoped
         else if (type_T == type_3)
             var_type = 3;
         else
-            throw std::string("Utilities2::fwrite_matrix(const std::string &, std::vector<T> &, std::vector<size_t> &, std::vector<T2> &): Cannot determine the type of values vector.");
+            throw std::string("Utilities2::fwrite_matrix(const std::string &, std::vector<T> &, std::vector<size_t> &, std::vector<T2> &, size_t): Cannot determine the type of values vector.");
 
         std::string name_suffix(".corbin");
         size_t find = fname.find(name_suffix);
@@ -510,22 +541,25 @@ namespace evoped
         fA.open(fname2, fA.binary | fA.trunc | fA.out);
 
         if (!fA.is_open())
-            throw std::string("Utilities2::fwrite_matrix(const std::string &, std::vector<T> &, std::vector<size_t> &, std::vector<T2> &): Error while opening a binary file.");
+            throw std::string("Utilities2::fwrite_matrix(const std::string &, std::vector<T> &, std::vector<size_t> &, std::vector<T2> &, size_t): Error while opening a binary file.");
 
-        size_t B[3]; // necessary data info
+        size_t B[6]; // necessary data info
 
         // info about matrix values
-        B[0] = (size_t)sizeof(T);
+        B[0] = matrix_type;
         B[1] = var_type; // expected 2 or 3
         
         // info about matrix IDs
         B[2] = var_type2; // expected 4
+        B[3] = (size_t)sizeof(T);
+        B[4] = ids.size();
+        B[5] = n_cols;
         
         size_t vals_size = vals.size();
         size_t keys_size = keys.size();
         size_t ids_size = ids.size();
 
-        fA.write( reinterpret_cast<const char *>(&B), 3 * sizeof(size_t) ); // 0. writing the data info
+        fA.write( reinterpret_cast<const char *>(&B), 6 * sizeof(size_t) ); // 0. writing the data info
 
         fA.write( reinterpret_cast<const char *>( &vals_size ), sizeof(size_t) ); // 1. writing size of values
         fA.write( reinterpret_cast<const char *>( vals.data() ), vals_size * sizeof(T) ); // 2. writing all values
@@ -544,8 +578,8 @@ namespace evoped
 
         fA.close();
     }
-    template void Utilities2::fwrite_matrix(const std::string &fname, std::vector<float> &vals, std::vector<size_t> &keys, std::vector<std::string> &ids);
-    template void Utilities2::fwrite_matrix(const std::string &fname, std::vector<double> &vals, std::vector<size_t> &keys, std::vector<std::string> &ids);
+    template void Utilities2::fwrite_matrix(const std::string &fname, std::vector<float> &vals, std::vector<size_t> &keys, std::vector<std::string> &ids, size_t n_cols);
+    template void Utilities2::fwrite_matrix(const std::string &fname, std::vector<double> &vals, std::vector<size_t> &keys, std::vector<std::string> &ids, size_t n_cols);
     //===========================================================================================
     template <typename T>
     void Utilities2::fread_matrix(const std::string &fname, std::vector<T> &vals, std::vector<size_t> &keys, std::vector<std::int64_t> &ids)
@@ -564,12 +598,12 @@ namespace evoped
         if (!fA.is_open())
             throw std::string("Utilities2::fread_matrix(const std::string &, std::vector<T> &, std::vector<size_t> &, std::vector<T2> &): Error while opening a binary file.");
 
-        size_t B[3];
+        size_t B[6];
 
-        fA.read( reinterpret_cast<char *>(&B), 3 * sizeof(size_t) ); // 0. reading a storage info
+        fA.read( reinterpret_cast<char *>(&B), 6 * sizeof(size_t) ); // 0. reading a storage info
 
         // info about matrix values
-        size_t var_inbytes = B[0];
+        size_t var_inbytes = B[3];
         size_t var_type = B[1]; // expected 2 or 3
         
         // info about matrix IDs
@@ -597,6 +631,34 @@ namespace evoped
     template void Utilities2::fread_matrix(const std::string &fname, std::vector<double> &vals, std::vector<size_t> &keys, std::vector<std::int64_t> &ids);
     //===========================================================================================
     template <typename T>
+    void Utilities2::fread_matrix(const std::string &fname, evolm::matrix<T> &matr, std::vector<std::int64_t> &ids)
+    {
+        std::string name_suffix(".dmbin");
+        size_t find = fname.find(name_suffix);
+        std::string fname2(fname);
+        if( find == std::string::npos ) // there is no suffix
+            fname2 = fname + name_suffix;
+        
+        matr.fread(fname2, ids);
+    }
+    template void Utilities2::fread_matrix(const std::string &fname, evolm::matrix<float> &matr, std::vector<std::int64_t> &ids);
+    template void Utilities2::fread_matrix(const std::string &fname, evolm::matrix<double> &matr, std::vector<std::int64_t> &ids);
+    //===========================================================================================
+    template <typename T>
+    void Utilities2::fread_matrix(const std::string &fname, evolm::matrix<T> &matr, std::vector<std::string> &ids)
+    {
+        std::string name_suffix(".dmbin");
+        size_t find = fname.find(name_suffix);
+        std::string fname2(fname);
+        if( find == std::string::npos ) // there is no suffix
+            fname2 = fname + name_suffix;
+        
+        matr.fread(fname2, ids);
+    }
+    template void Utilities2::fread_matrix(const std::string &fname, evolm::matrix<float> &matr, std::vector<std::string> &ids);
+    template void Utilities2::fread_matrix(const std::string &fname, evolm::matrix<double> &matr, std::vector<std::string> &ids);
+    //===========================================================================================
+    template <typename T>
     void Utilities2::fread_matrix(const std::string &fname, std::vector<T> &vals, std::vector<size_t> &keys, std::vector<std::string> &ids)
     {
         std::fstream fA;
@@ -613,12 +675,12 @@ namespace evoped
         if (!fA.is_open())
             throw std::string("Utilities2::fread_matrix(const std::string &, std::vector<T> &, std::vector<size_t> &, std::vector<T2> &): Error while opening a binary file.");
 
-        size_t B[3];
+        size_t B[6];
 
-        fA.read( reinterpret_cast<char *>(&B), 3 * sizeof(size_t) ); // 0. reading a storage info
+        fA.read( reinterpret_cast<char *>(&B), 6 * sizeof(size_t) ); // 0. reading a storage info
 
         // info about matrix values
-        size_t var_inbytes = B[0];
+        size_t var_inbytes = B[3];
         size_t var_type = B[1]; // expected 2 or 3
         
         // info about matrix IDs
@@ -669,7 +731,7 @@ namespace evoped
         if (!fA.is_open())
             throw std::string("Utilities2::fread_matrix_info(const std::string &, size_t &): Error while opening a binary file.");
 
-        fA.read( reinterpret_cast<char *>(info), 3 * sizeof(size_t) ); // 0. reading a storage info
+        fA.read( reinterpret_cast<char *>(info), 6 * sizeof(size_t) ); // reading a storage info
 
         fA.close();
     }
@@ -854,6 +916,109 @@ namespace evoped
 
     template void Utilities2::sparse_to_dense(evolm::smatrix<float> &from, evolm::matrix<float> &to);
     template void Utilities2::sparse_to_dense(evolm::smatrix<double> &from, evolm::matrix<double> &to);
+
+    //===============================================================================================================
+
+    template <typename T>
+    void Utilities2::solve_ls(evolm::matrix<T> &L, T *b, T *x)
+    {
+        // Solving the linear system L*Lt*x = b by back substitution
+        try
+        {
+            evolm::matrix<size_t> shp_L;
+            shp_L = L.shape();
+
+            // Forward iteration
+            T *y = new T [ shp_L[1] ];
+            y[0] = b[0] / L(0,0);
+            for (size_t i = 1; i < shp_L[1]; i++)
+            {
+                T l_sum = (T)0.0;
+                for (size_t j = 0; j < i; j++)
+                    l_sum = l_sum + L(i,j) * y[j];
+                y[i] = ( b[i] - l_sum ) / L(i,i);
+            }
+
+            // Backward iteration
+            x[ shp_L[1]-1 ] = y[ shp_L[1]-1 ] / L(shp_L[1]-1,shp_L[1]-1);
+            for (std::int64_t i = shp_L[1]-2; i >= 0; i--)
+            {
+                T l_sum = (T)0.0;
+                for (std::int64_t j = shp_L[1]-1; j > i; j--)
+                {
+                    l_sum = l_sum + L(i,j) * x[j];
+                }
+                x[i] = ( y[i] - l_sum ) / L(i,i);
+            }
+
+            delete [] y;
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Utilities2::solve_ls(evolm::matrix<T> &, T *, T *)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Utilities2::solve_ls(evolm::matrix<T> &, T *, T *)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Utilities2::solve_ls(evolm::matrix<T> &, T *, T *)" << '\n';
+            throw;
+        }
+    }
+
+    template void Utilities2::solve_ls(evolm::matrix<float> &L, float *b, float *x);
+    template void Utilities2::solve_ls(evolm::matrix<double> &L, double *b, double *x);
+
+    //===============================================================================================================
+
+    template <typename T>
+    bool Utilities2::is_float(T val)
+    {
+        bool isFlt = false;
+
+        try
+        {
+            float flt_var;
+            double dbl_var;
+            const std::type_info &ti1 = typeid(flt_var);
+            const std::type_info &ti2 = typeid(dbl_var);
+            const std::type_info &ti3 = typeid(val);
+
+            if (ti3 == ti1)
+                isFlt = true;
+
+            if ( (ti3 != ti1) && (ti3 != ti2) )
+                throw std::string("Cannot detect the type of variable.");
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Utilities2::is_float(T)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Utilities2::is_float(T)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Utilities2::is_float(T)" << '\n';
+            throw;
+        }
+
+        return isFlt;
+    }
+
+    template bool Utilities2::is_float(float val);
+    template bool Utilities2::is_float(double val);
 
     //===============================================================================================================
 

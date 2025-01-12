@@ -2013,31 +2013,16 @@ TEST_CASE( "Testing Gmat class" )
             gmat.save_matrix("g_matr");
 
             evoped::Utilities2 u;
-            std::vector<double> values;
-            std::vector<size_t> keys;
-
-            u.fread_matrix("g_matr", values, keys, g_id);
-            
-            G.resize(g_id.size());
-            //size_t counter = 0;
-            for (size_t i = 0; i < keys.size(); i++)
-            {
-                    G[keys[i]] = values[i];
-                    //std::cout<<"value: "<<values[counter]<<" keys: "<<keys[counter]<<"\n";
-                    //counter++;
-            }
+            u.fread_matrix("g_matr", G, g_id);
 
             std::vector<double> Gvect;
             for (size_t i = 0; i < g_id.size(); i++)
             {
                 for (size_t j = 0; j <= i; j++)
                 {
-                    if ( G(i,j) != 0.0 )
-                    {
-                        Gvect.push_back( g_id[i] );
-                        Gvect.push_back( g_id[j] );
-                        Gvect.push_back( G(i,j) );
-                    }
+                    Gvect.push_back( g_id[i] );
+                    Gvect.push_back( g_id[j] );
+                    Gvect.push_back( G(i,j) );
                 }
             }
 

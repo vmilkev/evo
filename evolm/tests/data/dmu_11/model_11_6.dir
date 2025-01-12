@@ -1,0 +1,22 @@
+$COMMENT
+
+$ANALYSE 12 2 0 0
+
+$DATA  ASCII (2,1,0) data_11_6.dat
+
+$VARIABLE
+one id dyd
+
+$MODEL
+1 1 0 0 0
+0
+1 0 2 1 2
+1 2
+0
+0  
+
+$VAR_STR 2 PGMIX 1 ASCII pedigree_11_1.dat genotyped_11_6.dat g_mat.txt 0.05 G-ADJUST
+
+$PRIOR
+  1  1  1  35.241    
+  2  1  1  245.0
