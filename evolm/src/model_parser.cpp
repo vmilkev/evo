@@ -135,17 +135,38 @@ namespace evolm
         {
             std::cerr << "Exception in model_parser::process_expression(std::string &)"<< "\n";
             std::cerr << "Reason => " << e << "\n";
+            if ( !warning_messages.empty() )
+            {
+                std::cerr<<"Collected warning messages during the model parsing:"<<"\n\n";
+                for (auto const &v: warning_messages)
+                std::cerr<<"=> "<<v<<'\n';
+                std::cerr<<'\n';
+            }
             throw e;
         }
         catch (const std::exception &e)
         {
             std::cerr << "Exception in model_parser::process_expression(std::string &)"<< "\n";
             std::cerr << "Reason => " << e.what() << "\n";
+            if ( !warning_messages.empty() )
+            {
+                std::cerr<<"Collected warning messages during the model parsing:"<<"\n\n";
+                for (auto const &v: warning_messages)
+                std::cerr<<"=> "<<v<<'\n';
+                std::cerr<<'\n';
+            }
             throw e;
         }
         catch (...)
         {
             std::cerr << "Exception in model_parser::process_expression(std::string &)"<< "\n";
+            if ( !warning_messages.empty() )
+            {
+                std::cerr<<"Collected warning messages during the model parsing:"<<"\n\n";
+                for (auto const &v: warning_messages)
+                std::cerr<<"=> "<<v<<'\n';
+                std::cerr<<'\n';
+            }
             throw;
         }
     }
@@ -265,6 +286,7 @@ namespace evolm
 
                 process_fixed_vars(fixedvars); // append random_and_fixed_effects container, and var names to random_and_fixed_effects_names
                 fixedvars.clear(); fixedvars.shrink_to_fit();
+
                 process_random_vars(lhs_randomvars, rhs_randomvars, random_vars_identifiers); // append random_and_fixed_effects container, and var names to random_and_fixed_effects_names
                 lhs_randomvars.clear(); lhs_randomvars.shrink_to_fit();
                 rhs_randomvars.clear(); rhs_randomvars.shrink_to_fit();
@@ -334,23 +356,23 @@ namespace evolm
                 return;
             }
 
-            if ( is_str_in_expr(name_value_pair[1], ".corbin") ) // check if there is suffix .corbin in name_value_pair[1]
+            if ( is_str_in_expr(name_value_pair[1], ".corbin") || is_str_in_expr(name_value_pair[1], ".dmbin") ) // check if there is suffix .corbin in name_value_pair[1]
             {
                 std::vector<std::string> cor_var;
                 cor_var.push_back(name_value_pair[0]); // var name
-                cor_var.push_back(name_value_pair[1]); // .corbin file name
+                cor_var.push_back(name_value_pair[1]); // .corbin / .dmbin file name
                 special_corr_vars.push_back(cor_var);
                 return;
             }
 
-            if ( is_str_in_expr(name_value_pair[1], ".dmbin") ) // check if there is suffix .dmbin in name_value_pair[1]
+            /*if ( is_str_in_expr(name_value_pair[1], ".dmbin") ) // check if there is suffix .dmbin in name_value_pair[1]
             {
                 std::vector<std::string> dmatr_var;
                 dmatr_var.push_back(name_value_pair[0]); // var name
                 dmatr_var.push_back(name_value_pair[1]); // .dmbin file name
                 special_corr_vars.push_back(dmatr_var);  // we store .dmbin files in the same storage as .corbin files
                 return;
-            }
+            }*/
 
             // handle variables
 
@@ -499,7 +521,7 @@ namespace evolm
 
             for (size_t i = 0; i < var_data.size(); i++)
                 for (size_t j = 0; j < var_data[0].size(); j++)
-                    cs.append(var_data[i][j], i, j);                
+                    cs.append(var_data[i][j], i, j);
             
             cs.optimize();
 
@@ -601,10 +623,6 @@ namespace evolm
             if ( correlated_vars.size() != correlated_groups.size()-1 )
                 throw std::string("Incorrect expression for the model variance: correlated_vars.size() != correlated_groups.size()-1");
 
-std::cout<<"correlated_vars:"<<'\n';
-for(auto &v1: correlated_vars)
-    for(auto &v2: v1)
-        std::cout<<v2<<'\n';
             find_corr_vars_in_effects(correlated_vars); // for each correlated var find index (position) in effects vector, writing to the class's corr_vars_index_in_effects container
 
             correlated_vars.clear();
@@ -721,10 +739,8 @@ for(auto &v1: correlated_vars)
                     // (1) check the aliases map, return the original name if alias is used
                     std::unordered_map<std::string,std::string>::const_iterator it = identifier_to_eff_name.find(t_var_name);                                        
                     if ( it != identifier_to_eff_name.end() )
-                    {
                         t_var_name = it->second;
-std::cout<<"2. t_var_name: "<<t_var_name<<'\n';
-                    }
+
                     // (2) if there is no special identifier provided, check the name as it is
                     int index = in.find_value(random_and_fixed_effects_names, t_var_name);
                     
@@ -811,12 +827,26 @@ std::cout<<"2. t_var_name: "<<t_var_name<<'\n';
                 std::vector<std::int64_t> pos_map_red; // permutation vector, in the case of corr matrix needs to be reduced
                 
                 if( cor_matr_info[2] == 5 ) // expected type int64 of ids
-                {       
-                    int_levels.resize(str_levels.size());
-
-    #pragma omp parallel for
+                {
+                    if ( str_levels.size() == 1 )
+                        throw std::string("The detected number of levels is 1 which is unlikely for an expected categorical variable (with Integer type of data). The processing variable " + cor_variable + " could be recognised as Real; the processing corr. file: " + cor_matr_file + ".");
+                        //warning_messages.emplace_back("WARNING: The detected number of levels is 1 which is unlikely for an expected categorical variable (with Integer type of data). The processing variable " + cor_variable + " could be recognised as Real; the processing corr. file: " + cor_matr_file + ".");
+                    
+                        int_levels.resize(str_levels.size());
+#pragma omp parallel for
                     for (size_t i = 0; i < str_levels.size(); i++) // conversion from std::string to int64
+                    {
+                        //  try
+                        // {
+                        //     int_levels[i] = std::stol( str_levels[i] );
+                        // }
+                        // catch(...)
+                        // {
+                        //     std::cerr << "Exception in std::stol( str_levels[i] )!" << '\n';
+                        //     return;
+                        // }
                         int_levels[i] = std::stol( str_levels[i] );
+                    }
 
                     if ( cor_matr_info[1] == 2 ) // get cor matrix of type float and int64 ids
                     {
@@ -953,7 +983,7 @@ std::cout<<"2. t_var_name: "<<t_var_name<<'\n';
                 {       
                     int_levels.resize(str_levels.size());
 
-    #pragma omp parallel for
+#pragma omp parallel for
                     for (size_t i = 0; i < str_levels.size(); i++) // conversion from std::string to int64
                         int_levels[i] = std::stol( str_levels[i] );
 
@@ -1262,7 +1292,12 @@ std::cout<<"2. t_var_name: "<<t_var_name<<'\n';
                 set_fname(in, observ_vars[i]);
 
                 std::vector<std::string> levels; // this is needed here just to pass all required parameters to the function fgetvar !
-                in.fgetvar(observ_vars[i], obs_missing_value, missing_obs, s, levels); // convert string obs[i] to vector data observations[i]
+                std::string warning_msg;
+
+                in.fgetvar(observ_vars[i], obs_missing_value, missing_obs, s, levels, warning_msg); // convert string obs[i] to vector data observations[i]
+
+                if ( !warning_msg.empty() )
+                    warning_messages.push_back(warning_msg);
 
                 std::vector<size_t> obs_shape = s.shape();
 
@@ -1359,12 +1394,10 @@ std::cout<<"2. t_var_name: "<<t_var_name<<'\n';
 
                 // look at the extra_effects storage if the variable observ_vars[i] is already processed
                 int var_find_res = in.find_value(extra_effects_names, var_name);
-                // and look at the effects_with_logical_and storage if the variable observ_vars[i] is already processed
-                std::unordered_map<std::string, std::string>::const_iterator in_map = effects_with_logical_and.find (var_name);
 
                 if ( var_find_res != -1 ) // variable is in the extra storage
                 {
-                    /**/random_and_fixed_in_extra_storage.push_back(var_find_res); // we now know where to (not) find observ_vars[i] variable
+                    random_and_fixed_in_extra_storage.push_back(var_find_res); // we now know where to (not) find observ_vars[i] variable
                     random_and_fixed_effects.push_back(s_effect); // push empty effect to keep the vector size consistent
                     random_and_fixed_effects_names.push_back(var_name);
                     // need to provide some levels description (as strings) for this variable (obtained not from a data file!)
@@ -1375,11 +1408,6 @@ std::cout<<"2. t_var_name: "<<t_var_name<<'\n';
                     random_and_fixed_effects_levels.push_back(s_effect_levels);
                     continue; // move to the next variable
                 }
-                /*else if ( in_map != effects_with_logical_and.end() )
-                {
-                    process_effects_with_logical_and(in_map->first, in_map->second);
-                    continue;
-                }*/
 
                 random_and_fixed_in_extra_storage.push_back(-1);
 
@@ -1467,6 +1495,7 @@ std::cout<<"2. t_var_name: "<<t_var_name<<'\n';
             std::vector<std::int64_t> raws_in_extern_eff; // permutation vector of ids
 
             // 1. getting ref_data_var
+
             int var_find = in.find_value(extra_effects_names, ref_data_var); // look at the extra_effects storage if the variable is already processed
             if ( var_find != -1 ) // it is already processed
             {
@@ -1503,6 +1532,7 @@ std::cout<<"2. t_var_name: "<<t_var_name<<'\n';
                 throw std::string("The number of rows/columns of effect " + ref_data_var + " is zerro: ref_irow == 0 || ref_icol == 0.");
 
             // 2. getting extern_eff_var
+
             var_find = in.find_value(extra_effects_names, extern_eff_var); // look at extra_effects_names for already submitted matrix
             if ( var_find != -1 ) // it is already processed
                 throw std::string("The variable " + extern_eff_var + " has already been processed as an effect in the model. In order to use & operator submit the effect as a .corbin or .dmbin file.");
@@ -1549,18 +1579,56 @@ std::cout<<"2. t_var_name: "<<t_var_name<<'\n';
             if ( i_ids.empty() && s_ids.empty() )
                 throw std::string("Both vectors of records IDs in the file " + eff_matr_file + " are empty: i_ids.empty() && s_ids.empty().");
 
+            // 3. Rearranging extern_eff_var according to ref_data_var
+
+            if ( ref_data_var == "I" ) // in this case there is no permutation and zerroing
+            {
+                compact_storage<float> e_stor(ext_irow, ext_icol);
+
+                if (s_ext_eff.empty()) // working with dense matrix
+                {
+                    std::vector<float> values;
+                    d_ext_eff.to_vector(values);
+                    d_ext_eff.clear();
+                    e_stor.append( values );
+                }
+                else // working with sparse matrix
+                {
+                    std::vector<float> values;
+                    std::vector<size_t> keys;
+                    s_ext_eff.to_vect(values, keys);
+                    s_ext_eff.clear();
+                    e_stor.append_with_keys(values, keys);
+                }
+
+                effects_storage eff;
+                eff.set(e_stor);
+                e_stor.clear();
+
+                std::vector<std::string> ext_levels;
+                for (size_t i = 1; i < ext_icol+1; i++)
+                    ext_levels.push_back( std::to_string(i) );
+
+                extra_effects.push_back(eff); eff.clear();
+                extra_effects_names.push_back(extern_eff_var);
+                extra_effects_levels.push_back(ext_levels);
+
+                return;
+            }
+
             if ( !i_ids.empty() ) // variable extern_eff_var has int64_t type of ids
             {
                 int_levels.resize(ref_levels.size(), -1);
+
 #pragma omp parallel for
                 for (size_t i = 0; i < ref_levels.size(); i++) // convert ref_var levels from std::string to int64
                     int_levels[i] = std::stol( ref_levels[i] );
 
                 if ( i_ids.size() < int_levels.size() )
                     throw std::string("The number of rows/records IDs in the effect matrix " + extern_eff_var + " stored in the file " + eff_matr_file + " is lower than the number of levels in the effect " + ref_data_var + ".");
-
+                
                 if ( i_ids.size() > int_levels.size() )
-                    std::cout<<"WARNING NOTE: the number of rows/records IDs in the effect matrix " + extern_eff_var + " stored in the file " + eff_matr_file + " is higher than the number of levels in the effect " + ref_data_var + "."<<'\n';
+                    warning_messages.emplace_back("WARNING: the number of rows/records IDs in the effect matrix " + extern_eff_var + " stored in the file " + eff_matr_file + " is higher than the number of levels in the effect " + ref_data_var + ".");
                 
                 std::vector<std::int64_t> pos_map(ref_irow, -1); // permutation vector of ids
 
@@ -1595,10 +1663,11 @@ std::cout<<"2. t_var_name: "<<t_var_name<<'\n';
                     throw std::string("The number of rows/records IDs in the effect matrix " + extern_eff_var + " stored in the file " + eff_matr_file + " is lower than the number of levels in the effect " + ref_data_var + ".");
                 
                 if ( s_ids.size() > ref_levels.size() )
-                    std::cout<<"WARNING NOTE: the number of rows/records IDs in the effect matrix " + extern_eff_var + " stored in the file " + eff_matr_file + " is higher than the number of levels in the effect " + ref_data_var + "."<<'\n';
+                    warning_messages.emplace_back("WARNING: the number of rows/records IDs in the effect matrix " + extern_eff_var + " stored in the file " + eff_matr_file + " is higher than the number of levels in the effect " + ref_data_var + ".");
                 
                 std::vector<std::string> pos_map(ref_irow, "-1"); // permutation vector of ids
 
+#pragma omp parallel for
                 for (size_t i = 0; i < ref_irow; i++) // loop over reference effect to define permutation map for the main (external) effect
                 {
                     for ( size_t j = 0; j < ref_icol; j++ )
@@ -1613,6 +1682,7 @@ std::cout<<"2. t_var_name: "<<t_var_name<<'\n';
 
                 ref_effect.clear();
 
+#pragma omp parallel for
                 for (size_t i = 0; i < pos_map.size(); i++)
                 {
                     if ( pos_map[i] == "-1" )
@@ -1625,9 +1695,60 @@ std::cout<<"2. t_var_name: "<<t_var_name<<'\n';
                 }
             }
 
+            bool skip_permutation = true;
+            for (size_t i = 0; i < raws_in_extern_eff.size(); i++) // checkin if permutation is needed
+            {
+                if ( raws_in_extern_eff[i] == -1 )
+                    continue;
+                if ( raws_in_extern_eff[i] != (int64_t)i )
+                {
+                    skip_permutation = false;
+                    break;
+                }
+            }
+
             compact_storage<float> e_stor(raws_in_extern_eff.size(), ext_icol);
 
-            if (s_ext_eff.empty()) // working with dense matrix
+            if ( skip_permutation ) // no rearrangement, only some row zerrowing may require
+            {
+                if (s_ext_eff.empty()) // working with dense matrix
+                {
+                    for (size_t i = 0; i < ext_irow; i++)
+                    {
+                        if ( raws_in_extern_eff[i] == -1 ) // zerrowing the corresponding row
+                        {
+                            for (size_t j = 0; j < ext_icol; j++)
+                                d_ext_eff(i,j) = 0.0f;
+                        }
+                    }
+                    std::vector<float> values;
+                    d_ext_eff.to_vector(values);
+                    d_ext_eff.clear();
+                    e_stor.append( values );
+                }
+                else // working with sparse matrix
+                {
+                    for (size_t i = 0; i < s_ext_eff.nrows(); i++)
+                    {
+                        if ( raws_in_extern_eff[i] == -1 ) // zerrowing the corresponding row
+                        {
+                            float value = 0.0f;
+                            for (size_t j = 0; j < s_ext_eff.ncols(); j++)
+                            {
+                                value = s_ext_eff.get_nonzero(i,j);
+                                if (value != 0.0f)
+                                    s_ext_eff(i,j) = 0.0f;
+                            }
+                        }
+                    }
+                    std::vector<float> values;
+                    std::vector<size_t> keys;
+                    s_ext_eff.to_vect(values, keys);
+                    s_ext_eff.clear();
+                    e_stor.append_with_keys(values, keys);
+                }
+            }
+            else if (s_ext_eff.empty()) // do full permutation by working with dense matrix
             {
                 for (size_t i = 0; i < raws_in_extern_eff.size(); i++)
                 {
@@ -1637,10 +1758,10 @@ std::cout<<"2. t_var_name: "<<t_var_name<<'\n';
                     for (size_t j = 0; j < ext_icol; j++)
                         e_stor.append( d_ext_eff(irow,j), i, j );
                 }
-
                 d_ext_eff.clear();
+                e_stor.optimize();
             }
-            else // working with sparse matrix
+            else // do full permutation by working with sparse matrix
             {
                 for (size_t i = 0; i < raws_in_extern_eff.size(); i++)
                 {
@@ -1655,11 +1776,9 @@ std::cout<<"2. t_var_name: "<<t_var_name<<'\n';
                             e_stor.append( value, i, j );
                     }
                 }
-
                 s_ext_eff.clear();
+                e_stor.optimize();
             }
-
-            e_stor.optimize();
 
             effects_storage eff;
             eff.set(e_stor);
@@ -1672,12 +1791,6 @@ std::cout<<"2. t_var_name: "<<t_var_name<<'\n';
             extra_effects.push_back(eff); eff.clear();
             extra_effects_names.push_back(extern_eff_var);
             extra_effects_levels.push_back(ext_levels);
-
-            //random_and_fixed_in_extra_storage.push_back( extra_effects.size()-1 ); // add very last index of extra_effects storage, we now know where to (not) find observ_vars[i] variable
-            //random_and_fixed_effects.push_back( eff ); // push empty effect to keep the vector size consistent
-            //random_and_fixed_effects_names.push_back(extern_eff_var);
-            //random_and_fixed_effects_levels.push_back(ext_levels); // need to provide some levels description (as strings) for this variable
-
         }
         catch (const std::string &e)
         {
@@ -1728,12 +1841,10 @@ std::cout<<"2. t_var_name: "<<t_var_name<<'\n';
                             std::string var_name = rhs_random[i][0][0];
 
                             int var_find_res = in.find_value(extra_effects_names, var_name); // look at the extra_effects storage if the variable observ_vars[i] is already processed
-                            // and look at the effects_with_logical_and storage if the variable observ_vars[i] is already processed
-                            std::unordered_map<std::string, std::string>::const_iterator in_map = effects_with_logical_and.find (var_name);
 
                             if ( var_find_res != -1 ) // variable is in the extra storage
                             {
-                                /**/random_and_fixed_in_extra_storage.push_back(var_find_res); // we now know where to (not) find var_name variable
+                                random_and_fixed_in_extra_storage.push_back(var_find_res); // we now know where to (not) find var_name variable
                                 lhs_effect_name = lhs_random[i][0][0] + "|" + rhs_random[i][0][0];
                                 random_and_fixed_effects.push_back(i_lhs_eff); // stack the processed effect (empty!)
                                 random_and_fixed_effects_names.push_back(lhs_effect_name);
@@ -1741,28 +1852,11 @@ std::cout<<"2. t_var_name: "<<t_var_name<<'\n';
                                 lhs_levels = extra_effects_levels[var_find_res];
                                 random_and_fixed_effects_levels.push_back(lhs_levels);
 
-                                //lhs_effect_name = lhs_random[i][0][0] + "|" + rhs_random[i][0][0];
-                                //random_and_fixed_effects_names[var_find_res] = lhs_effect_name;
-
                                 if ( !rand_vars_identifiers[i].empty() )
-                                {
-                                    //identifier_to_eff_name[rand_vars_identifiers[i]] = var_name;
                                     identifier_to_eff_name[rand_vars_identifiers[i]] = lhs_effect_name;
-                                }
-std::cout<<"HERE 1"<<'\n';
+
                                 continue; // move to the next random variable
                             }
-                            /*else if ( in_map != effects_with_logical_and.end() )
-                            {
-                                process_effects_with_logical_and(in_map->first, in_map->second);
-
-                                random_and_fixed_in_extra_storage.push_back(extra_effects_names.size()-1); // add last index of extra_effects storage; we now know where to (not) find var_name variable
-                                
-                                if ( !rand_vars_identifiers[i].empty() )
-                                    identifier_to_eff_name[rand_vars_identifiers[i]] = lhs_effect_name;
-
-                                continue;
-                            }*/
                         }
                     }
                 }
@@ -1776,14 +1870,10 @@ std::cout<<"HERE 1"<<'\n';
                 
                 if (!simple_lhs)
                 {
-std::cout<<"HERE 2"<<'\n';
-for(auto &v:lhs_random[i][0])
-    std::cout<<v<<"\n";
                     get_effect_from_data(in, lhs_random[i][0], i_lhs_eff, lhs_effect_name, lhs_levels); // extract very first LHS effect from data and do .* if needed
 
                     for (size_t j = 1; j < lhs_random[i].size(); j++) // loop over all parsed variables of i-th effect
                     {
-std::cout<<"HERE 2.2"<<'\n';
                         std::vector<std::string> i_rhs_levels;
 
                         evolm::effects_storage j_effect; // parocessed effect
@@ -1813,9 +1903,6 @@ std::cout<<"HERE 2.2"<<'\n';
 
                 evolm::effects_storage i_rhs_eff;
                 std::string rhs_effect_name;
-std::cout<<"HERE 3"<<'\n';
-for(auto &v:rhs_random[i][0])
-    std::cout<<v<<"\n";
 
                 get_effect_from_data(in, rhs_random[i][0], i_rhs_eff, rhs_effect_name, rhs_levels); // extract very first RHS effect from data and do .* if needed
 
@@ -1849,7 +1936,7 @@ for(auto &v:rhs_random[i][0])
                 }
 
                 lhs_effect_name = lhs_effect_name + "|" + rhs_effect_name;
-std::cout<<"lhs_effect_name "<<lhs_effect_name<<"\n";
+
                 if ( !rand_vars_identifiers[i].empty() ) // we need this because if the same effect is used multiple times they should have a different names
                     lhs_effect_name = lhs_effect_name + "_" + rand_vars_identifiers[i];
 
@@ -1908,18 +1995,30 @@ std::cout<<"lhs_effect_name "<<lhs_effect_name<<"\n";
 
                     std::vector<int> ref_int_var;
                     std::vector<std::string> ref_str_var;
+                    
+                    std::string warning_msg;
 
-                    in_data.fget_var_levels(found->second, obs_missing_value, ref_int_var, ref_str_var); // get unique ref. (borroow_levels_from) variable levels
+                    in_data.fget_var_levels(found->second, obs_missing_value, ref_int_var, ref_str_var, warning_msg); // get unique ref. (borroow_levels_from) variable levels
+                    if ( !warning_msg.empty() )
+                        warning_messages.push_back(warning_msg);
 
                     set_fname(in_data, in_var_vect[0]);
+                    
+                    in_data.fgetvar(in_var_vect[0], ref_int_var, ref_str_var, obs_missing_value, missing_obs, out_s, lhs_levels, warning_msg); // very first var
 
-                    in_data.fgetvar(in_var_vect[0], ref_int_var, ref_str_var, obs_missing_value, missing_obs, out_s, lhs_levels); // very first var
+                    if ( !warning_msg.empty() )
+                        warning_messages.push_back(warning_msg);
                 }
                 else
                 {
                     set_fname(in_data, in_var_vect[0]);
 
-                    in_data.fgetvar(in_var_vect[0], obs_missing_value, missing_obs, out_s, lhs_levels); // very first var
+                    std::string warning_msg;
+
+                    in_data.fgetvar(in_var_vect[0], obs_missing_value, missing_obs, out_s, lhs_levels, warning_msg); // very first var
+
+                    if ( !warning_msg.empty() )
+                        warning_messages.push_back(warning_msg);
                 }
             }
 
@@ -1954,17 +2053,31 @@ std::cout<<"lhs_effect_name "<<lhs_effect_name<<"\n";
 
                         std::vector<int> ref_int_var;
                         std::vector<std::string> ref_str_var;
-                        in_data.fget_var_levels(found->second, obs_missing_value, ref_int_var, ref_str_var); // get unique ref. (borroow_levels_from) variable levels
-
+                        
+                        std::string warning_msg;
+                        
+                        in_data.fget_var_levels(found->second, obs_missing_value, ref_int_var, ref_str_var, warning_msg); // get unique ref. (borroow_levels_from) variable levels
+                        
+                        if ( !warning_msg.empty() )
+                            warning_messages.push_back(warning_msg);
+                        
                         set_fname(in_data, in_var_vect[j]);
 
-                        in_data.fgetvar(in_var_vect[j], ref_int_var, ref_str_var, obs_missing_value, missing_obs, s2, rhs_levels); // very first var
+                        in_data.fgetvar(in_var_vect[j], ref_int_var, ref_str_var, obs_missing_value, missing_obs, s2, rhs_levels, warning_msg); // very first var
+
+                        if ( !warning_msg.empty() )
+                            warning_messages.push_back(warning_msg);
                     }
                     else
                     {
                         set_fname(in_data, in_var_vect[j]);
 
-                        in_data.fgetvar(in_var_vect[j], obs_missing_value, missing_obs, s2, rhs_levels); // convert var string to data matrix
+                        std::string warning_msg;
+
+                        in_data.fgetvar(in_var_vect[j], obs_missing_value, missing_obs, s2, rhs_levels, warning_msg); // convert var string to data matrix
+
+                        if ( !warning_msg.empty() )
+                            warning_messages.push_back(warning_msg);
                     }
                 }
 
@@ -2091,32 +2204,20 @@ std::cout<<"lhs_effect_name "<<lhs_effect_name<<"\n";
             make_unique(minus_fixedvars);
 
             get_plusvars(in_exp, plus_fixedvars); // extract fixed effects variables with plus sign into the container minus_fixedvars
-for(auto &v: plus_fixedvars)
-    std::cout<<"1: "<<v<<'\n';
 
             split_colon(plus_fixedvars);
-for(auto &v: plus_fixedvars)
-    std::cout<<"2: "<<v<<'\n';
 
             split_star(plus_fixedvars);
-for(auto &v: plus_fixedvars)
-    std::cout<<"3: "<<v<<'\n';
 
             make_unique(plus_fixedvars);
 
             exclude_vars(plus_fixedvars, minus_fixedvars);
 
             check_borrowed_levels(plus_fixedvars);
-for(auto &v: plus_fixedvars)
-    std::cout<<"4: "<<v<<'\n';
+
             check_logical_and(plus_fixedvars);
-for(auto &v: plus_fixedvars)
-    std::cout<<"5: "<<v<<'\n';
 
             split_dot(plus_fixedvars, out_container);
-for(auto &v: out_container)
-    for(auto &v1: v)
-    std::cout<<"6: "<<v1<<'\n';
 
             minus_fixedvars.clear();
             plus_fixedvars.clear();
@@ -3182,6 +3283,15 @@ for(auto &v: out_container)
             summary<<"Model Parser"<<'\n';
             summary<<"--------------------------------------"<<'\n';
             summary<<'\n';
+            
+            if ( !warning_messages.empty() )
+            {
+                summary<<"Collected warning messages during the model parsing:"<<"\n\n";
+                for (auto const &v: warning_messages)
+                    summary<<"=> "<<v<<'\n';
+                summary<<'\n';
+            }
+            
             summary<<"List of variables defined outside the model equation(s):"<<"\n";
             size_t index = 0;
             for (auto const &v: extra_effects_names)

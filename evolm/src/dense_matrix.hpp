@@ -87,6 +87,7 @@ namespace evolm
         void fwrite();                                /* Move matrix to the disk and clear memory. */
         void invert();                                /* Matrix inversion. */
         void lchol();                                 /* Cholesky factorisation, gives lower triangular outpur. */
+        void linsolve(matrix<T> &rhs);                /* Solving vinear system A * x = rhs, result: x overwrites rhs; A overwrited by LU decomposition. This method is not making copies of arrays. */
         void fread();                                 /* Restore matrix saved on disk into the memory. */
         void fread(const std::string &fname);         /* Restore matrix from the disk into the memory. */
         void fread(const std::string &fname, std::vector<std::int64_t> &vect_data); /* Restore matrix from the disk into the memory with additional data into vector. */
@@ -392,6 +393,8 @@ namespace evolm
         void dotprod(float *_A, float *B, float *C, MKL_INT rowA/*, MKL_INT rowB*/, MKL_INT colA, MKL_INT colB);
         void inv_rec(double *_A, MKL_INT rowA, MKL_INT colA);
         void inv_rec(float *_A, MKL_INT rowA, MKL_INT colA);
+        void linsolve_lu(double *_A, MKL_INT rowA, MKL_INT colA, double *_B, MKL_INT colB);
+        void linsolve_lu(float *_A, MKL_INT rowA, MKL_INT colA, float *_B, MKL_INT colB);
         void inv_sym(double *_A, MKL_INT colA);
         void inv_sym(float *_A, MKL_INT colA);
         void get_lchol(double *_A, MKL_INT colA);
@@ -4987,6 +4990,154 @@ namespace evolm
     }
 
     //===============================================================================================================
+    
+    template <typename T>
+    void matrix<T>::linsolve(matrix<T> &rhs)
+    {
+        // NOTE: in this setup A will be overwriten by LU factorization!
+        //       rhs will be overwriten by solution.
+
+        if ( numRow != numCol )
+            throw std::string("A square matrix is required for matrix<T>::linsolve(matrix<T> &rhs) method!");
+        
+        linsolve_lu(A, numRow, numCol, rhs.A, rhs.numCol);
+    }
+
+    //===============================================================================================================
+
+    template <typename T>
+    void matrix<T>::linsolve_lu(double *_A, MKL_INT rowA, MKL_INT colA, double *_B, MKL_INT colB)
+    {
+        // 1. First, make LU factorizatioon of A: A_fact = P*L*U; ipiv = P.
+
+        lapack_int info = 0;
+        lapack_int row = rowA;
+        lapack_int col = colA;
+        lapack_int col_b = colB;
+        int matrix_order = LAPACK_ROW_MAJOR;
+
+        lapack_int *ipiv;
+        lapack_int sz_ipiv = std::max(row, col);
+
+#ifdef intelmkl
+        ipiv = (lapack_int *)mkl_malloc(sz_ipiv * sizeof(lapack_int), sizeof(T) * 8);
+#else
+        ipiv = (lapack_int *)malloc(sz_ipiv * sizeof(lapack_int));
+#endif
+        if (ipiv == NULL)
+        {
+#ifdef intelmkl
+            mkl_free(ipiv);
+#else
+            free(ipiv);
+#endif
+            failbit = true;
+            throw std::string("Memory allocation error. matrix<T>::linsolve_lu(...)");
+        }
+
+        for (lapack_int i = 0; i < sz_ipiv; i++)
+            ipiv[i] = 1;
+        
+        info = LAPACKE_dgetrf(matrix_order, row, col, _A, col, ipiv);
+    
+        if (info != 0)
+        {
+#ifdef intelmkl
+            mkl_free(ipiv);
+#else
+            free(ipiv);
+#endif
+            throw std::string("Error during computation of the LU factorization of a general m-by-n matrix. matrix<T>::linsolve_lu(...)");
+        }
+        
+        // 2. Solves a SQUARE system of linear equations with an LU-factored square coefficient matrix
+
+        info = LAPACKE_dgetrs( matrix_order, 'N', row, col_b, _A, row, ipiv, _B, col_b );
+
+        if (info != 0)
+        {
+#ifdef intelmkl
+            mkl_free(ipiv);
+#else
+            free(ipiv);
+#endif
+            throw std::string("Error during solving a linear system with LU-factored general matrix. matrix<T>::linsolve_lu(...)");
+        }
+#ifdef intelmkl
+        mkl_free(ipiv);
+#else
+        free(ipiv);
+#endif
+
+    }
+
+    //===============================================================================================================
+
+    template <typename T>
+    void matrix<T>::linsolve_lu(float *_A, MKL_INT rowA, MKL_INT colA, float *_B, MKL_INT colB)
+    {
+        // 1. First, make LU factorizatioon of A: A_fact = P*L*U; ipiv = P.
+
+        lapack_int info = 0;
+        lapack_int row = rowA;
+        lapack_int col = colA;
+        lapack_int col_b = colB;
+        int matrix_order = LAPACK_ROW_MAJOR;
+
+        lapack_int *ipiv;
+        lapack_int sz_ipiv = std::max(row, col);
+
+#ifdef intelmkl
+        ipiv = (lapack_int *)mkl_malloc(sz_ipiv * sizeof(lapack_int), sizeof(T) * 8);
+#else
+        ipiv = (lapack_int *)malloc(sz_ipiv * sizeof(lapack_int));
+#endif
+        if (ipiv == NULL)
+        {
+#ifdef intelmkl
+            mkl_free(ipiv);
+#else
+            free(ipiv);
+#endif
+            failbit = true;
+            throw std::string("Memory allocation error. matrix<T>::linsolve_lu(...)");
+        }
+        for (lapack_int i = 0; i < sz_ipiv; i++)
+            ipiv[i] = 1;
+
+        info = LAPACKE_sgetrf(matrix_order, row, col, _A, col, ipiv);
+
+        if (info != 0)
+        {
+#ifdef intelmkl
+            mkl_free(ipiv);
+#else
+            free(ipiv);
+#endif
+            throw std::string("Error during computation of the LU factorization of a general m-by-n matrix. matrix<T>::linsolve_lu(...)");
+        }
+
+        // 2. Solves a SQUARE system of linear equations with an LU-factored square coefficient matrix
+
+        info = LAPACKE_sgetrs( matrix_order, 'N', row, col_b, _A, row, ipiv, _B, col_b );
+
+        if (info != 0)
+        {
+#ifdef intelmkl
+            mkl_free(ipiv);
+#else
+            free(ipiv);
+#endif
+            throw std::string("Error during solving a linear system with LU-factored general matrix. matrix<T>::linsolve_lu(...)");
+        }
+#ifdef intelmkl
+        mkl_free(ipiv);
+#else
+        free(ipiv);
+#endif
+    }
+
+    //===============================================================================================================
 
     template <typename T>
     void matrix<T>::inv_rec(double *_A, MKL_INT rowA, MKL_INT colA)
@@ -5348,7 +5499,7 @@ namespace evolm
         {
             failbit = true;
             failinfo = (int)info;
-            throw std::string("Error during computationof  the Cholesky factorization of a symmetric (Hermitian) positive-definite matrix using packed storage. matrix<T>::get_lchol(double *, MKL_INT)");
+            throw std::string("Error during computation of  the Cholesky factorization of a symmetric (Hermitian) positive-definite matrix using packed storage. matrix<T>::get_lchol(double *, MKL_INT)");
         }
     }
 
@@ -5366,13 +5517,14 @@ namespace evolm
         lapack_int info = 0;
 
         int matrix_order = LAPACK_ROW_MAJOR;
-
+        
         info = LAPACKE_spptrf(matrix_order, 'L', colA, _A);
+
         if (info != 0)
         {
             failbit = true;
             failinfo = (int)info;
-            throw std::string("Error during computationof  the Cholesky factorization of a symmetric (Hermitian) positive-definite matrix using packed storage. matrix<T>::get_lchol(double *, MKL_INT)");
+            throw std::string("Error during computation of  the Cholesky factorization of a symmetric (Hermitian) positive-definite matrix using packed storage. matrix<T>::get_lchol(double *, MKL_INT)");
         }
     }
 

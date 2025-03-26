@@ -136,13 +136,13 @@ def example_11_1_p_180(): # section 11.4 Fixed effect model for SNP effects
     amat.save_matrix("iA", "tests/data/section_11/iA_11_1") # saving matrix to .corbin file
     amat.clear()
     gmat.scale_genotypes("tests/data/section_11/snp_short.dat", "tests/data/section_11/genotyped_short.dat") # making Z
-    gmat.save_matrix2("tests/data/section_11/Z_short_11_1") # saving matrix to .dmbin file
+    gmat.save_matrix("tests/data/section_11/Z_short_11_1") # saving matrix to .dmbin file
     gmat.clear()
 
     model.define("snp = tests/data/section_11/Z_short_11_1.dmbin")
     model.define("A = tests/data/section_11/iA_11_1.corbin")
     model.define("data = tests/data/section_11/data_11_1_short.dat; refeff = tests/data/section_11/ref_id.dat")
-    model.define("dyd ~ 1 + snp + (1|animal{ref_id})")
+    model.define("dyd ~ 1 + I&snp + (1|animal{ref_id})")
     model.define("var = (animal)*A*G + R; G = [35.241]; R = [245]")
     model.solve("pcg", 10, 5, "example_11_1.log", "solution_11_1.dat")
 
@@ -151,12 +151,12 @@ def example_11_2_p_183(): # section 11.5 Mixed linear model for computing SNP ef
     gmat = evoped.Gmat()
     model = evolm.lmm()
     gmat.scale_genotypes("tests/data/section_11/snp_short2.dat", "tests/data/section_11/genotyped_short.dat") # making Z
-    gmat.save_matrix2("tests/data/section_11/Z_11_2") # saving matrix to .dmbin file
+    gmat.save_matrix("tests/data/section_11/Z_11_2") # saving matrix to .dmbin file
     gmat.clear()
 
     model.define("snp = tests/data/section_11/Z_11_2.dmbin")
     model.define("data = tests/data/section_11/data_11_1_short.dat")
-    model.define("dyd ~ 1 + (1|snp)")
+    model.define("dyd ~ 1 + (1|I&snp)")
     model.define("var = (snp)*I*G + R; G = [9.96]; R = [245]")
     model.solve("pcg", 10, 5, "example_11_2.log", "solution_11_2.dat")
 
@@ -167,11 +167,11 @@ def example_11_3_p_186(): # section 11.5.2 Equivalent models: GBLUP
     gmat.make_matrix("tests/data/section_11/snp.dat", "tests/data/section_11/genotyped.dat") # making G
     gmat.scale_diag(0.01)
     gmat.invert_matrix()
-    gmat.save_matrix("tests/data/section_11/iG_11_3") # saving matrix to .corbin file
+    gmat.save_matrix("tests/data/section_11/iG_11_3") # saving matrix to .dmbin file
     gmat.clear()
 
     model.define("data = tests/data/section_11/data_11_1_short.dat; refeff = tests/data/section_11/ref_id2.dat")
-    model.define("iG = tests/data/section_11/iG_11_3.corbin")
+    model.define("iG = tests/data/section_11/iG_11_3.dmbin")
     model.define("dyd ~ 1 + (1|animal{ref_id2})")
     model.define("var = (animal)*iG*G + R; G = [35.25]; R = [245]")
     model.solve("pcg", 10, 5, "example_11_3.log", "solution_11_3.dat")
@@ -184,14 +184,14 @@ def example_11_5a_p_189(): # section 11.6 Mixed linear models with polygenic eff
     gmat.make_matrix("tests/data/section_11/snp.dat", "tests/data/section_11/genotyped.dat") # making G
     gmat.scale_diag(0.01)
     gmat.invert_matrix()
-    gmat.save_matrix("tests/data/section_11/iG_11_5") # saving matrix to .corbin file
+    gmat.save_matrix("tests/data/section_11/iG_11_5") # saving matrix to .dmbin file
     gmat.clear()
     amat.make_matrix("tests/data/section_11/pedigree_11_1.dat", True) # making full A(-1)
     amat.save_matrix("iA", "tests/data/section_11/iA_11_5") # saving matrix to .corbin file
     amat.clear()
 
     model.define("data = tests/data/section_11/data_11_1_short.dat; refeff = tests/data/section_11/ref_id.dat")
-    model.define("iG = tests/data/section_11/iG_11_5.corbin")
+    model.define("iG = tests/data/section_11/iG_11_5.dmbin")
     model.define("iA = tests/data/section_11/iA_11_5.corbin")
     model.define("dyd ~ 1 + (1|id{ref_id3})direct + (1|animal{ref_id})polygenic; obs_missing_value = [-9]")
     model.define("var = (direct)*iG*G1 + (polygenic)*iA*G2 + R; G1 = [31.71]; G2 = [3.5241]; R = [245]")
@@ -203,7 +203,7 @@ def example_11_5b_p_189(): # section 11.6 Mixed linear models with polygenic eff
     amat = evoped.Amat()
     model = evolm.lmm()
     gmat.scale_genotypes("tests/data/section_11/snp_short2.dat", "tests/data/section_11/genotyped_short.dat") # making Z
-    gmat.save_matrix2("tests/data/section_11/Z_11_5") # saving matrix to .dmbin file
+    gmat.save_matrix("tests/data/section_11/Z_11_5") # saving matrix to .dmbin file
     gmat.clear()
     amat.make_matrix("tests/data/section_11/pedigree_11_1.dat", True) # making full A(-1)
     amat.save_matrix("iA", "tests/data/section_11/iA_11_5") # saving matrix to .corbin file
@@ -213,7 +213,7 @@ def example_11_5b_p_189(): # section 11.6 Mixed linear models with polygenic eff
     model.define("Z = tests/data/section_11/Z_11_5.dmbin")
     model.define("Z2 = tests/data/section_11/snp.dat")
     model.define("iA = tests/data/section_11/iA_11_5.corbin")
-    model.define("dyd ~ 1 + (1|Z) + (1|animal{ref_id})polygenic; obs_missing_value = [-9]")
+    model.define("dyd ~ 1 + (1|I&Z) + (1|animal{ref_id})polygenic; obs_missing_value = [-9]")
     model.define("var = (Z)*I*G1 + (polygenic)*iA*G2 + R; G1 = [8.96]; G2 = [3.5241]; R = [245]")
     model.solve("pcg", 10, 5, "example_11_5b.log", "solution_11_5b.dat")
 
@@ -245,8 +245,8 @@ def example_fernando_G():
     model.define("M = tests/data/fernando/M.dmbin")
     model.define("M2 = tests/data/fernando/M.dmbin")
     model.define("iA = tests/data/ferna ndo/iA.corbin")
-    model.define("obs ~ -1 + (1| id:id&M:id)a + id&M2:id")
-    model.define("var = (a)*I*G + R; G = [1]; R = [9]")
+    model.define("obs ~ 1 + (1|id2&M)a + (1|z1)")
+    model.define("var = (a)*I*Ga + (z1)*iA*Gg + R; Ga = [0.111]; Gg = [1.111]; R = [10]")
     model.solve("pcg", 10, 5, "example_fernando_G.log", "solution_fernando_G.dat")
 
 def free_example():
@@ -297,6 +297,7 @@ def main():
     print_basic_info()
 
     """
+    """
 
     example_4_1_p_62()
     is_solution_correct("solution_4_1.dat", "tests/data/section_4/correct_solution_4_1.dat", "model 4_1")
@@ -341,7 +342,6 @@ def main():
     is_solution_correct("solution_11_6.dat", "tests/data/section_11/correct_solution_11_6.dat", "model 11_6")
 
     free_example()
-    """
 
     example_fernando_G()
 

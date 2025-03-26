@@ -1,6 +1,5 @@
 evolm/tests/data/model_4/*
 *.bed
-*.json
 evogen/tests/data/haplotypes_pop_large.dat
 evogen/tests/data/haplotypes_pop_large2.dat
 evogen/tests/data/struct_haplotypes_pop_large.dat
@@ -16,5 +15,6 @@ evoped/tests/data/big/
 evoped/release2/
 evolm/release/
 evolm/tests/data/large_data/
+evolm/tests/data/big_snp_sstep
 libplinkio/test_data
 libplinkio/release_lib/

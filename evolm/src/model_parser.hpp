@@ -20,6 +20,8 @@ namespace evolm
         std::string effect_file_name;
         std::vector<bool> missing_obs;
 
+        std::vector<std::string> warning_messages;
+
         std::vector<std::vector<std::string>> special_corr_vars; // strings of name = value for corr matrices (.corbin), to be processed separately
         
         std::vector<evolm::effects_storage> extra_effects; // effects/matrices provided by a name-value expression

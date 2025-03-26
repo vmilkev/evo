@@ -89,22 +89,13 @@ namespace evoped
      */
     template <typename T> void Gmat<T>::
     save_matrix(const std::string &arr, const std::string &ids)
-    {        
+    {
         try
         {
             Utilities2 u;
 
             if ( G.size() == (size_t)0 )
                 throw std::string("G.size() == (size_t)0");
-
-            /*std::string name_suffix(".dmbin");
-            if ( sizeof(T) > 4 )
-                name_suffix = ".ddmbin"; // suffix for double precision matrix
-
-            size_t find = arr.find(name_suffix);
-            std::string fname(arr);
-            if( find == std::string::npos ) // there is no suffix
-                fname = arr + name_suffix;*/
 
             G.fwrite(arr);
             u.vect_to_binary(gmatID, ids);
@@ -142,7 +133,7 @@ namespace evoped
      */
     template <typename T> void Gmat<T>::
     save_matrix2(const std::string &arr)
-    {        
+    {
         try
         {
             if ( G.size() == (size_t)0 )
@@ -327,13 +318,13 @@ namespace evoped
 
             if ( G.size() == (size_t)0 )
                 throw std::string("Saving the empty matrix, G.size() == (size_t)0.");
-
+            /*
             if ( shp[0] != shp[1] )
                 throw std::string("Saving non-square matrix by the method required only the square symmetric matrix.");
 
             if ( !G.is_symmetric() )
                 throw std::string("Saving non-symmetric matrix by the method required only the square symmetric matrix.");
-
+            */
             Utilities2 u;
             u.fwrite_matrix(out_fname, G, gmatID);
         }
@@ -809,6 +800,7 @@ namespace evoped
     {
         try
         {
+std::cout<<"making M ..."<<'\n';
             // --------- Making M matrix ------------
             read_snp(snp_fname, snp_fname_ids); // reads SNPs and its IDs from ASCII fieles (one for SNPs, another for IDs)
             evolm::matrix<T> M;
@@ -818,7 +810,8 @@ namespace evoped
             //M.print("M");
             M.fwrite("M.dmbin");
             // --------------------------------------
-
+std::cout<<"completed making M."<<'\n';
+std::cout<<"Loading A(-1) matrix ..."<<'\n';
             // --------- Loading A(-1) matrix -------
             std::vector<T> values;
             std::vector<size_t> keys;
@@ -844,7 +837,8 @@ namespace evoped
             keys.clear();
             keys.shrink_to_fit();
             // --------------------------------------
-
+std::cout<<"completed loading A(-1)."<<'\n';
+std::cout<<"Creating IDs lists ..."<<'\n';
             // --------- Creating IDs lists ---------
             std::vector<std::int64_t> nn_ids; // Create the list of IDs which are in ids of A(-1) but not in gmatID vectors
             for (size_t i = 0; i < ids.size(); i++)
@@ -861,12 +855,16 @@ namespace evoped
             for (size_t i = 0; i < gmatID.size(); i++)
                 gg_pos.push_back(u.find_invect(ids, gmatID[i]));
 
+std::cout<<"n ids in iA: "<<ids.size()<<" gmat ids: "<<gmatID.size()<<" nn_ids: "<<nn_ids.size()<<'\n';
+
             ids.clear();
             ids.shrink_to_fit();
             // --------------------------------------
-
+std::cout<<"completed creating IDs lists."<<'\n';
             // -- Making sub-matrices Ann and Ang ---
             evolm::matrix<T> Ann( nn_pos.size() );
+
+std::cout<<"Making sub-matrix Ann ..."<<'\n';
 
 #pragma omp parallel for
             for (size_t i = 0; i < nn_pos.size(); i++)
@@ -887,10 +885,13 @@ namespace evoped
             }
 
             //Ann.print("Ann");
+            
             Ann.fwrite();
 
+std::cout<<"completed."<<'\n';
             evolm::matrix<T> Ang( nn_pos.size(), gg_pos.size() );
-
+            
+std::cout<<"Making sub-matrix Ang ..."<<'\n';
 #pragma omp parallel for
             for (size_t i = 0; i < nn_pos.size(); i++)
             {
@@ -908,12 +909,12 @@ namespace evoped
                     }
                 }
             }
-
+std::cout<<"completed."<<'\n';
             amat.clear();
 
             //Ang.print("Ang");
             // --------------------------------------
-
+std::cout<<"Calculating: rhs = Ang * M ..."<<'\n';
             // ----- Calculating: rhs = Ang * M  ----
             evolm::matrix<T> rhs;
 
@@ -926,6 +927,11 @@ namespace evoped
 
             evolm::matrix<size_t> shp_M;
             shp_M = M.shape();
+            
+            evolm::matrix<size_t> shp_rhs;
+            shp_rhs = rhs.shape();
+
+std::cout<<"shape of M: "<<shp_M[0]<<" "<<shp_M[1]<<" shape of rhs: "<<shp_rhs[0]<<" "<<shp_rhs[1]<<'\n';
 
             // std::vector<T> P(shp_M[1], 0.0); // vectors of SNPs frequences
             // for (size_t row = 0; row < shp_M[0]; row++)
@@ -936,24 +942,40 @@ namespace evoped
 
             //rhs.print("rhs");
             // --------------------------------------
-
+std::cout<<"completed."<<'\n';
+std::cout<<"Calculating: L = chol(Ann) ..."<<'\n';
             // ----- Calculating: L = chol(Ann) -----
+            
             Ann.fread();
+
+std::cout<<"passed 1."<<'\n';
+            
             Ann.fclear();
 
-            Ann.lchol();
-            Ann.transpose(); // get full matrix L*L' in order to not transpose L in every solve_ls()
+std::cout<<"passed 2."<<'\n';
 
+            // Ann.lchol(); <==========
+
+            // -----------------
+            Ann.symtorec();
+            Ann.linsolve( rhs );
+            Ann.clear();
+            // -----------------
+
+std::cout<<"passed 3."<<'\n';
+/*
+            Ann.transpose(); // get full matrix L*L' in order to not transpose L in every solve_ls()
+std::cout<<"passed 4."<<'\n';
             //Ann.print("L*L'");
             // --------------------------------------
-
+std::cout<<"completed."<<'\n';
+std::cout<<"Solving: L*L' = rhs ..."<<'\n';
+*/
             // --------- Solving: L*L' = rhs --------
-            evolm::matrix<size_t> shp_rhs;
-            shp_rhs = rhs.shape();
 
             //evolm::matrix<T> M_imp( shp_rhs[0], shp_rhs[1] ); // this is just for imputed genotypes
             evolm::matrix<T> M_imp( shp_rhs[0] + shp_M[0], shp_rhs[1] ); // this is for all genotypes
-
+/*
 #pragma omp parallel for
             for (size_t i = 0; i < shp_rhs[1]; i++)
             {
@@ -970,13 +992,24 @@ namespace evoped
 
             Ann.clear();
             rhs.clear();
-
+*/
             //M_imp.print("M_imp");
             // --------------------------------------
-
+std::cout<<"completed."<<'\n';
+std::cout<<"Combine genotypes ..."<<'\n';
             // ---------- Combine genotypes ---------
-            M.fread("M.dmbin");
 
+            // -----------------
+#pragma omp parallel for
+            for (size_t row = 0; row < shp_rhs[0]; row++)
+                for (size_t col = 0; col < shp_rhs[1]; col++)
+                    M_imp(row, col) = rhs(row, col);
+            rhs.clear();
+            // -----------------
+            
+            M.fread("M.dmbin");
+            
+#pragma omp parallel for
             for (size_t row = 0; row < shp_M[0]; row++)
                 for (size_t col = 0; col < shp_M[1]; col++)
                     M_imp(shp_rhs[0]+row, col) = M(row, col);
@@ -984,9 +1017,10 @@ namespace evoped
             M.clear();
             M.fclear("M.dmbin");
 
-            M_imp.print("M_imp");
+            //M_imp.print("M_imp");
             // --------------------------------------
-            
+std::cout<<"completed."<<'\n';
+std::cout<<"Calculating variants frequences ..."<<'\n';
             // --- Calculating variants frequences --
             std::vector<T> P(shp_M[1], 0.0); // vectors of SNPs frequences
 
@@ -998,7 +1032,8 @@ namespace evoped
             for (size_t i = 0; i < P.size(); i++)
                 P[i] = P[i] / all_samples;
             // --------------------------------------
-
+std::cout<<"completed."<<'\n';
+std::cout<<"Scale genotypes ..."<<'\n';
             // ---------- Scale genotypes -----------
             Z.resize(shp_rhs[0] + shp_M[0], shp_rhs[1]); // scaling genotypes
 
@@ -1006,9 +1041,11 @@ namespace evoped
                 for (size_t j = 0; j < shp_rhs[1]; j++)
                     Z(i, j) = M_imp(i, j) - P[j];
 
-            Z.print("Z_all");
+            //Z.print("Z_all");
             // ---------- Scale genotypes -----------
-
+std::cout<<"completed."<<'\n';
+std::cout<<"Combine IDs ..."<<'\n';
+            
             // ------------ Combine IDs -------------
             std::vector<std::int64_t> all_ids;
             for (auto const &v: nn_ids)
@@ -1028,6 +1065,7 @@ namespace evoped
             Z.clear();
             all_ids.clear();
 
+std::cout<<"completed."<<'\n';
             /*Z.print("Z_imp");
             std::cout<<"nn_ids: ";
             for (auto const &v: nn_ids)

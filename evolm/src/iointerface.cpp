@@ -501,7 +501,7 @@ namespace evolm
         }
     }
     //===============================================================================================================
-    void IOInterface::fgetvar(const std::string &var_name, float miss_constant, std::vector<bool> &missing_vect, effects_storage &out_var, std::vector<std::string> &unique_levels)
+    void IOInterface::fgetvar(const std::string &var_name, float miss_constant, std::vector<bool> &missing_vect, effects_storage &out_var, std::vector<std::string> &unique_levels, std::string &messege)
     {
         /*
                 Extract data for a specific variable accessed by the name 'var_name';
@@ -622,7 +622,7 @@ namespace evolm
 
                     if (which_col == (size_t)var_col) // do something if at right column
                     {
-                        var_types.push_back(get_datatype(token));
+                        var_types.push_back(get_datatype(token,var_name));
                         data_str.push_back(token);
                     }
 
@@ -632,7 +632,7 @@ namespace evolm
                 // for the very last column:
                 if (which_col == (size_t)var_col) // do something if at right column
                 {
-                    var_types.push_back(get_datatype(line));
+                    var_types.push_back(get_datatype(line,var_name));
                     data_str.push_back(line);
                 }
             }
@@ -646,7 +646,7 @@ namespace evolm
                 if (var_types[i] == 5)
                     where_is_missing[i] = true;
             
-            int detected_type = define_vartype(var_types);
+            int detected_type = define_vartype(var_types, var_name, messege);
 
             var_types.clear();
             var_types.shrink_to_fit();
@@ -729,24 +729,24 @@ namespace evolm
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in IOInterface::fgetvar(const std::string &, float, std::vector<bool> &, effects_storage &, std::vector<std::string> &)" << '\n';
+            std::cerr << "Exception in IOInterface::fgetvar(const std::string &, float, std::vector<bool> &, effects_storage &, std::vector<std::string> &, std::string &)" << '\n';
             std::cerr << "Reason => " << e.what() << '\n';
             throw e;
         }
         catch (const std::string err)
         {
-            std::cerr << "Exception in IOInterface::fgetvar(const std::string &, float, std::vector<bool> &, effects_storage &, std::vector<std::string> &)" << '\n';
+            std::cerr << "Exception in IOInterface::fgetvar(const std::string &, float, std::vector<bool> &, effects_storage &, std::vector<std::string> &, std::string &)" << '\n';
             std::cerr << "Reason => " << err << '\n';
             throw err;
         }
         catch (...)
         {
-            std::cerr << "Exception in IOInterface::fgetvar(const std::string &, float, std::vector<bool> &, effects_storage &, std::vector<std::string> &)" << '\n';
+            std::cerr << "Exception in IOInterface::fgetvar(const std::string &, float, std::vector<bool> &, effects_storage &, std::vector<std::string> &, std::string &)" << '\n';
             throw;
         }
     }
     //===============================================================================================================
-    void IOInterface::fgetvar(const std::string &var_name, std::vector<int> &ref_vals_int, std::vector<std::string> &ref_vals_str, float miss_constant, std::vector<bool> &missing_vect, effects_storage &out_var, std::vector<std::string> &unique_levels)
+    void IOInterface::fgetvar(const std::string &var_name, std::vector<int> &ref_vals_int, std::vector<std::string> &ref_vals_str, float miss_constant, std::vector<bool> &missing_vect, effects_storage &out_var, std::vector<std::string> &unique_levels, std::string &messege)
     {
         try
         {
@@ -847,7 +847,7 @@ namespace evolm
 
                     if (which_col == (size_t)var_col) // do something if at right column
                     {
-                        var_types.push_back(get_datatype(token));
+                        var_types.push_back(get_datatype(token,var_name));
                         data_str.push_back(token);
                     }
 
@@ -857,7 +857,7 @@ namespace evolm
                 // for the very last column:
                 if (which_col == (size_t)var_col) // do something if at right column
                 {
-                    var_types.push_back(get_datatype(line));
+                    var_types.push_back(get_datatype(line,var_name));
                     data_str.push_back(line);
                 }
 
@@ -872,7 +872,7 @@ namespace evolm
                 if (var_types[i] == 5)
                     where_is_missing[i] = true;
 
-            int detected_type = define_vartype(var_types);
+            int detected_type = define_vartype(var_types, var_name, messege);
 
             var_types.clear();
             var_types.shrink_to_fit();
@@ -967,24 +967,24 @@ namespace evolm
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in IOInterface::fgetvar(const std::string &, std::vector<int> &, std::vector<std::string> &, float, std::vector<bool> &, effects_storage &, std::vector<std::string> &)" << '\n';
+            std::cerr << "Exception in IOInterface::fgetvar(const std::string &, std::vector<int> &, std::vector<std::string> &, float, std::vector<bool> &, effects_storage &, std::vector<std::string> &, std::string &)" << '\n';
             std::cerr << "Reason => " << e.what() << '\n';
             throw e;
         }
         catch (const std::string err)
         {
-            std::cerr << "Exception in IOInterface::fgetvar(const std::string &, std::vector<int> &, std::vector<std::string> &, float, std::vector<bool> &, effects_storage &, std::vector<std::string> &)" << '\n';
+            std::cerr << "Exception in IOInterface::fgetvar(const std::string &, std::vector<int> &, std::vector<std::string> &, float, std::vector<bool> &, effects_storage &, std::vector<std::string> &, std::string &)" << '\n';
             std::cerr << "Reason => " << err << '\n';
             throw err;
         }
         catch (...)
         {
-            std::cerr << "Exception in IOInterface::fgetvar(const std::string &, std::vector<int> &, std::vector<std::string> &, float, std::vector<bool> &, effects_storage &, std::vector<std::string> &)" << '\n';
+            std::cerr << "Exception in IOInterface::fgetvar(const std::string &, std::vector<int> &, std::vector<std::string> &, float, std::vector<bool> &, effects_storage &, std::vector<std::string> &, std::string &)" << '\n';
             throw;
         }
     }
     //===============================================================================================================
-    void IOInterface::fget_var_levels(const std::string &var_name, float miss_constant, std::vector<int> &out_int, std::vector<std::string> &out_str)
+    void IOInterface::fget_var_levels(const std::string &var_name, float miss_constant, std::vector<int> &out_int, std::vector<std::string> &out_str, std::string &messege)
     {
         /*
                 File format:
@@ -1081,7 +1081,7 @@ namespace evolm
 
                     if (which_col == (size_t)var_col) // do something if at right column
                     {
-                        var_types.push_back(get_datatype(token));
+                        var_types.push_back(get_datatype(token,var_name));
                         data_str.push_back(token);
                     }
 
@@ -1091,7 +1091,7 @@ namespace evolm
                 // for the very last column:
                 if (which_col == (size_t)var_col) // do something if at right column
                 {
-                    var_types.push_back(get_datatype(line));
+                    var_types.push_back(get_datatype(line,var_name));
                     data_str.push_back(line);
                 }
             }
@@ -1105,7 +1105,7 @@ namespace evolm
                 if (var_types[i] == 5)
                     where_is_missing[i] = true;
 
-            int detected_type = define_vartype(var_types);
+            int detected_type = define_vartype(var_types, var_name, messege);
 
             var_types.clear();
             var_types.shrink_to_fit();
@@ -1144,19 +1144,19 @@ namespace evolm
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in IOInterface::fget_var_levels(const std::string &, float, std::vector<int> &, std::vector<std::string> &)" << '\n';
+            std::cerr << "Exception in IOInterface::fget_var_levels(const std::string &, float, std::vector<int> &, std::vector<std::string> &, std::string &)" << '\n';
             std::cerr << "Reason => " << e.what() << '\n';
             throw e;
         }
         catch (const std::string err)
         {
-            std::cerr << "Exception in IOInterface::fget_var_levels(const std::string &, float, std::vector<int> &, std::vector<std::string> &)" << '\n';
+            std::cerr << "Exception in IOInterface::fget_var_levels(const std::string &, float, std::vector<int> &, std::vector<std::string> &, std::string &)" << '\n';
             std::cerr << "Reason => " << err << '\n';
             throw err;
         }
         catch (...)
         {
-            std::cerr << "Exception in IOInterface::fget_var_levels(const std::string &, float, std::vector<int> &, std::vector<std::string> &)" << '\n';
+            std::cerr << "Exception in IOInterface::fget_var_levels(const std::string &, float, std::vector<int> &, std::vector<std::string> &, std::string &)" << '\n';
             throw;
         }
     }
@@ -1592,7 +1592,7 @@ namespace evolm
 
     //===============================================================================================================
 
-    int IOInterface::define_vartype(std::vector<int> &types_vect)
+    int IOInterface::define_vartype(std::vector<int> &types_vect, const std::string &var_name, std::string &messege)
     {
         try
         {
@@ -1605,10 +1605,24 @@ namespace evolm
                 types_vect.pop_back();
 
             if (types_vect.size() > 2)
-                throw std::string("More than two different data types detected for a variable in a data file!");
+            {
+                std::string detected_types = "";
+                for (size_t i = 0; i < types_vect.size(); i++)
+                {
+                    if ( types_vect[i] == 1 )
+                        detected_types = detected_types + "Logical; ";
+                    if ( types_vect[i] == 2 )
+                        detected_types = detected_types + "Real; ";
+                    if ( types_vect[i] == 3 )
+                        detected_types = detected_types + "Integer; ";
+                    if ( types_vect[i] == 4 )
+                        detected_types = detected_types + "String; ";
+                }
+                throw std::string("More than two different data types were detected: " + detected_types + "for the variable: " + var_name +"; in a data file: " + io_file + "!");
+            }
 
             if (types_vect.size() == 0)
-                throw std::string("Empty data types vector!");
+                throw std::string("Empty data types vector were detected for the variable: " + var_name +"; in a data file: " + io_file + "!");
 
             // only one clear type is detected
             if (types_vect.size() == 1)
@@ -1616,41 +1630,44 @@ namespace evolm
 
             // if some of the integers have floating point representation, treat data vector as floating point
             if ( types_vect[0] == 2 && types_vect[1] == 3 )
+            {
+                messege = "WARNING: The mixed data types (Integer & Real) were detected for the variable: " + var_name +"; in a data file: " + io_file + ". The data vector will be considered as a Real type.";
                 return types_vect[0];
+            }
 
             // if a string types is mixed with floating point number
             if ((types_vect[0] == 4) || (types_vect[1] == 4))
             {
                 if ((types_vect[0] == 2) || (types_vect[1] == 2))
-                    throw std::string("The mixed types (string & floating point number) is detected at the variable's column in the file!");
+                    throw std::string("The mixed types (String & Real) were detected for the variable: " + var_name +"; in a data file: " + io_file + "!");
             }
 
             // if a string types is mixed with floating integer number
             if ((types_vect[0] == 4) || (types_vect[1] == 4))
             {
                 if ((types_vect[0] == 3) || (types_vect[1] == 3))
-                    throw std::string("The mixed types (string & integer number) is detected at the variable's column in the file!");
+                    throw std::string("The mixed types (String & Integer) were detected for the variable: " + var_name +"; in a data file: " + io_file + "!");
             }
 
             // if a string types is mixed with floating point number
             if ((types_vect[0] == 1) || (types_vect[1] == 1))
             {
                 if ((types_vect[0] == 2) || (types_vect[1] == 2))
-                    throw std::string("The mixed types (boolean & floating point number) is detected at the variable's column in the file!");
+                    throw std::string("The mixed types (Logical & Real) were detected for the variable: " + var_name +"; in a data file: " + io_file + "!");
             }
 
             // if a string types is mixed with floating integer number
             if ((types_vect[0] == 1) || (types_vect[1] == 1))
             {
                 if ((types_vect[0] == 3) || (types_vect[1] == 3))
-                    throw std::string("The mixed types (boolean & integer number) is detected at the variable's column in the file!");
+                    throw std::string("The mixed types (Logical & Integer) were detected for the variable: " + var_name +"; in a data file: " + io_file + "!");
             }
 
             // if a string types is mixed with floating integer number
             if ((types_vect[0] == 1) || (types_vect[1] == 1))
             {
                 if ((types_vect[0] == 4) || (types_vect[1] == 4))
-                    throw std::string("The mixed types (boolean & string) is detected at the variable's column in the file!");
+                    throw std::string("The mixed types (Logical & String) were detected for the variable: " + var_name +"; in a data file: " + io_file + "!");
             }
 
             return 0;
@@ -1676,14 +1693,15 @@ namespace evolm
 
     //===============================================================================================================
 
-    int IOInterface::get_datatype(std::string &str_token)
+    int IOInterface::get_datatype(std::string &str_token, const std::string &var_name)
     {
         try
         {
             std::regex boolean_expr = std::regex("^false|true$");                       // type 1, boolean
-            std::regex float_expr = std::regex("^[+-]?([0-9]+([.][0-9]*)|[.][0-9]+)$"); // type 2, float
-            //std::regex integer_expr = std::regex("^\\d+$");                             // type 3, integer
-            std::regex integer_expr = std::regex("^-?[0-9]+$");                         // type 3, integer
+            //std::regex float_expr = std::regex("^[+-]?([0-9]+([.][0-9]*)|([.][0-9]+))$"); // type 2, float
+            std::regex float_expr = std::regex("^([+-]?[0-9]+([.][0-9]*(?:e[+-]?[0-9]+)?))|([+-]?[0-9]+((?:e[+-]?[0-9]+){1}))$"); // type 2, float
+            //std::regex integer_expr = std::regex("^-?[0-9]+$");                         // type 3, integer
+            std::regex integer_expr = std::regex("^[+-]?[0-9]+$");                         // type 3, integer
             std::regex string_expr = std::regex("[a-zA-Z_#0-9]+");                      // type 4, string
             
             //std::string missing = std::to_string(missing_constant); This is unsreliable method of conversion !!!
@@ -1711,7 +1729,7 @@ namespace evolm
             else if (std::regex_match(str_token, string_expr))
                 datatype = 4;
             else
-                throw std::string("Cannot detect a data type for the token " + str_token);
+                throw std::string("Cannot detect a data type for the token: " + str_token + "; of the variable: " + var_name + "; appeared in the file: " + io_file + "!");
 
             return datatype;
         }
@@ -1973,7 +1991,7 @@ namespace evolm
             {
                 for (sample_id = 0; sample_id < n_samples; sample_id++)
                 {
-                    struct pio_sample_t *sample = pio_get_sample(&plink_file, sample_id);
+                    //struct pio_sample_t *sample = pio_get_sample(&plink_file, sample_id);
                     M(locus_id, sample_id) = (int)snp_buffer[sample_id];
                 }
                 locus_id++;
@@ -2165,10 +2183,10 @@ namespace evolm
 
         // info about matrix values
         size_t var_inbytes = B[3];
-        size_t var_type = B[1]; // expected 2 or 3
+        //size_t var_type = B[1]; // expected 2 or 3
         
         // info about matrix IDs
-        size_t var_type2 = B[2]; // expected 4 or 5
+        //size_t var_type2 = B[2]; // expected 4 or 5
 
         size_t vals_size;
         size_t keys_size;
@@ -2214,10 +2232,10 @@ namespace evolm
 
         // info about matrix values
         size_t var_inbytes = B[3];
-        size_t var_type = B[1]; // expected 2 or 3
+        //size_t var_type = B[1]; // expected 2 or 3
         
         // info about matrix IDs
-        size_t var_type2 = B[2]; // expected 4 or 5
+        //size_t var_type2 = B[2]; // expected 4 or 5
 
         size_t vals_size;
         size_t keys_size;

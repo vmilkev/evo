@@ -141,7 +141,7 @@ namespace evolm
             n_trait = model.observation_trait.size(); // get the number of traits by the number of indicated associations
                                                       // between submitted observations and considered traits
 
-            size_t i_adj_effects = 0;
+            //size_t i_adj_effects = 0;
 
             std::vector<size_t> effects_order; // map between consecutive order of all model effects in the solver and their appending order
 
@@ -808,7 +808,7 @@ namespace evolm
             size_t n_blocks = 0;
             size_t rows_per_block = 0;
 
-            int all_blocks = 0;
+            //int all_blocks = 0;
 
             for (size_t i_trate = 0; i_trate < n_trait; i_trate++)
             {
@@ -839,7 +839,7 @@ namespace evolm
                     // end of memory block fitting to a memory while building a model_matrix, write it to a disck                     
                     range[1] = get_all_levels(i_trate) + last_block - 1; // last_processed_row of the block                     
 
-                    all_blocks++;
+                    //all_blocks++;
 
                     if (calcullate_ocupied_memoty)
                     {

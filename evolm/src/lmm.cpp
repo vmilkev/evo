@@ -86,7 +86,7 @@ namespace evolm
 
             set_model(model);
 
-parser.print();
+//parser.print();
             parser.report(log_file);
 
             solver.append_model(model);
@@ -138,7 +138,7 @@ parser.print();
 
             set_model(model);
 
-parser.print();
+//parser.print();
             parser.report(log_file);
 
             solver.append_model(model);
@@ -190,7 +190,7 @@ parser.print();
 
             set_model(model);
 
-parser.print();
+//parser.print();
             parser.report(log_file);
 
             solver.append_model(model);

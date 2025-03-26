@@ -160,13 +160,13 @@ clean:
 
 rclean:
 	@echo " Cleaning..."
-	@rm amatrix_* py_out_solution_model_* cpp_solution_model_* model_matrix_* sparse_solution_* solution_* *.log 2>/dev/null || true
+	@rm amatrix_* py_out_solution_model_* cpp_solution_model_* model_matrix_* sparse_solution_* solution_* *.log *.dmbin *.corbin 2>/dev/null || true
 
 test:
-	@echo " Testing Python interface ..."
+	@echo " Integrated tests with Python interface ..."
 	$(TESTDIR)/$(SRCDIR)/launch_test_models.sh
 ifeq ($(UNAME_OS),Darwin)
-	@echo " Testing Compiled version ..."
+	@echo " Unit tests ..."
 	@export DYLD_LIBRARY_PATH=$(LIBRARY_PATH); $(TARGET_TEST)
 else
 	$(TARGET_TEST)

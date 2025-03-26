@@ -35,18 +35,21 @@ namespace evolm
                      float miss_constant,
                      std::vector<bool> &missing_vect,
                      effects_storage &out_var,
-                     std::vector<std::string> &unique_levels);         // Reference variable name (observations var name) which used to track missing records
+                     std::vector<std::string> &unique_levels,
+                     std::string &messege);         // Reference variable name (observations var name) which used to track missing records
         void fgetvar(const std::string &var_name,
                      std::vector<int> &ref_vals_int,
                      std::vector<std::string> &ref_vals_str,
                      float miss_constant,
                      std::vector<bool> &missing_vect,
                      effects_storage &out_var,
-                     std::vector<std::string> &unique_levels);
+                     std::vector<std::string> &unique_levels,
+                     std::string &messege);
         void fget_var_levels(const std::string &var_name,
                              float miss_constant,
                              std::vector<int> &out_int,
-                             std::vector<std::string> &out_str);
+                             std::vector<std::string> &out_str,
+                             std::string &messege);
         bool is_var_in_header(const std::string &var_name);
         
         void clear();
@@ -79,8 +82,8 @@ namespace evolm
         //               T what);                                           // fins the position of the string 'what' in the vector 'where'
         void str_parse(std::string &snpStr,
                        std::vector<int> &markers);                        // Parsing a SNP string
-        int get_datatype(std::string &str_token);                         // accepts data as a string token and return its type
-        int define_vartype(std::vector<int> &types_vect);                 // accepts types vector and defines a future variable data type
+        int get_datatype(std::string &str_token, const std::string &var_name);                         // accepts data as a string token and return its type
+        int define_vartype(std::vector<int> &types_vect, const std::string &var_name, std::string &messege);                 // accepts types vector and defines a future variable data type
         
         void str_to_float(std::vector<std::string> &data_str,
                          std::vector<float> &fvalues);                    // converts vector of strings to a vector of floating point numbers

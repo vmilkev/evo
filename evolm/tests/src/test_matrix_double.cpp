@@ -2691,6 +2691,154 @@ TEST_CASE ("Checking dual direction overloaded operators * , type = double"){
 
 }
 
+TEST_CASE("Testing solution of linear system with multiple RHS using LU factorization, type = double")
+{
+    evolm::matrix <mytype> A_rec(5,5);
+    evolm::matrix <mytype> A_sym(5,5);
+    evolm::matrix <mytype> B(5,3);
+    evolm::matrix <mytype> sol_rec(5,3);
+    evolm::matrix <mytype> sol_sym(5,3);
+
+    mytype rec[] = {0.8235,0.4387,0.4898,0.2760,0.4984,
+                    0.6948,0.3816,0.4456,0.6797,0.9597,
+                    0.3171,0.7655,0.6463,0.6551,0.3404,
+                    0.9502,0.7952,0.7094,0.1626,0.5853,
+                    0.0344,0.1869,0.7547,0.1190,0.2238};
+    mytype sym[] = {1.7183,0.9780,0.4376,1.0264,0.8716,
+                    0.9780,3.0180,1.5826,1.8992,2.0229,
+                    0.4376,1.5826,3.0699,1.8297,2.2526,
+                    1.0264,1.8992,1.8297,3.6143,2.6500,
+                    0.8716,2.0229,2.2526,2.6500,3.8920};
+    mytype b[] = {0.6557,0.7577,0.7060,
+                  0.0357,0.7431,0.0318,
+                  0.8491,0.3922,0.2769,
+                  0.9340,0.6555,0.0462,
+                  0.6787,0.1712,0.0971};
+    mytype rec_sol[] = {0.6671,1.0243,2.2884,
+                        0.2128,-0.5695,-1.9597,
+                        1.1432,0.3211,1.0056,
+                        0.2343,0.6241,2.0478,
+                        -1.2271,-0.3319,-2.7617};
+    mytype sym_sol[] = { 0.4206, 0.3795, 0.5522,
+                        -0.4016, 0.1699,-0.1658,
+                         0.3307, 0.1175, 0.2061,
+                         0.2218, 0.1388,-0.1290,
+                        -0.0535,-0.2918,-0.0440};
+
+    for (size_t i = 0; i < A_rec.size(); i++)
+        A_rec[i] = rec[i];
+    for (size_t i = 0; i < A_sym.size(); i++)
+        A_sym[i] = sym[i];
+    for (size_t i = 0; i < B.size(); i++)
+    {
+        B[i] = b[i];
+        sol_rec[i] = rec_sol[i];
+        sol_sym[i] = sym_sol[i];
+    }
+
+    SECTION("Rectangular square matrix, using method without copy")
+    {
+        evolm::matrix<mytype> A(A_rec);
+        evolm::matrix<mytype> rhs(B);
+
+        //A.print("rect A");
+        //rhs.print("B");
+        
+        A.linsolve(rhs); // result: A = LU, rhs = sol.
+
+        //rhs.print("rect sol");
+        //A.print("LU of A");
+
+        for (size_t i = 0; i < rhs.size(); i++)
+            REQUIRE_THAT( rhs[i], Catch::Matchers::WithinRel(sol_rec[i], 0.002) );
+    }
+
+    SECTION("Square symmetric matrix, using method without copy")
+    {
+        evolm::matrix<mytype> A(A_sym);
+        evolm::matrix<mytype> rhs(B);
+
+        //A.print("sym A");
+        //rhs.print("B");
+
+        A.linsolve(rhs); // result: A = LU, rhs = sol.
+
+        //rhs.print("sym sol");
+        //A.print("LU of A");
+
+        for (size_t i = 0; i < rhs.size(); i++)
+            REQUIRE_THAT( rhs[i], Catch::Matchers::WithinRel(sol_sym[i], 0.001) );
+    }
+}
+
+TEST_CASE("Testing solution of linear system with multiple RHS using LU factorization, type = float")
+{
+    evolm::matrix <float> A_rec(5,5);
+    evolm::matrix <float> A_sym(5,5);
+    evolm::matrix <float> B(5,3);
+    evolm::matrix <float> sol_rec(5,3);
+    evolm::matrix <float> sol_sym(5,3);
+
+    float rec[] = {0.8235,0.4387,0.4898,0.2760,0.4984,
+                    0.6948,0.3816,0.4456,0.6797,0.9597,
+                    0.3171,0.7655,0.6463,0.6551,0.3404,
+                    0.9502,0.7952,0.7094,0.1626,0.5853,
+                    0.0344,0.1869,0.7547,0.1190,0.2238};
+    float sym[] = {1.7183,0.9780,0.4376,1.0264,0.8716,
+                    0.9780,3.0180,1.5826,1.8992,2.0229,
+                    0.4376,1.5826,3.0699,1.8297,2.2526,
+                    1.0264,1.8992,1.8297,3.6143,2.6500,
+                    0.8716,2.0229,2.2526,2.6500,3.8920};
+    float b[] = {0.6557,0.7577,0.7060,
+                  0.0357,0.7431,0.0318,
+                  0.8491,0.3922,0.2769,
+                  0.9340,0.6555,0.0462,
+                  0.6787,0.1712,0.0971};
+    float rec_sol[] = {0.6671,1.0243,2.2884,
+                        0.2128,-0.5695,-1.9597,
+                        1.1432,0.3211,1.0056,
+                        0.2343,0.6241,2.0478,
+                        -1.2271,-0.3319,-2.7617};
+    float sym_sol[] = { 0.4206, 0.3795, 0.5522,
+                        -0.4016, 0.1699,-0.1658,
+                         0.3307, 0.1175, 0.2061,
+                         0.2218, 0.1388,-0.1290,
+                        -0.0535,-0.2918,-0.0440};
+
+    for (size_t i = 0; i < A_rec.size(); i++)
+        A_rec[i] = rec[i];
+    for (size_t i = 0; i < A_sym.size(); i++)
+        A_sym[i] = sym[i];
+    for (size_t i = 0; i < B.size(); i++)
+    {
+        B[i] = b[i];
+        sol_rec[i] = rec_sol[i];
+        sol_sym[i] = sym_sol[i];
+    }
+
+    SECTION("Rectangular square matrix, using method without copy")
+    {
+        evolm::matrix<float> A(A_rec);
+        evolm::matrix<float> rhs(B);
+        
+        A.linsolve(rhs); // result: A = LU, rhs = sol.
+
+        for (size_t i = 0; i < rhs.size(); i++)
+            REQUIRE_THAT( rhs[i], Catch::Matchers::WithinAbs(sol_rec[i], 0.001) );
+    }
+
+    SECTION("Square symmetric matrix, using method without copy")
+    {
+        evolm::matrix<float> A(A_sym);
+        evolm::matrix<float> rhs(B);
+
+        A.linsolve(rhs); // result: A = LU, rhs = sol.
+
+        for (size_t i = 0; i < rhs.size(); i++)
+            REQUIRE_THAT( rhs[i], Catch::Matchers::WithinAbs(sol_sym[i], 0.001) );
+    }
+}
+
 TEST_CASE("Final integration test, type = double"){
     evolm::matrix <mytype> M;
     evolm::matrix <mytype> res;

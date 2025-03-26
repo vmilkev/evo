@@ -53,10 +53,10 @@ namespace evoped
         void get_matrix(evolm::matrix<T> &arr);
         void get_ids(std::vector<std::int64_t> &ids);
 
-        void save_matrix(const std::string &arr, const std::string &ids);
-        void save_matrix2(const std::string &arr); // saving just dense matrix in binary .dmbin file.
+        void save_matrix(const std::string &arr, const std::string &ids); // saving dense matrix and ids in separate binary files
+        void save_matrix2(const std::string &arr); // saving dense matrix in binary file
+        void save_matrix(const std::string &out_fname); // saving matrix in .dmbin file
         void save_ids(const std::string &ids);
-        void save_matrix(const std::string &out_fname); // saving symmetric matrix in .dmbin file
         
         void clear();
 

@@ -752,7 +752,7 @@ namespace evolm
 //duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
 //std::cout <<"v_dot_v() (milliseconds): "<< duration.count() << std::endl;
 
-            double delta_zero = delta_new;
+            //double delta_zero = delta_new;
 
             iterations = 1;
 

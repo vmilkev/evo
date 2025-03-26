@@ -131,6 +131,10 @@ clean:
 	@rm -fr $(BDIR_PYLIB) $(BDIR_TST) $(BDIR_APP) $(TARGET_PYLIB) $(TARGET_TEST) 2>/dev/null || true
 #	@rm amatrix_* py_out_solution_model_* cpp_solution_model_* 2>/dev/null || true
 
+rclean:
+	@echo " Cleaning..."
+	@rm *.dat 2>/dev/null || true
+
 test:
 	@echo " Testing ..."
 	python3 $(TESTDIR)/$(SRCDIR)/*.py

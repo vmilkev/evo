@@ -52,7 +52,7 @@ int main(void)
         m_parser.process_expression(extra_vars_expression3);
         m_parser.process_expression(variance_expression);
 
-        m_parser.print();
+        //m_parser.print();
 
         //m_parser.report();
 
