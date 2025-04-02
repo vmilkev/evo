@@ -9,14 +9,15 @@ namespace evolm
     {
     public:
         
-        void append_model(const model_sparse &m);
+        void append_model(model_sparse &m);
         void remove_model();
         void set_memory_limit(double limit);
         double get_memory_limit();
         void set_cpu_limit(int limit);
-        void set_logfile( const std::string &log_file );
+        void set_logfile( const std::string &log_file_name );
         
         sparse_solver();
+        sparse_solver( const std::string &log_file_name );
         ~sparse_solver();
 
         //size_t get_num_of_mem_blocks();
@@ -64,7 +65,7 @@ namespace evolm
 
     protected:
 
-        model_sparse model;                             // instance of the model to be solved
+        model_sparse *model;                       // instance of the model to be solved
         std::vector<size_t> n_obs;               // number of observations for each trait
         size_t n_trait = 0;                          // number of traits
         std::vector<std::vector<size_t>> n_lev;  // num of effects' levels for each trait
@@ -83,7 +84,8 @@ namespace evolm
         double row_size_upper_bound = 0.0;
 
         std::ofstream writelog;
-        bool log_stream_open = false;
+        std::string log_file;
+        size_t logging_rate = 2; // pointing to logging frequency of PCG iterations
 
         matrix<float> rhs;
 
@@ -133,6 +135,10 @@ namespace evolm
         void diskload_cor();
         void memload_cor_effects();
         void diskload_cor_effects();
+
+        void log_message( std::string msg );
+        void log_message( std::string msg, size_t time );
+        void log_message( size_t iter, double conv_crit );
     };
 
 } // end of namespace evolm

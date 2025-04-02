@@ -13,7 +13,8 @@ def main():
     """
     """
     #test_impute_genotypes()
-    test_snp_sstep()
+    #test_snp_sstep()
+    test_snpblup()
     #test_gblup()
     #test_sstep()
 # --------------------------------------------------------------------
@@ -38,8 +39,8 @@ def test_snp_sstep():
     model.define("M = tests/data/big_snp_sstep/impt_snp.dmbin")
     model.define("iA = tests/data/big_snp_sstep/iA.corbin")
     model.define("obs ~ 1 + (1|id&M)a + (1|z1)")
-    model.define("var = (a)*I*Ga + (z1)*iA*Gg + R; Ga = [2.0]; Gg = [1.52]; R = [24.5]")
-    model.solve("pcg", 10, 5, "example_big_snp_sstep.log", "solution_big_snp_sstep.dat")
+    model.define("var = (a)*I*Ga + (z1)*iA*Gg + R; Ga = [0.0002]; Gg = [1.52]; R = [24.5]")
+    model.solve("pcg", 10, 10, "example_big_snp_sstep.log", "solution_big_snp_sstep.dat")
 # --------------------------------------------------------------------
 def test_sstep():
 
@@ -80,6 +81,25 @@ def test_gblup():
     model.define("obs ~ 1 + (1|id{ref_id})")
     model.define("var = (id)*gcorr*G2 + R; G2 = [3.5241]; R = [24.5]")
     model.solve("pcg", 10, 5, "big_gblup.log", "solution_big_gblup.dat")
+
+def test_snpblup():
+    gmat = evoped.Gmat()
+    model = evolm.lmm()
+
+    snp_file = "tests/data/big_snp_sstep/genotype_withoutID.dat"
+    id_file = "tests/data/big_snp_sstep/id_geno.dat"
+    Z_file = "tests/data/big_snp_sstep/Z"
+
+    gmat.scale_genotypes(snp_file, id_file) # making Z
+    gmat.save_matrix(Z_file) # saving matrix to .dmbin file
+    gmat.clear()
+
+    model.define("snp = tests/data/big_snp_sstep/Z.dmbin")
+    model.define("data = tests/data/big_snp_sstep/phenotype.dat; obs_missing_value = [-9999]")
+    model.define("refeff = tests/data/big_snp_sstep/ref_id.dat")
+    model.define("obs ~ 1 + (1|id{ref_id}&snp)")
+    model.define("var = (snp)*I*G + R; G = [0.0002]; R = [24.5]")
+    model.solve("pcg", 10, 5,  "big_snpblup.log", "solution_big_snpblup.dat")
 
 # --------------------------------------------------------------------
 if __name__ == '__main__':

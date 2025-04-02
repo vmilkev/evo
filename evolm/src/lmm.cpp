@@ -75,36 +75,40 @@ namespace evolm
     {
         try
         {
+            parser.report(log_file);
+
             if ( available_memory <= (int)0 )
                 throw std::string("The provided memory limit (available memory) should be greater than zerro!");
 
             if ( available_cpu <= (int)0 )
                 throw std::string("The provided cpu limit (available cpu) should be greater than zerro!");
 
-            sparse_pcg solver;
             model_sparse model;
 
-            set_model(model);
+            message_to_log( log_file, "Setting the parsed model ..." );
 
-//parser.print();
-            parser.report(log_file);
+            set_model(model, log_file);
 
+            message_to_log( log_file, "Passing the model to the solver for processing ..." );
+
+            sparse_pcg solver(log_file);
             solver.append_model(model);
-
             solver.set_memory_limit( double(available_memory) );
             solver.set_cpu_limit( available_cpu );
-            solver.set_logfile( log_file );
-
-            //solver.set_tolerance(1e-8); // 1e-6 is the default value in the solver
-            //solver.set_maxiter(1000); // should depend on the size of RHS
-
             solver.solve();
 
             std::vector<double> sol_vect;
             
+            message_to_log( log_file, "Collecting the model solution from the solver ..." );
+
             solver.get_solution(sol_vect);
 
+            message_to_log( log_file, "Processing the solution ..." );
+
             process_solution(sol_vect, sol_file);
+
+            message_to_log( log_file, " " );
+            message_to_log( log_file, "Completed successfully." );
         }
         catch(const std::exception& e)
         {
@@ -127,36 +131,41 @@ namespace evolm
     {
         try
         {
+            parser.report(log_file);
+
             if ( available_memory <= (int)0 )
                 throw std::string("The provided memory limit (available memory) should be greater than zerro!");
 
             if ( available_cpu <= (int)0 )
                 throw std::string("The provided cpu limit (available cpu) should be greater than zerro!");
 
-            sparse_pcg solver;
             model_sparse model;
 
-            set_model(model);
+            message_to_log( log_file, "Setting the parsed model ..." );
 
-//parser.print();
-            parser.report(log_file);
+            set_model(model, log_file);
 
+            message_to_log( log_file, "Passing the model to the solver for processing it ..." );
+
+            sparse_pcg solver(log_file);
             solver.append_model(model);
-
             solver.set_memory_limit( double(available_memory) );
             solver.set_cpu_limit( available_cpu );
-            solver.set_logfile( log_file );
-
             solver.set_tolerance(err_tol); // 1e-6 is the default value in the solver
-            //solver.set_maxiter(1000); // should depend on the size of RHS
-
             solver.solve();
 
             std::vector<double> sol_vect;
+
+            message_to_log( log_file, "Collecting the model solution from the solver ..." );
             
             solver.get_solution(sol_vect);
 
+            message_to_log( log_file, "Processing the solution ..." );
+
             process_solution(sol_vect, sol_file);
+
+            message_to_log( log_file, " " );
+            message_to_log( log_file, "Completed successfully." );
         }
         catch(const std::exception& e)
         {
@@ -179,36 +188,42 @@ namespace evolm
     {
         try
         {
+            parser.report(log_file);
+
             if ( available_memory <= (int)0 )
                 throw std::string("The provided memory limit (available memory) should be greater than zerro!");
 
             if ( available_cpu <= (int)0 )
                 throw std::string("The provided cpu limit (available cpu) should be greater than zerro!");
 
-            sparse_pcg solver;
             model_sparse model;
 
-            set_model(model);
+            message_to_log( log_file, "Setting the parsed model ..." );
 
-//parser.print();
-            parser.report(log_file);
+            set_model(model, log_file);
 
+            message_to_log( log_file, "Passing the model to the solver for processing it ..." );
+
+            sparse_pcg solver(log_file);
             solver.append_model(model);
-
             solver.set_memory_limit( double(available_memory) );
             solver.set_cpu_limit( available_cpu );
-            solver.set_logfile( log_file );
-
             solver.set_tolerance(err_tol); // 1e-6 is the default value in the solver
             solver.set_maxiter(max_iter); // default value depends on the size of RHS
-
             solver.solve();
 
             std::vector<double> sol_vect;
+
+            message_to_log( log_file, "Collecting the model solution from the solver ..." );
             
             solver.get_solution(sol_vect);
 
+            message_to_log( log_file, "Processing the solution ..." );
+
             process_solution(sol_vect, sol_file);
+
+            message_to_log( log_file, " " );
+            message_to_log( log_file, "Completed successfully." );
         }
         catch(const std::exception& e)
         {
@@ -227,11 +242,13 @@ namespace evolm
         }        
     }
     //===============================================================================================================
-    void lmm::set_model(model_sparse &model)
+    void lmm::set_model(model_sparse &model, const std::string &log_file)
     {
         // defining model
         try
         {
+            message_to_log( log_file, "  ==> Appending Residual ..." );
+            
             // (1) ------- Residual ------------
             compact_storage<float> R_as_storage;
             std::vector<float> R;
@@ -245,6 +262,8 @@ namespace evolm
 
             R.clear(); R.shrink_to_fit();
             R_as_storage.clear();
+            
+            message_to_log( log_file, "  ==> Appending Observations ..." );
 
             // (2) --------- Observations ----------
             for (auto  const &m: parser.model_definition)
@@ -270,6 +289,8 @@ namespace evolm
                 y_as_storage.clear();
             }
 
+            message_to_log( log_file, "  ==> Appending Effects ..." );
+
             // (3) ----------- Effects ----------------
             for (auto  const &m: parser.model_definition)
             {
@@ -293,6 +314,8 @@ namespace evolm
                 }
             }
 
+            message_to_log( log_file, "  ==> Appending Trait structure ..." );
+
             // (4) ------------ Trait model --------------
             for (auto  const &m: parser.model_definition)
             {
@@ -300,6 +323,8 @@ namespace evolm
                 std::vector<int> effects(m.second.begin(), m.second.end());
                 model.append_traitstruct(obs, effects);
             }
+
+            message_to_log( log_file, "  ==> Appending Correlations ..." );
 
             // (5) ----------- Correlations --------------
             size_t count_correlations = 0; // which correlation group
@@ -347,6 +372,8 @@ namespace evolm
 
                 count_correlations++;
             }
+
+            message_to_log( log_file, "  ==> Appending Missing values ..." );
 
             // (4) Missing values
             model.set_missing( parser.obs_missing_value );
@@ -545,6 +572,35 @@ namespace evolm
             std::cerr << "lmm::append_solution_table(std::string &, std::vector<std::string> &, std::string &): " << "Unknown exception." << '\n';
             throw;
         }        
+    }
+    //===============================================================================================================
+    void lmm::message_to_log( const std::string &log_file, std::string msg )
+    {
+        try
+        {
+            std::ofstream summary(log_file, std::ofstream::out | std::ofstream::app);
+
+            if ( !summary.is_open() )
+                throw "Unable to open log file for output!";
+
+            summary<<" "<<msg<<'\n';
+            summary.close();
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << "lmm::message_to_log(const std::string &, std::string): " << e.what() << '\n';
+            throw e;
+        }
+        catch(const std::string & e)
+        {
+            std::cerr << "lmm::message_to_log(const std::string &, std::string): " << e <<'\n';
+            throw e;
+        }
+        catch(...)
+        {
+            std::cerr << "lmm::message_to_log(const std::string &, std::string): " << "Unknown exception." << '\n';
+            throw;
+        }
     }
     //===============================================================================================================
 } // end of namespace evolm

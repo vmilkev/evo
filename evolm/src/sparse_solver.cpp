@@ -8,14 +8,19 @@ namespace evolm
         available_cpu = processor_count;
     }
 
+    sparse_solver::sparse_solver( const std::string &log_file_name )
+    {
+        const auto processor_count = std::thread::hardware_concurrency();
+        available_cpu = processor_count;
+
+        set_logfile(log_file_name);
+    }
+
     sparse_solver::~sparse_solver()
     {
         try
         {
             remove_model();
-            if ( writelog.is_open() )
-                writelog.close();
-            log_stream_open = false;
         }
         catch (const std::exception &e)
         {
@@ -29,12 +34,26 @@ namespace evolm
         }
     }
 
-    void sparse_solver::append_model(const model_sparse &m)
+    void sparse_solver::append_model(model_sparse &m)
     {
         try
         {
-            model = m;
+            log_message("Referencing the model ...");
+
+            model = &m;
+
+            log_message("completed, elapsed time:", 0);
+
+            log_message("Processing the model ...");
+
+            auto start = std::chrono::high_resolution_clock::now();
+
             process_model();
+
+            auto stop = std::chrono::high_resolution_clock::now();
+            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+
+            log_message("completed, elapsed time:", duration.count());
         }
         catch (const std::exception &e)
         {
@@ -49,20 +68,99 @@ namespace evolm
         }
     }
 
-    void sparse_solver::set_logfile( const std::string &log_file )
+    void sparse_solver::log_message( std::string msg )
     {
         try
         {
+            if ( log_file.empty() ) return;
+            
             writelog.open(log_file, std::ofstream::out | std::ofstream::app);
             if ( !writelog.is_open() )
                 throw "Unable to open log file " + log_file + " for output!";
-            log_stream_open = true;
+            writelog << " " << msg << '\n';
+            writelog.close();
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in sparse_solver::log_message( std::string)." << '\n';
+            std::cerr << e.what() << '\n';
+            throw e;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in sparse_solver::log_message( std::string)." << '\n';
+            throw;
+        }
+    }
 
+    void sparse_solver::log_message( std::string msg, size_t time )
+    {
+        try
+        {
+            if ( log_file.empty() ) return;
+
+            writelog.open(log_file, std::ofstream::out | std::ofstream::app);
+            if ( !writelog.is_open() )
+                throw "Unable to open log file " + log_file + " for output!";
+            writelog << " ==> " << msg << " " << time << ".0e-3 seconds."<< '\n';
             writelog << '\n';
-            writelog <<"--------------------------------------"<<'\n';
-            writelog << "PCG Solver" << '\n';
-            writelog <<"--------------------------------------"<<'\n';
+            writelog.close();
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in sparse_solver::log_message( std::string)." << '\n';
+            std::cerr << e.what() << '\n';
+            throw e;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in sparse_solver::log_message( std::string)." << '\n';
+            throw;
+        }
+    }
+
+    void sparse_solver::log_message( size_t iter, double conv_crit )
+    {
+        try
+        {
+            if ( log_file.empty() ) return;
+
+            writelog.open(log_file, std::ofstream::out | std::ofstream::app);
+            if ( !writelog.is_open() )
+                throw "Unable to open log file " + log_file + " for output!";
+            writelog <<" "<< iter << "  "<< conv_crit << "\n";
+            writelog.close();
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in sparse_solver::log_message( std::string)." << '\n';
+            std::cerr << e.what() << '\n';
+            throw e;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in sparse_solver::log_message( std::string)." << '\n';
+            throw;
+        }
+    }
+
+    void sparse_solver::set_logfile( const std::string &log_file_name )
+    {
+        try
+        {
+            log_file = log_file_name;
+
+            writelog.open(log_file, std::ofstream::out | std::ofstream::app);
+
+            if ( !writelog.is_open() )
+                throw "Unable to open log file " + log_file + " for output!";
+            
             writelog << '\n';
+            writelog<<"========================================================"<<'\n';
+            writelog << "              PCG Solver" << '\n';
+            writelog << '\n';
+            writelog << '\n';
+            writelog.close();
         }
         catch (const std::exception &e)
         {
@@ -81,7 +179,7 @@ namespace evolm
     {
         try
         {
-            model.clear();
+            model->clear();
 
             std::vector<size_t>().swap(n_obs);
 
@@ -138,7 +236,7 @@ namespace evolm
     {
         try
         {
-            n_trait = model.observation_trait.size(); // get the number of traits by the number of indicated associations
+            n_trait = model->observation_trait.size(); // get the number of traits by the number of indicated associations
                                                       // between submitted observations and considered traits
 
             //size_t i_adj_effects = 0;
@@ -147,24 +245,24 @@ namespace evolm
 
             for (size_t i = 0; i < n_trait; i++)
             {
-                int trait_obs_id = model.observation_trait[i]; // index of submitted observations vector in the observations std::vector
+                int trait_obs_id = model->observation_trait[i]; // index of submitted observations vector in the observations std::vector
 
-                if (((size_t)trait_obs_id > model.observations.size() - 1) || (trait_obs_id < 0))
+                if (((size_t)trait_obs_id > model->observations.size() - 1) || (trait_obs_id < 0))
                     throw std::string("Wrong index of observations vector associated to a trait!");
 
-                matrix<int> trait_eff_ids = model.effects_trait[i]; // ids for the submitted effects associated with a trait
+                matrix<int> trait_eff_ids = model->effects_trait[i]; // ids for the submitted effects associated with a trait
 
                 size_t n_trait_effects = trait_eff_ids.size();
 
-                size_t n_obs_trait = model.observations[trait_obs_id].size(); // number of observations for a specific trait
+                size_t n_obs_trait = model->observations[trait_obs_id].size(); // number of observations for a specific trait
 
-                n_obs.push_back(model.observations[trait_obs_id].size()); // get the number of observations for the specific trait
+                n_obs.push_back(model->observations[trait_obs_id].size()); // get the number of observations for the specific trait
 
                 std::vector<size_t> trait_levels;
 
                 for (size_t j = 0; j < n_trait_effects; j++)
                 {
-                    std::vector<size_t> shape = model.all_effects[trait_eff_ids[j]].shape();
+                    std::vector<size_t> shape = model->all_effects[trait_eff_ids[j]].shape();
 
                     trait_levels.push_back(shape[0]); // on transposed effects
 
@@ -189,25 +287,25 @@ namespace evolm
             set_g();
 
             // Checking if dimensions of correlated effects are matching:
-            for (size_t i = 0; i < model.correlated_effects.size(); i++) // loop over provided correlation structures
+            for (size_t i = 0; i < model->correlated_effects.size(); i++) // loop over provided correlation structures
             {
-                matrix<int> cor_effects = model.correlated_effects[i]; // list of correlated effects IDs
+                matrix<int> cor_effects = model->correlated_effects[i]; // list of correlated effects IDs
                 cor_effects.fread();
                 size_t n_effects = cor_effects.size();                 // number of correlated effects
                 
                 std::vector<size_t> shape1(2); // get shape of correlation matrix
-                shape1[0] = model.correlations[i].nrows();
-                shape1[1] = model.correlations[i].ncols();
-                //matrix<size_t> shape1 = model.correlations[i].shape();
+                shape1[0] = model->correlations[i].nrows();
+                shape1[1] = model->correlations[i].ncols();
+                //matrix<size_t> shape1 = model->correlations[i].shape();
 
-                if (model.identity_correlations[i]) // in case of correlation matrix is identity matrix
-                    shape1[0] = model.identity_dimension[i];
+                if (model->identity_correlations[i]) // in case of correlation matrix is identity matrix
+                    shape1[0] = model->identity_dimension[i];
 
                 for (size_t j = 0; j < n_effects; j++) // loop over correlated effects
                 {
                     size_t which_effect = effects_order[ cor_effects(j, 0) ]; // effect ID
 
-                    std::vector<size_t> shape2 = model.all_effects[which_effect].shape(); // shape of effect matrix, it is transposed, so n_lev-by-n_obs
+                    std::vector<size_t> shape2 = model->all_effects[which_effect].shape(); // shape of effect matrix, it is transposed, so n_lev-by-n_obs
 
                     if (shape2[0] != shape1[0]) // size of n_levels should be equal to a size of correlation matrix (symmetric)
                         throw std::string("The provided correlation structure missmatch! Dimensions of a correlation matrix and correlated effects should match!");
@@ -1090,7 +1188,7 @@ namespace evolm
 
                 std::vector<effects_storage> eff;
 
-                effects_storage e = model.all_effects[eff_ids[0]];
+                effects_storage e = model->all_effects[eff_ids[0]];
 
                 e.fread();
 
@@ -1101,7 +1199,7 @@ namespace evolm
 
                 for (size_t i = 1; i < eff_ids.size(); i++)
                 {
-                    e = model.all_effects[eff_ids[i]];
+                    e = model->all_effects[eff_ids[i]];
 
                     e.fread();
 
@@ -1119,11 +1217,11 @@ namespace evolm
 
                 std::vector<effects_storage> eff;
 
-                eff.push_back(model.all_effects[eff_ids[0]]); // very first effect
+                eff.push_back(model->all_effects[eff_ids[0]]); // very first effect
 
                 for (size_t i = 1; i < eff_ids.size(); i++)
                 {
-                    eff.push_back(model.all_effects[eff_ids[i]]);
+                    eff.push_back(model->all_effects[eff_ids[i]]);
                 }
 
                 z_uni.push_back(eff);
@@ -1239,10 +1337,10 @@ namespace evolm
     {
         try
         {
-            matrix<float> yi = model.observations[obs_id].fget();
+            matrix<float> yi = model->observations[obs_id].fget();
 
-            model.observations[obs_id].fclear();
-            model.observations[obs_id].clear();
+            model->observations[obs_id].fclear();
+            model->observations[obs_id].clear();
 
             // Making missing data structure
             std::vector<bool> s_miss;
@@ -1250,7 +1348,7 @@ namespace evolm
 
             for (size_t i = 0; i < shp[0]; i++)
             {
-                if (yi(i, 0) == model.missing_constant)
+                if (yi(i, 0) == model->missing_constant)
                 {
                     s_miss.push_back(false);
                     yi(i, 0) = 0.0; // is this OK? Otherwise we'll have -999.0 in this place!
@@ -1286,7 +1384,7 @@ namespace evolm
         {
             size_t k = (n_trait * n_trait + n_trait) / 2.0; // elements in lower triangular part
 
-            matrix<float> R = model.residuals[0].fget(); // Note! This is only for the very first submitted residual matrix.
+            matrix<float> R = model->residuals[0].fget(); // Note! This is only for the very first submitted residual matrix.
 
             if (R.size() < k)
                 throw std::string("The number of elements in the provided residual covariance matrix is not correspond to the number of traits in the model!");
@@ -1386,17 +1484,17 @@ namespace evolm
     {
         try
         {
-            for (size_t i = 0; i < model.variances.size(); i++)
+            for (size_t i = 0; i < model->variances.size(); i++)
             {
                 matrix<float> var;
-                var = model.variances[i].fget();
+                var = model->variances[i].fget();
 
-                model.variances[i].fclear();
-                model.variances[i].clear();
+                model->variances[i].fclear();
+                model->variances[i].clear();
 
                 var.invert();
                 //var.fwrite(); keep variances on memory
-                model.variances[i] = var;
+                model->variances[i] = var;
 
                 var.clear();
             }
@@ -1418,7 +1516,7 @@ namespace evolm
     {
         try
         {
-            return model.correlations.size();
+            return model->correlations.size();
         }
         catch (const std::exception &e)
         {
@@ -1437,7 +1535,7 @@ namespace evolm
     {
         try
         {
-            return model.correlated_effects[which_correlation];
+            return model->correlated_effects[which_correlation];
         }
         catch (const std::exception &e)
         {
@@ -1456,7 +1554,7 @@ namespace evolm
     {
         try
         {
-            return model.variances[which_correlation](row, col);
+            return model->variances[which_correlation](row, col);
         }
         catch (const std::string &e)
         {
@@ -1483,7 +1581,7 @@ namespace evolm
         try
         {
             size_t icol[2] = {col_1, col_2};
-            model.correlations[which_trait].add_row_to_vector(vect_to_add, vect_first_index, variance, which_row, icol);
+            model->correlations[which_trait].add_row_to_vector(vect_to_add, vect_first_index, variance, which_row, icol);
         }
         catch (const std::string &e)
         {
@@ -1513,7 +1611,7 @@ namespace evolm
 
             matrix<float> cor;
 
-            model.correlations[which_trait].to_dense(cor, irow, icol);
+            model->correlations[which_trait].to_dense(cor, irow, icol);
 
             return cor;
         }
@@ -1540,13 +1638,13 @@ namespace evolm
     {
         try
         {
-            if (model.variances.size() == 0)
+            if (model->variances.size() == 0)
                 throw std::string("Vector of variances is empty. In sparse_solver::memload_var()");
 
             if (!var_onmem)
             {
-                for (size_t i = 0; i < model.variances.size(); i++)
-                    model.variances[i].fread();
+                for (size_t i = 0; i < model->variances.size(); i++)
+                    model->variances[i].fread();
 
                 var_onmem = true;
             }
@@ -1573,13 +1671,13 @@ namespace evolm
     {
         try
         {
-            if (model.variances.size() == 0)
+            if (model->variances.size() == 0)
                 throw std::string("Vector of variances is empty. In sparse_solver::memload_var()");
 
             if (var_onmem)
             {
-                for (size_t i = 0; i < model.variances.size(); i++)
-                    model.variances[i].fwrite();
+                for (size_t i = 0; i < model->variances.size(); i++)
+                    model->variances[i].fwrite();
 
                 var_onmem = false;
             }
@@ -1606,15 +1704,15 @@ namespace evolm
     {
         try
         {
-            if (model.correlations.size() == 0)
+            if (model->correlations.size() == 0)
                 throw std::string("Vector of correlations is empty. In sparse_solver::memload_cor()");
 
             if (!cor_onmem)
             {
-                for (size_t i = 0; i < model.correlations.size(); i++)
+                for (size_t i = 0; i < model->correlations.size(); i++)
                 {
-                    model.correlations[i].fread();
-                    model.correlations[i].fread_rows_structure();
+                    model->correlations[i].fread();
+                    model->correlations[i].fread_rows_structure();
                 }
 
                 cor_onmem = true;
@@ -1642,16 +1740,16 @@ namespace evolm
     {
         try
         {
-            if (model.correlations.size() == 0)
+            if (model->correlations.size() == 0)
                 throw std::string("Vector of correlations is empty. In sparse_solver::memload_cor()");
 
             if (cor_onmem)
             {
-                for (size_t i = 0; i < model.correlations.size(); i++)
+                for (size_t i = 0; i < model->correlations.size(); i++)
                 {
                     // !!! revise here: we do not need to write out the data again, only clearing the memory is needed
-                    model.correlations[i].fwrite();
-                    model.correlations[i].fwrite_rows_structure();
+                    model->correlations[i].fwrite();
+                    model->correlations[i].fwrite_rows_structure();
                 }
 
                 cor_onmem = false;
@@ -1679,11 +1777,11 @@ namespace evolm
     {
         try
         {
-            if (model.correlated_effects.size() == 0)
+            if (model->correlated_effects.size() == 0)
                 throw std::string("Vector of cor_effects is empty. In sparse_solver::memload_cor_effects()");
 
-            for (size_t i = 0; i < model.correlated_effects.size(); i++)
-                model.correlated_effects[i].fread();
+            for (size_t i = 0; i < model->correlated_effects.size(); i++)
+                model->correlated_effects[i].fread();
         }
         catch (const std::string &e)
         {
@@ -1707,11 +1805,11 @@ namespace evolm
     {
         try
         {
-            if (model.correlated_effects.size() == 0)
+            if (model->correlated_effects.size() == 0)
                 throw std::string("Vector of cor_effects is empty. In sparse_solver::diskload_cor_effects()");
 
-            for (size_t i = 0; i < model.correlated_effects.size(); i++)
-                model.correlated_effects[i].fwrite();
+            for (size_t i = 0; i < model->correlated_effects.size(); i++)
+                model->correlated_effects[i].fwrite();
         }
         catch (const std::string &e)
         {
@@ -1735,7 +1833,7 @@ namespace evolm
     {
         try
         {
-            return model.identity_correlations[which_corr];
+            return model->identity_correlations[which_corr];
         }
         catch (const std::exception &e)
         {

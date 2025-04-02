@@ -142,7 +142,7 @@ def example_11_1_p_180(): # section 11.4 Fixed effect model for SNP effects
     model.define("snp = tests/data/section_11/Z_short_11_1.dmbin")
     model.define("A = tests/data/section_11/iA_11_1.corbin")
     model.define("data = tests/data/section_11/data_11_1_short.dat; refeff = tests/data/section_11/ref_id.dat")
-    model.define("dyd ~ 1 + I&snp + (1|animal{ref_id})")
+    model.define("dyd ~ 1 + id&snp + (1|animal{ref_id})")
     model.define("var = (animal)*A*G + R; G = [35.241]; R = [245]")
     model.solve("pcg", 10, 5, "example_11_1.log", "solution_11_1.dat")
 
@@ -156,7 +156,7 @@ def example_11_2_p_183(): # section 11.5 Mixed linear model for computing SNP ef
 
     model.define("snp = tests/data/section_11/Z_11_2.dmbin")
     model.define("data = tests/data/section_11/data_11_1_short.dat")
-    model.define("dyd ~ 1 + (1|I&snp)")
+    model.define("dyd ~ 1 + (1|id&snp)")
     model.define("var = (snp)*I*G + R; G = [9.96]; R = [245]")
     model.solve("pcg", 10, 5, "example_11_2.log", "solution_11_2.dat")
 

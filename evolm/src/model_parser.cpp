@@ -137,6 +137,7 @@ namespace evolm
             std::cerr << "Reason => " << e << "\n";
             if ( !warning_messages.empty() )
             {
+                std::cerr<<'\n';
                 std::cerr<<"Collected warning messages during the model parsing:"<<"\n\n";
                 for (auto const &v: warning_messages)
                 std::cerr<<"=> "<<v<<'\n';
@@ -150,6 +151,7 @@ namespace evolm
             std::cerr << "Reason => " << e.what() << "\n";
             if ( !warning_messages.empty() )
             {
+                std::cerr<<'\n';
                 std::cerr<<"Collected warning messages during the model parsing:"<<"\n\n";
                 for (auto const &v: warning_messages)
                 std::cerr<<"=> "<<v<<'\n';
@@ -162,6 +164,7 @@ namespace evolm
             std::cerr << "Exception in model_parser::process_expression(std::string &)"<< "\n";
             if ( !warning_messages.empty() )
             {
+                std::cerr<<'\n';
                 std::cerr<<"Collected warning messages during the model parsing:"<<"\n\n";
                 for (auto const &v: warning_messages)
                 std::cerr<<"=> "<<v<<'\n';
@@ -829,24 +832,23 @@ namespace evolm
                 if( cor_matr_info[2] == 5 ) // expected type int64 of ids
                 {
                     if ( str_levels.size() == 1 )
-                        throw std::string("The detected number of levels is 1 which is unlikely for an expected categorical variable (with Integer type of data). The processing variable " + cor_variable + " could be recognised as Real; the processing corr. file: " + cor_matr_file + ".");
-                        //warning_messages.emplace_back("WARNING: The detected number of levels is 1 which is unlikely for an expected categorical variable (with Integer type of data). The processing variable " + cor_variable + " could be recognised as Real; the processing corr. file: " + cor_matr_file + ".");
-                    
+                    {
+                        warning_messages.emplace_back("WARNING: The detected number of levels is 1 which is unlikely for an expected categorical variable (with Integer type of data). The processing variable " + cor_variable + " could be incorrectly recognised as Real; the processing corr. file: " + cor_matr_file + ".");                        
+                        try
+                        {
+                            std::int64_t the_only_value= std::stol( str_levels[0] );
+                            warning_messages.emplace_back("The only value of the variable " + cor_variable + " is " + std::to_string(the_only_value) + ".");
+                        }
+                        catch(const std::exception& e)
+                        {
+                            throw std::string( std::string(e.what())+" in std::stol()!");
+                        }
+                    }
+
                         int_levels.resize(str_levels.size());
 #pragma omp parallel for
                     for (size_t i = 0; i < str_levels.size(); i++) // conversion from std::string to int64
-                    {
-                        //  try
-                        // {
-                        //     int_levels[i] = std::stol( str_levels[i] );
-                        // }
-                        // catch(...)
-                        // {
-                        //     std::cerr << "Exception in std::stol( str_levels[i] )!" << '\n';
-                        //     return;
-                        // }
                         int_levels[i] = std::stol( str_levels[i] );
-                    }
 
                     if ( cor_matr_info[1] == 2 ) // get cor matrix of type float and int64 ids
                     {
@@ -865,7 +867,7 @@ namespace evolm
                         throw std::string("Undefined type of correlation matrix. Expected float or double.");
                     
                     if ( i_ids.size() < int_levels.size() )
-                        throw std::string("The number of rows in the correlation matrix " + cor_variable + " stored in the file " + cor_matr_file + " is lowe than the number of levels in the effect!");
+                        throw std::string("The number of rows in the correlation matrix " + cor_variable + " stored in the file " + cor_matr_file + " is lower than the number of levels in the effect!");
 
                     if ( i_ids.size() > int_levels.size() ) // require permutation and reduction
                     {
@@ -2203,7 +2205,7 @@ namespace evolm
             split_star(minus_fixedvars);
             make_unique(minus_fixedvars);
 
-            get_plusvars(in_exp, plus_fixedvars); // extract fixed effects variables with plus sign into the container minus_fixedvars
+            get_plusvars(in_exp, plus_fixedvars); // extract effects variables with plus sign into the container minus_fixedvars
 
             split_colon(plus_fixedvars);
 
@@ -2510,7 +2512,8 @@ namespace evolm
                     t_str.erase(remove(t_str.begin(), t_str.end(), cstr_closed[0]), t_str.end());
                     out_vars.push_back(t_str);
                 }
-                expr.erase(pos1, pos2-pos1+2); // erase extracted var including sign infront of it
+                //expr.erase(pos1, pos2-pos1+2); // erase extracted var including sign infront of it
+                expr.erase(pos1, pos2-pos1+1); // this was changed to address the case var1{ref_var}&var2 --> var1&var2, otherwise it produces var1var2 !!!
             }
         }
         catch (const std::string &e)
@@ -2787,8 +2790,14 @@ namespace evolm
                 {
                     if (res.size() > 1)
                         throw std::string("Multiple expressions within {} brackets are not allowed!");
-                    
-                    borroow_levels_from[s] = res[0];
+
+                    // this handling the case: var1{ref_var}&var2 --> s1 = var1; res[0] = ref_var; s = var1&var2
+                    std::string s1(s);
+                    std::size_t pos_of_and = s1.find("&");
+                    if ( pos_of_and != std::string::npos )
+                        s1 = s1.substr(0, pos_of_and);
+
+                    borroow_levels_from[s1] = res[0];
                 }
                 
                 all_res.push_back(s);
@@ -3279,82 +3288,140 @@ namespace evolm
                 throw "Unable to open log file for output!";                
 
             summary<<'\n';
-            summary<<"--------------------------------------"<<'\n';
-            summary<<"Model Parser"<<'\n';
-            summary<<"--------------------------------------"<<'\n';
+            summary<<"========================================================"<<'\n';
+            summary<<"               Model Parser"<<'\n';
             summary<<'\n';
+            summary<<"\n";
             
             if ( !warning_messages.empty() )
             {
-                summary<<"Collected warning messages during the model parsing:"<<"\n\n";
+                //summary<<"----------------------------------------------------"<<'\n';
+                summary<<" Collected warning messages during the model parsing:"<<"\n";
+                summary<<"----------------------------------------------------"<<'\n';
                 for (auto const &v: warning_messages)
                     summary<<"=> "<<v<<'\n';
-                summary<<'\n';
+                summary<<"----------------------------------------------------"<<'\n';
+                summary<<"\n";
             }
             
-            summary<<"List of variables defined outside the model equation(s):"<<"\n";
+            summary<<" List of variables defined outside the model equation(s):"<<"\n";
+            summary<<"-------------------------------------------------------"<<'\n';
+            summary<<std::setw(15)<<std::left<<" name "<<std::setw(10)<<std::left<<" position "<<'\n';
+            summary<<"-------------------------------------------------------"<<'\n';
             size_t index = 0;
             for (auto const &v: extra_effects_names)
             {
-                summary<<"    name & position: "<<v<<" "<<index<<"\n";
+                summary<<" "<<std::setw(15)<<std::left<<v<<std::setw(10)<<std::left<<index<<'\n';
                 index++;
             }
+            summary<<"-------------------------------------------------------"<<'\n';
             summary<<"\n";
-            
-            summary<<"Model variables: "<<"\n";
+
+            //summary<<"-------------------------------------------------------"<<'\n';
+            summary<<" Model variable(s):"<<"\n";
+            summary<<"-------------------------------------------------------"<<'\n';
+            summary<<std::setw(15)<<std::left<<" name "<<std::setw(10)<<std::left<<" position "<<'\n';
+            summary<<"-------------------------------------------------------"<<'\n';
             index = 0;
             for (auto const &v: random_and_fixed_effects_names)
             {
-                summary<<"    name & position: "<<v<<" "<<index<<"\n";
+                summary<<" "<<std::setw(15)<<std::left<<v<<std::setw(10)<<std::left<<index<<'\n';
                 index++;
             }
+            summary<<"-------------------------------------------------------"<<'\n';
             summary<<"\n";
 
-            summary<<"Observations:"<<"\n";
+            summary<<" Observation(s):"<<"\n";
+            summary<<"-------------------------------------------------------"<<'\n';
+            summary<<std::setw(15)<<std::left<<" name "<<std::setw(10)<<std::left<<" position "<<std::setw(15)<<std::left<<" records"<<'\n';
+            summary<<"-------------------------------------------------------"<<'\n';
             for (size_t i = 0; i < observations.size(); i++)
             {
                 std::vector<size_t> n_obs;
                 if (obs_in_extra_storage[i] == -1) // is not in extra storage
                 {
                     n_obs = observations[i].shape();
-                    summary<<"    name, position, records: "<<observations_names[i]<<" "<<i<<" "<<n_obs[0]<<"\n";
+                    summary<<" "<<std::setw(15)<<std::left<<observations_names[i]<<std::setw(10)<<std::left<<i<<std::setw(15)<<std::left<<n_obs[0]<<'\n';
                 }
                 else
                 {
                     n_obs = observations[obs_in_extra_storage[i]].shape();
-                    summary<<"    name, position (in extra), records: "<<observations_names[i]<<" "<<obs_in_extra_storage[i]<<" "<<n_obs[0]<<"\n";
+                    summary<<" "<<std::setw(15)<<std::left<<observations_names[i]<<std::setw(10)<<std::left<<obs_in_extra_storage[i]<<std::setw(15)<<std::left<<n_obs[0]<<'\n';
                 }
             }
+            summary<<"-------------------------------------------------------"<<'\n';
             summary<<"\n";
 
-            summary<<"Effects:"<<"\n";
+            summary<<" Effect(s):"<<"\n";
+            summary<<"-------------------------------------------------------"<<'\n';
+            summary<<std::setw(15)<<std::left<<" name "<<std::setw(10)<<std::left<<" position "<<std::setw(15)<<std::left<<" records"<<std::setw(15)<<std::left<<" levels"<<'\n';
+            summary<<"-------------------------------------------------------"<<'\n';
+            std::vector<size_t> shape_var;
             for (size_t i = 0; i < random_and_fixed_effects.size(); i++)
+            {
                 if (random_and_fixed_in_extra_storage[i] == -1) // is not in extra storage
-                    summary<<"    name, position, levels: "<<random_and_fixed_effects_names[i]<<" "<<i<<" "<<random_and_fixed_effects_levels[i].size()<<"\n";
+                {
+                    shape_var = random_and_fixed_effects[i].shape();
+                    summary<<" "<<std::setw(15)<<std::left<<random_and_fixed_effects_names[i]<<std::setw(10)<<std::left<<i<<std::setw(15)<<std::left<<shape_var[0]<<std::setw(15)<<std::left<<random_and_fixed_effects_levels[i].size()<<'\n';
+                }
                 else
-                    summary<<"    name, position (in extra), levels: "<<random_and_fixed_effects_names[i]<<" "<<random_and_fixed_in_extra_storage[i]<<" "<<random_and_fixed_effects_levels[i].size()<<"\n";
+                {
+                    shape_var = extra_effects[random_and_fixed_in_extra_storage[i]].shape();
+                    summary<<" "<<std::setw(15)<<std::left<<random_and_fixed_effects_names[i]<<std::setw(10)<<std::left<<random_and_fixed_in_extra_storage[i]<<std::setw(15)<<std::left<<shape_var[0]<<std::setw(15)<<std::left<<random_and_fixed_effects_levels[i].size()<<'\n';
+                }
+            }
+            summary<<"-------------------------------------------------------"<<'\n';
             summary<<"\n";
 
-            summary<<"Model variance"<<"\n";
+            summary<<" Model variance (correlations among effects):"<<"\n";
+            summary<<"-------------------------------------------------------"<<'\n';
+            summary<<std::setw(6)<<std::left<<" no."<<std::setw(30)<<std::left<<" effects"<<std::setw(8)<<std::left<<" matrix"<<std::setw(8)<<std::left<<" variance"<<'\n';
+            summary<<"-------------------------------------------------------"<<'\n';
+            
             for (size_t i = 0; i < corr_vars_index_in_effects.size(); i++) // loop over all model correlations
             {
-                summary<<"correlation "<<i+1<<":"<<'\n';
+                //summary<<"correlation "<<i+1<<":"<<'\n';
+
+                std::string corr_vars = "( ";
+                std::string corr_matrix;
+                std::string corr_variance;
+            
                 for (size_t j = 0; j < corr_vars_index_in_effects[i].size(); j++)
-                    summary<<"    variable & position: "<<random_and_fixed_effects_names[ corr_vars_index_in_effects[i][j] ]<<" "<<corr_vars_index_in_effects[i][j]<<"\n";
-                summary<<"    matrix & position (in extra): ";
+                {
+                    if ( j != corr_vars_index_in_effects[i].size() - 1 )
+                        corr_vars = corr_vars + random_and_fixed_effects_names[ corr_vars_index_in_effects[i][j] ] + ", ";
+                    else
+                        corr_vars = corr_vars + random_and_fixed_effects_names[ corr_vars_index_in_effects[i][j] ] + " )";
+
+                    //summary<<"    variable & position: "<<random_and_fixed_effects_names[ corr_vars_index_in_effects[i][j] ]<<" "<<corr_vars_index_in_effects[i][j]<<"\n";
+                }
+                
+                //summary<<"    matrix & position (in extra): ";
                 if (corr_matr_index_in_extra_vars[i][0] >= 0)
                 {
-                    summary<<extra_effects_names[ corr_matr_index_in_extra_vars[i][0] ]<<" "<<corr_matr_index_in_extra_vars[i][0]<<"\n";
+                    corr_matrix = extra_effects_names[ corr_matr_index_in_extra_vars[i][0] ];
+                    //summary<<extra_effects_names[ corr_matr_index_in_extra_vars[i][0] ]<<" "<<corr_matr_index_in_extra_vars[i][0]<<"\n";
                 }
                 else
-                    summary<<"I "<<corr_matr_index_in_extra_vars[i][0]<<"\n";
-                summary<<"    variance & position in extra.: ";
+                    corr_matrix = "I";
+                    //summary<<"I "<<corr_matr_index_in_extra_vars[i][0]<<"\n";
+                
+                //summary<<"    variance & position in extra.: ";
+
                 if (corr_matr_index_in_extra_vars[i][1] >= 0)
-                    summary<<extra_effects_names[ corr_matr_index_in_extra_vars[i][1] ]<<" "<<corr_matr_index_in_extra_vars[i][1]<<"\n";
+                {
+                    corr_variance = extra_effects_names[ corr_matr_index_in_extra_vars[i][1] ];
+                    //summary<<extra_effects_names[ corr_matr_index_in_extra_vars[i][1] ]<<" "<<corr_matr_index_in_extra_vars[i][1]<<"\n";
+                }
                 else
-                    summary<<corr_matr_index_in_extra_vars[i][1]<<"\n";
+                    corr_variance = corr_matr_index_in_extra_vars[i][1];
+                    //summary<<corr_matr_index_in_extra_vars[i][1]<<"\n";
+
+                summary<<" "<<std::setw(6)<<std::left<<i+1<<std::setw(30)<<std::left<<corr_vars<<std::setw(8)<<std::left<<corr_matrix<<std::setw(8)<<std::left<<corr_variance<<'\n';
             }
+            summary<<"-------------------------------------------------------"<<'\n';
             summary<<"\n";
+
             summary<<"residual:"<<"\n";
             summary<<"    name & position in extra: "<<extra_effects_names[ corr_matr_index_in_extra_vars[corr_matr_index_in_extra_vars.size()-1][0] ]<<" "<<corr_matr_index_in_extra_vars[corr_matr_index_in_extra_vars.size()-1][0]<<"\n";
             
@@ -3406,6 +3473,12 @@ namespace evolm
                     summary<<" ,"<<m[i];
                 summary<<")"<<'\n';
             }
+            summary<<"\n";
+
+            summary<<" ==> The model parser finalized successfully."<<"\n";
+            summary<<"\n";
+            summary<<"========================================================"<<'\n';
+            summary<<"\n";
 
             summary.close();
         }

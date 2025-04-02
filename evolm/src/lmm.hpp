@@ -12,11 +12,12 @@ namespace evolm
     private:
         model_parser parser; // handler and storage for model's definition and data
         std::vector<std::vector<std::string>> sol_table;
-        void set_model( model_sparse &model ); // uses parser data to build model
+        void set_model( model_sparse &model, const std::string &log_file ); // uses parser data to build model
         void read_model_from_file( const std::string &fname, std::vector<std::string> &out_expr );
         void append_solution_table(std::string &var_name, std::vector<std::string> &levels, std::string &trait);
         void process_solution(std::vector<double> &sol_vect, const std::string &sol_file);
         std::string to_string_with_precision(const double value, const int n);
+        void message_to_log( const std::string &log_file, std::string msg );
     
     public:
         lmm();

@@ -101,5 +101,6 @@
             "name": "Clean",
             "makeArgs": ["clean"]
         }
-    ]
+    ],
+    "sonarlint.pathToCompileCommands": "${workspaceFolder}/.vscode/compile_commands.json"
 }

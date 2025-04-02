@@ -1297,7 +1297,7 @@ namespace evolm
             if ( in_values.back() == missing_int )
                 in_values.pop_back(); // remove missing constant to obtain correct number of levels in effect
 
-            // recoding integer values in the 'ivalues' vector to the vcategorical data
+            // recoding integer values in the 'ivalues' vector to the categorical data
             // for missing values: cat_values = -1
             for (size_t i = 0; i < ivalues.size(); i++)
             {

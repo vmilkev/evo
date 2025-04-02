@@ -18,3 +18,4 @@ evolm/tests/data/large_data/
 evolm/tests/data/big_snp_sstep
 libplinkio/test_data
 libplinkio/release_lib/
+evolm/solutions.mat

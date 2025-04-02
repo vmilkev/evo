@@ -2,11 +2,6 @@
 
 namespace evolm
 {
-
-    sparse_pcg::sparse_pcg()
-    {
-    }
-
     sparse_pcg::~sparse_pcg()
     {
         clear_model_matrix();
@@ -16,53 +11,55 @@ namespace evolm
     {
         try
         {
-            writelog << "Loading data ... ";
+            log_message("Loading data ...");
 
             auto start = std::chrono::high_resolution_clock::now();
 
             memload_effects();
-            // memload_var();
             memload_cor();
             memload_cor_effects();
 
             auto stop = std::chrono::high_resolution_clock::now();
             auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-            writelog <<"completed in "<< duration.count() << " milliseconds." << '\n';
 
-            writelog << "Constructing RHS vector ... ";
+            log_message("completed, elapsed time:", duration.count());
+            log_message("Constructing RHS vector ...");
 
             start = std::chrono::high_resolution_clock::now();
             
             construct_rhs();
             
             stop = std::chrono::high_resolution_clock::now();
-            duration = std::chrono::duration_cast<std::chrono::seconds>(stop - start);
-            writelog <<"completed in "<< duration.count() << " seconds." << '\n';
+            duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+
+            log_message("completed, elapsed time:", duration.count());
 
             double size_of_maps = r_map.size() * (sizeof(size_t) + r_map.begin()->second.size() * sizeof(float)) * 3.0;
-            double size_of_data = (size_of_maps + (double)model.get_size_of_data()) / 1073741824.0;
+            double size_of_data = (size_of_maps + (double)model->get_size_of_data()) / 1073741824.0;
 
             set_data_size(size_of_data);
 
-            writelog << "Constructing model matrix ... ";
+            log_message("Constructing model matrix ...");
 
             start = std::chrono::high_resolution_clock::now();
 
             set_model_matrix();
 
             stop = std::chrono::high_resolution_clock::now();
-            duration = std::chrono::duration_cast<std::chrono::seconds>(stop - start);
-            writelog <<"completed in "<< duration.count() << " seconds." << '\n';
+            duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
 
-            /*diskload_effects();
-            diskload_var();
-            diskload_cor();
-            diskload_cor_effects();
-            adj_effects_order.clear();*/
+            log_message("completed, elapsed time:", duration.count());
+            log_message("Cleaning the model data ...");
+
+            start = std::chrono::high_resolution_clock::now();
 
             remove_model();
 
-            writelog << "Loading model matrix into memory ... ";
+            stop = std::chrono::high_resolution_clock::now();
+            duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+
+            log_message("completed, elapsed time:", duration.count());
+            log_message("Loading model matrix into memory ...");
             
             start = std::chrono::high_resolution_clock::now();
 
@@ -90,19 +87,20 @@ namespace evolm
 
             stop = std::chrono::high_resolution_clock::now();
             duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-            writelog <<"completed in "<< duration.count() << " milliseconds." << '\n';
 
-            writelog << "Starting PCG iterations (stops when rate values lower or equal to 0.0) ... " << '\n';
-            writelog << '\n';
-            writelog << "Iteration & Convergence Rate:" << '\n';
-            writelog << '\n';
+            log_message("completed, elapsed time:", duration.count());
+            
+            log_message(" ");
+            log_message("Starting PCG iterations (stops when rate values lower or equal to 0.0) ...");
+            log_message(" ");
 
             jacobi_pcg();
 
             stop = std::chrono::high_resolution_clock::now();
             duration = std::chrono::duration_cast<std::chrono::seconds>(stop - start);
-            writelog << '\n';
-            writelog <<"PCG completed in "<< duration.count() << " seconds." << '\n';
+            
+            log_message(" ");
+            log_message("completed PCG iterations, elapsed time:", duration.count());
         }
         catch (const std::exception &e)
         {
@@ -255,14 +253,7 @@ namespace evolm
         {
             if (inverted_diagonal.size() != model_matrix.size())
                 throw std::string("The size allocated for the vector of model matrix diagonals is not correct!");
-//------------
-/*for (size_t i = 0; i < model_matrix.size(); i++)
-{
-    smatrix<float> s;
-    model_matrix[i].to_sparse(s);
-    s.print(std::to_string(i));
-}*/
-//------------
+
 #pragma omp parallel for num_threads(available_cpu)
             for (size_t j = 0; j < first_row_ondisk; j++) // process data which is already in memory
             {
@@ -294,11 +285,12 @@ namespace evolm
                 }
                 unload_model_matrix(i);
             }*/
-            std::vector<bool> reading_complete(model_matrix.size(), false);
+            //std::vector<bool> reading_complete(model_matrix.size(), false);
             std::fstream fA;
             fA.open(bin_fname, fA.binary | fA.in);
             fA.seekg(model_matrix[first_row_ondisk].bin_file_read_position, fA.beg);
 
+/*
 #pragma omp parallel sections
             {
 #pragma omp section
@@ -327,6 +319,19 @@ namespace evolm
                     }
                 }
             }
+            fA.close();*/
+
+            for (size_t j = first_row_ondisk; j < model_matrix.size(); j++)
+            {
+                model_matrix[j].fread(fA);
+                float d = model_matrix[j].value_at(0, j);
+                if (d == 0.0f)
+                    inverted_diagonal[j] = 1.0;
+                else
+                    inverted_diagonal[j] = 1.0 / static_cast<double>(d);
+                model_matrix[j].remove_data();
+            }
+
             fA.close();
         }
         catch (const std::string &err)
@@ -377,10 +382,11 @@ namespace evolm
                 unload_model_matrix(i);
             }*/
 
-            std::vector<bool> reading_complete(model_matrix.size(), false);
+            //std::vector<bool> reading_complete(model_matrix.size(), false);
             std::fstream fA;
             fA.open(bin_fname, fA.binary | fA.in);
             fA.seekg(model_matrix[first_row_ondisk].bin_file_read_position, fA.beg);
+            /*
 #pragma omp parallel sections
             {
 #pragma omp section
@@ -406,7 +412,17 @@ namespace evolm
                         }
                     }
                 }
+            }*/
+
+            for (size_t j = first_row_ondisk; j < model_matrix.size(); j++)
+            {                        
+                model_matrix[j].fread(fA);
+                double result = 0.0;
+                model_matrix[j].vect_dot_vect(in_vect, result);
+                out_vect[j] = result;
+                model_matrix[j].remove_data();
             }
+
             fA.close();
         }
         catch (const std::exception &e)
@@ -434,7 +450,7 @@ namespace evolm
             size_t unknowns = shape_rhs[0];
 
             if (befault_max_iter)
-                max_iterations = unknowns * 2;
+                max_iterations = unknowns;
 
             std::vector<double> Mi(unknowns, 0.0);     // inverse of diagonal of A
             std::vector<double> _rhs(unknowns, 0.0);   // rhs
@@ -446,7 +462,16 @@ namespace evolm
 
             sol.resize(unknowns, 0.0); // solution vector
 
+            log_message("Getting the inverce of diagonal elements of the coefficient matrix ...");
+
+            auto start = std::chrono::high_resolution_clock::now();
+
             construct_dval(Mi);
+
+            auto stop = std::chrono::high_resolution_clock::now();
+            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+
+            log_message("completed, elapsed time:", duration.count());
 
             for (size_t i = 0; i < unknowns; i++)
                 _rhs[i] = static_cast<double>(rhs[i]);
@@ -454,25 +479,32 @@ namespace evolm
             for (size_t i = 0; i < unknowns; i++)
                 sol[i] = _rhs[i] * Mi[i]; // initial solution
 
-            //auto start = std::chrono::high_resolution_clock::now();
-            update_vect(tVect, sol); // A*x
-            //auto stop = std::chrono::high_resolution_clock::now();
-            //auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-            //std::cout << "update_vect() (milliseconds): " << duration.count() << std::endl;
+            log_message("Expected duration of one pcg iteration");
+
+            start = std::chrono::high_resolution_clock::now();
+
+            update_vect(tVect, sol); // A*x --> tVect
 
             for (size_t i = 0; i < unknowns; i++)
-                r_vect[i] = _rhs[i] - tVect[i]; // r = rhs - A*x
+                r_vect[i] = _rhs[i] - tVect[i]; // residual = rhs - A*x
 
             tVect.clear();
 
             for (size_t i = 0; i < unknowns; i++)
                 d[i] = Mi[i] * r_vect[i];
 
-            //start = std::chrono::high_resolution_clock::now();
             double delta_new = v_dot_v(r_vect, d);
-            //stop = std::chrono::high_resolution_clock::now();
-            //duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-            //std::cout << "v_dot_v() (milliseconds): " << duration.count() << std::endl;
+
+            stop = std::chrono::high_resolution_clock::now();
+            duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+
+            log_message("(upper bound) ", (size_t)( 1.3 * (double)duration.count() ));
+            log_message("Expected overall solution time");
+            log_message("using the maximum number of iterations (the upper bound) ", (size_t)( 1.3 * (double)max_iterations * (double)duration.count() ));
+            
+            std::cout<<"stop when error < "<< delta_new * tolerance * tolerance<<'\n';
+            std::cout<<"delta_zero = "<< delta_new <<'\n';
+            std::cout<<"tolerance =  "<< tolerance<<'\n';
 
             double delta_zero = delta_new;
 
@@ -483,7 +515,9 @@ namespace evolm
             double delta_old = 0.0;
             double betha = 0.0;
 
-            // std::cout << "max_iterations: "<< max_iterations << "; iter: " << iterations << "; delta_new: " << delta_new << " condition: "<< /*delta_zero */ tolerance * tolerance << "\n";
+            log_message("Iteration & Error:");
+            log_message(" ");
+
             while ( iterations < max_iterations && delta_new > delta_zero * tolerance * tolerance )
             {
                 update_vect(q, d); // here we casting vector from float to double every time by calling this function
@@ -526,12 +560,14 @@ namespace evolm
                 for (size_t i = 0; i < unknowns; i++)
                     d[i] = s[i] + betha * d[i];
 
-                if (!(iterations % 2))
-                    writelog << iterations << "  "<< delta_new - delta_zero * tolerance * tolerance << "\n";
+                //if ( !( iterations % logging_rate ) )
+                    log_message(iterations, (delta_new/(delta_zero * tolerance * tolerance))-1.0);
 
                 iterations = iterations + 1;
             }
             iterations = iterations - 1;
+
+            std::cout<<"delta_new = "<<delta_new<<'\n';
         }
         catch (const std::string &e)
         {

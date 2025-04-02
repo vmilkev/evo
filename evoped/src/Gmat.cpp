@@ -20,8 +20,7 @@ namespace evoped
      * @tparam T 
      */
     template <typename T> Gmat<T>::
-    Gmat()
-    { }
+    Gmat() = default;
     template Gmat<float>::Gmat();
     template Gmat<double>::Gmat();
     //===============================================================================================================

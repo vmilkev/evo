@@ -7,6 +7,7 @@
 #include <iomanip>
 
 #include "sparse_solver.hpp"
+//#include <omp.h>
 
 #ifdef PYBIND
 #include <pybind11/pybind11.h>
@@ -18,6 +19,7 @@ namespace evolm
 {
         class sparse_pcg : public sparse_solver
         {
+                using sparse_solver::sparse_solver;
 
         public:
                 void solve();
@@ -25,7 +27,7 @@ namespace evolm
                 void set_tolerance(double tol);
                 void set_maxiter(size_t iter);
 
-                sparse_pcg();
+                sparse_pcg() = default;
                 ~sparse_pcg();
 
 #ifdef PYBIND

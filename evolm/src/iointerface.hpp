@@ -77,9 +77,7 @@ namespace evolm
     private:
         float missing_constant = 0.0f;
         int missing_int = 999999999;
-        //template <typename T>
-        //int find_value(std::vector<T> &where,
-        //               T what);                                           // fins the position of the string 'what' in the vector 'where'
+
         void str_parse(std::string &snpStr,
                        std::vector<int> &markers);                        // Parsing a SNP string
         int get_datatype(std::string &str_token, const std::string &var_name);                         // accepts data as a string token and return its type
@@ -94,7 +92,7 @@ namespace evolm
         void cat_to_effect(std::vector<int> &cvalues,
                            std::vector<bool> &missing_vect,
                            compact_storage<int> &ematrix); // get integers vector and returns an effect matrix
-        //template <typename T>
+
         size_t int_to_cat(std::vector<int> &ivalues,
                           std::vector<int> &cat_values,
                           std::vector<std::string> &str_levels);             // get integers vector (categorical data) and returns a number of columns of a corresponding effect matrix, and vector of unique values
