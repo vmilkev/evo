@@ -37,8 +37,11 @@ namespace evoped
         void scale_genotypes(const std::string &fname); // assumes snp ids are in the same file
         void scale_genotypes(const std::string &fname, const std::string &fname_ids);
 
+        void scale_genotypes(const std::string &fname, const std::string &out_fname_zmatr, const std::string &out_fname_freq); // assumes snp ids are in the same file
+        void scale_genotypes(const std::string &fname, const std::string &fname_ids, const std::string &out_fname_zmatr, const std::string &out_fname_freq);
+
         void impute_genotypes(const std::string &snp_fname, const std::string &ped_fname, const std::string &out_fname); // assumes snp ids are in the same file
-        void impute_genotypes(const std::string &snp_fname, const std::string &snp_fname_ids, const std::string &ped_fname, const std::string &out_fname);
+        void impute_genotypes(const std::string &snp_fname, const std::string &snp_fname_ids, const std::string &ped_fname, const std::string &out_fname, const std::string &out_fname_freq);
 
         void scale_diag(T scale_coef);
         void scale_matrix(evolm::matrix<T>& scale_matr, T scaling_weight);
@@ -73,7 +76,8 @@ namespace evoped
         evolm::matrix<T> G;          // G or inv. of G matrix, permanent object container        
         evolm::matrix<T> Z;          // Z (snp) matrix, temporal
         std::vector<std::int64_t> gmatID; // container for the list of G matrix IDs, initiated while reading pre-built G-matrix from file
-        T freq;
+        T freq; // 2*sum(p*(1-p))
+        std::vector<T> snp_frequencies; // snps frequencies
         std::map<std::int64_t, std::string> snp_map; // initial markers data, temporal
         std::map<size_t, std::int64_t> anim_id_map;  // key: consecutive index, value: animal ID
         std::unordered_map<size_t, char *> samples_id_map; // key: assigned sample id, value: original id (as in .fam file)

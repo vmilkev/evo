@@ -502,10 +502,6 @@ namespace evolm
             log_message("Expected overall solution time");
             log_message("using the maximum number of iterations (the upper bound) ", (size_t)( 1.3 * (double)max_iterations * (double)duration.count() ));
             
-            std::cout<<"stop when error < "<< delta_new * tolerance * tolerance<<'\n';
-            std::cout<<"delta_zero = "<< delta_new <<'\n';
-            std::cout<<"tolerance =  "<< tolerance<<'\n';
-
             double delta_zero = delta_new;
 
             iterations = 1;
@@ -560,14 +556,12 @@ namespace evolm
                 for (size_t i = 0; i < unknowns; i++)
                     d[i] = s[i] + betha * d[i];
 
-                //if ( !( iterations % logging_rate ) )
+                if ( !( iterations % logging_rate ) )
                     log_message(iterations, (delta_new/(delta_zero * tolerance * tolerance))-1.0);
 
                 iterations = iterations + 1;
             }
             iterations = iterations - 1;
-
-            std::cout<<"delta_new = "<<delta_new<<'\n';
         }
         catch (const std::string &e)
         {

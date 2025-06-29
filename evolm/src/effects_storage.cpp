@@ -444,6 +444,43 @@ namespace evolm
         }
     }
     //===============================================================================================================
+    int effects_storage::nzrows()
+    {
+        try
+        {
+            int nrows = -1;
+
+            switch (type)
+            {
+            case 1:
+            nrows = i_effect.nrows_nonzerro();
+                break;
+            case 2:
+            nrows = f_effect.nrows_nonzerro();
+                break;
+            case 3:
+            nrows = d_effect.nrows_nonzerro();
+                break;
+            default:
+                throw std::string("Undetermined or invalid data type!");
+                break;
+            }
+
+            return nrows;
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in effects_storage::nzrows()." << '\n';
+            std::cerr << e.what() << '\n';
+            throw e;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in effects_storage::nzrows()." << '\n';
+            throw;
+        }
+    }    
+    //===============================================================================================================
     size_t effects_storage::size()
     {
         try

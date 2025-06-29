@@ -4,6 +4,11 @@ evogen/tests/data/haplotypes_pop_large.dat
 evogen/tests/data/haplotypes_pop_large2.dat
 evogen/tests/data/struct_haplotypes_pop_large.dat
 evogen/tests/data/struct_haplotypes_pop_large2.dat
+evogen/tests/data/discrete_gen/genetic_map_chr_1_3.txt
+evogen/tests/data/discrete_gen/*.txt
+evogen/tests/data/bjarke/*.ssv
+evogen/tests/data/bjarke/*.csv
+evogen/tests/data/bjarke/*.txt
 evogen/trait_pop.dat
 evogen/trait_pop2.dat
 evogen/trait_pop_reduced.dat

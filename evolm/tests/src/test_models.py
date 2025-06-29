@@ -238,7 +238,7 @@ def example_fernando_G():
     amat.save_matrix("iA", "tests/data/fernando/iA") # saving matrix to .corbin file
     amat.clear()
 
-    gmat.impute_genotypes("tests/data/fernando/snp_no_ids.dat", "tests/data/fernando/ids_snp.dat", "tests/data/fernando/iA.corbin", "tests/data/fernando/M")
+    gmat.impute_genotypes("tests/data/fernando/snp_no_ids.dat", "tests/data/fernando/ids_snp.dat", "tests/data/fernando/iA.corbin", "tests/data/fernando/M", "tests/data/fernando/M_freq.txt")
     gmat.clear()
 
     model.define("data = tests/data/fernando/data.dat; obs_missing_value = [-9]")
@@ -271,7 +271,7 @@ def is_solution_correct( sol_fname, corr_sol_fname, txt_msg):
     true_sol = []
     with open(sol_fname, "r") as f: # reading obtained solution to curr_sol
         reader = csv.reader(f, delimiter=',')
-        next(f)
+        #next(f) # omit header
         for row in reader:
             curr_sol.append(row[4])
         f.close()

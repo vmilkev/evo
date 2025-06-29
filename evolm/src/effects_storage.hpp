@@ -33,6 +33,7 @@ namespace evolm
         void clear();
         std::vector<size_t> shape();
         size_t size();
+        int nzrows(); // num of non zerro rows; if -1: not valid operation
 
         void get_fcast(matrix<float> &out, size_t *irow, size_t *icol);
         void get_fcast(smatrix<float> &out, size_t *irow, size_t *icol);

@@ -1,7 +1,6 @@
 import sys
-
 #sys.path.append('/usr/home/qgg/vimi/evo/bin') # cluster
-sys.path.append('release') # Mac
+sys.path.append('../../../release') # Mac
 
 import evogen
 import numpy as np
@@ -12,20 +11,20 @@ def simple_test_all():
     a = evogen.Population() #simulated
     b = evogen.Population() #simulated
     
-    a.set_population(5, "tests/data/struct_haplotypes_pop1.dat", 0.4, 4);
-    b.set_population(5, "tests/data/struct_haplotypes_pop1.dat", 0.6, 6);
+    a.set_population(5, "../struct_haplotypes_pop1.dat", 0.4, 4);
+    b.set_population(5, "../struct_haplotypes_pop1.dat", 0.6, 6);
 
     c = evogen.Population() # using data from files
     d = evogen.Population() # using data from files
     
-    c.set_population("tests/data/haplotypes_pop1.dat", "tests/data/struct_haplotypes_pop1.dat", True); # true: haplotypes with pedigree and sex
-    d.set_population("tests/data/haplotypes_pop2.dat", "tests/data/struct_haplotypes_pop2.dat", False); # false: only haplotypes
+    c.set_population("../haplotypes_pop1.dat", "../struct_haplotypes_pop1.dat", True); # true: haplotypes with pedigree and sex
+    d.set_population("../haplotypes_pop2.dat", "../struct_haplotypes_pop2.dat", False); # false: only haplotypes
 
     print("Testing Trait:")
 
     pop = evogen.Population()
 
-    pop.set_population(20, "tests/data/struct_haplotypes_pop3.dat", 0.7, 4) # (1) population
+    pop.set_population(20, "../struct_haplotypes_pop3.dat", 0.7, 4) # (1) population
 
     tr_mean = [ 40.0, 5.0, 0.5 ] # (2) trait means
     qtl_prop = [ 0.65, 0.65, 0.65, 0.65 ] # (3) proportion of snps selected as qtls

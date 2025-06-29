@@ -13,6 +13,17 @@ namespace evolm
         sol_header[3] = "Levels (name x group)";
         sol_header[4] = "Estimate";
         sol_table.push_back(sol_header);
+        
+        std::vector<std::string> sol_header2(8);
+        sol_header2[0] = "Trait";
+        sol_header2[1] = "Group";
+        sol_header2[2] = "Name";
+        sol_header2[3] = "First Level";
+        sol_header2[4] = "Last Level";
+        sol_header2[5] = "Num Levels";
+        sol_header2[6] = "Starts at Row";
+        sol_header2[7] = "Ends at Row";
+        sol_structure.push_back(sol_header2);
     }  
     //===============================================================================================================
     lmm::~lmm()
@@ -292,6 +303,7 @@ namespace evolm
             message_to_log( log_file, "  ==> Appending Effects ..." );
 
             // (3) ----------- Effects ----------------
+            size_t num_records_in_solution = 1;
             for (auto  const &m: parser.model_definition)
             {
                 std::vector<size_t> effects_list = m.second;
@@ -310,6 +322,8 @@ namespace evolm
 
                     std::string trait_name = parser.observations_names[obs];
                     append_solution_table(parser.random_and_fixed_effects_names[v], parser.random_and_fixed_effects_levels[v], trait_name);
+                    append_solution_structure(parser.random_and_fixed_effects_names[v], parser.random_and_fixed_effects_levels[v], trait_name, num_records_in_solution);
+                    num_records_in_solution = num_records_in_solution + parser.random_and_fixed_effects_levels[v].size();
                     model.append_effect(eff_as_storage);
                 }
             }
@@ -492,7 +506,8 @@ namespace evolm
 
             if (solution.is_open())
             {
-                solution << sol_table[0][0] << "," << sol_table[0][1] << "," << sol_table[0][2] << "," << sol_table[0][3] << "," << sol_table[0][4] << "\n";
+                // do not use header in this file
+                //solution << sol_table[0][0] << "," << sol_table[0][1] << "," << sol_table[0][2] << "," << sol_table[0][3] << "," << sol_table[0][4] << "\n";
 
                 for (size_t i = 1; i < sol_table.size(); i++)
                     solution << sol_table[i][0] << "," << sol_table[i][1] << "," << sol_table[i][2] << "," << sol_table[i][3] << "," << to_string_with_precision( sol_vect[i-1], use_precision ) << "\n";
@@ -500,7 +515,34 @@ namespace evolm
                 solution.close();
             }
             else
-                throw std::string("Unable to open solution file for output!");
+                throw std::string("Unable to open solution file " + sol_file + " for output!");
+
+            std::string structure_file = "sol_struct_"+sol_file;
+            solution.open(structure_file);
+
+            if (solution.is_open())
+            {
+                solution << "The names of columns in the " << sol_file << " file" << "\n";
+                solution << "\n";
+                solution << "Column 1: Trait" << "\n";
+                solution << "Column 2: Group" << "\n";
+                solution << "Column 3: Name" << "\n";
+                solution << "Column 4: Levels (name x group)" << "\n";
+                solution << "Column 5: Estimate" << "\n";
+                solution << "\n";
+                
+                solution << "Structure of estimates in the " << sol_file << " file:" << "\n";
+                solution << "(Access the specific estimates using 'Starts at Row' and 'Ends at Row')"<< "\n";
+                solution << "\n";
+                int dist = 23;
+                int dist2 = 14;
+                for (size_t i = 0; i < sol_structure.size(); i++)
+                    solution <<std::setw(dist2)<<std::left << sol_structure[i][0] << " "<<std::setw(dist)<<std::left << sol_structure[i][1] << " " <<std::setw(dist)<<std::left << sol_structure[i][2] << " " <<std::setw(dist)<<std::left << sol_structure[i][3] << " " <<std::setw(dist)<<std::left << sol_structure[i][4] << " " <<std::setw(dist2)<<std::left << sol_structure[i][5] << " " <<std::setw(dist2)<<std::left << sol_structure[i][6] << " " <<std::setw(dist2)<<std::left << sol_structure[i][7] << "\n";
+
+                solution.close();
+            }
+            else
+                throw std::string("Unable to open solution structure file " + structure_file + " for output!");    
         }
         catch(const std::exception& e)
         {
@@ -574,6 +616,64 @@ namespace evolm
         }        
     }
     //===============================================================================================================
+    void lmm::append_solution_structure(std::string &var_name, std::vector<std::string> &levels, std::string &trait, size_t record)
+    {
+        try
+        {
+            std::string group;
+            std::string name;
+            std::string bar("|");
+            std::string lhs;
+            std::string rhs;
+            size_t pos = 0;
+            pos = var_name.find(bar);
+            if (pos != std::string::npos)
+            {
+                lhs = var_name.substr(0, pos);
+                rhs = var_name.substr(pos+1, std::string::npos);
+
+                if (lhs == "1")
+                    name = "Intercept";
+                else
+                    name = lhs;
+                
+                group = rhs;
+            }
+            else
+            {
+                group = "none";
+                name = var_name;
+            }
+
+            std::vector<std::string> table(8);
+            table[0] = trait;
+            table[1] = group;
+            table[2] = name;
+            table[3] = levels[0]; // the first level
+            table[4] = levels[levels.size()-1]; // the last level
+            table[5] = std::to_string(levels.size()); // total num of level
+            table[6] = std::to_string(record); // very first row in Estimates file
+            table[7] = std::to_string(record + levels.size() - 1); // very last row in Estimates file
+            
+            sol_structure.push_back(table);
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << "lmm::append_solution_structure(std::string &, std::vector<std::string> &, std::string &, size_t): " << e.what() << '\n';
+            throw e;
+        }
+        catch(const std::string & e)
+        {
+            std::cerr << "lmm::append_solution_structure(std::string &, std::vector<std::string> &, std::string &, size_t): " << e <<'\n';
+            throw e;
+        }
+        catch(...)
+        {
+            std::cerr << "lmm::append_solution_structure(std::string &, std::vector<std::string> &, std::string &, size_t): " << "Unknown exception." << '\n';
+            throw;
+        }        
+    }
+    //===============================================================================================================
     void lmm::message_to_log( const std::string &log_file, std::string msg )
     {
         try
@@ -599,6 +699,29 @@ namespace evolm
         catch(...)
         {
             std::cerr << "lmm::message_to_log(const std::string &, std::string): " << "Unknown exception." << '\n';
+            throw;
+        }
+    }
+    //===============================================================================================================
+    void lmm::snp_to_bv( const std::string &fname_zmatr, const std::string &fname_solsnp, const std::string &fname_outres )
+    {
+        try
+        {
+            parser.binmatr_by_txtvect(fname_zmatr, fname_solsnp, fname_outres);
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << "lmm::snp_to_bv(const std::string &, const std::string): " << e.what() << '\n';
+            throw e;
+        }
+        catch(const std::string & e)
+        {
+            std::cerr << "lmm::snp_to_bv(const std::string &, const std::string): " << e <<'\n';
+            throw e;
+        }
+        catch(...)
+        {
+            std::cerr << "lmm::snp_to_bv(const std::string &, const std::string): " << "Unknown exception." << '\n';
             throw;
         }
     }

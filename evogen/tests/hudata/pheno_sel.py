@@ -1,5 +1,5 @@
 ## phenotypic selection
-
+##
 #Q: is it possible to set a seed? #report
 #Q: How can I print tbv and residual of each animal. I only know how to print observations
 #Q:report: sex ratio of offsrping
@@ -7,14 +7,15 @@
 #Q: whether we need to shuffle by ourselves: I double checked - It's ok - the sires are shuffled without actions by users, and dams remain the same order. 
 #Q: phenotyping on group
 
-
 import sys
+sys.path.append('../../release')
+
 import numpy as np
 import evogen
 import os
 import random
 import pandas as pd
-    
+
 #sys.path.append('~/BOA/Simulation/phenotypic/') # cluster
 #sys.path.append('release') # Mac
 

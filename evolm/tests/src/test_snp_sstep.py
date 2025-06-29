@@ -13,9 +13,15 @@ def main():
     """
     """
     #test_impute_genotypes()
-    #test_snp_sstep()
-    test_snpblup()
+
+    test_snp_sstep()
+    get_snp_bv()
+
+    #test_snpblup()
+    #get_snp_bv_small()
+
     #test_gblup()
+
     #test_sstep()
 # --------------------------------------------------------------------
 def test_impute_genotypes():
@@ -29,8 +35,9 @@ def test_impute_genotypes():
     id_file = "tests/data/big_snp_sstep/id_geno.dat"
     iA_file = "tests/data/big_snp_sstep/iA.corbin"
     impt_snp_file = "tests/data/big_snp_sstep/impt_snp"
+    freq_file = "tests/data/big_snp_sstep/freqs_big.txt";
 
-    gmat.impute_genotypes(snp_file, id_file, iA_file, impt_snp_file)
+    gmat.impute_genotypes(snp_file, id_file, iA_file, impt_snp_file, freq_file)
     gmat.clear()
 # --------------------------------------------------------------------
 def test_snp_sstep():
@@ -38,9 +45,17 @@ def test_snp_sstep():
     model.define("data = tests/data/big_snp_sstep/phenotype.dat; obs_missing_value = [-9999]")
     model.define("M = tests/data/big_snp_sstep/impt_snp.dmbin")
     model.define("iA = tests/data/big_snp_sstep/iA.corbin")
-    model.define("obs ~ 1 + (1|id&M)a + (1|z1)")
-    model.define("var = (a)*I*Ga + (z1)*iA*Gg + R; Ga = [0.0002]; Gg = [1.52]; R = [24.5]")
+    model.define("obs ~ 1 + (1|id&M)a - (1|z1)")
+    #model.define("var = (a)*I*Gg + (z1)*iA*Ga + R; Gg = [0.001]; Ga = [4.0]; R = [24.5]")
+    model.define("var = (a)*I*Gg + R; Gg = [0.001]; R = [24.5]")
     model.solve("pcg", 10, 10, "example_big_snp_sstep.log", "solution_big_snp_sstep.dat")
+# --------------------------------------------------------------------
+def get_snp_bv():
+    model = evolm.lmm()
+    impt_snp_file = "tests/data/big_snp_sstep/impt_snp.dmbin"
+    snp_sol_file = "tests/data/big_snp_sstep/snp_sol_big.dat"
+    snp_bv_big = "tests/data/big_snp_sstep/snp_bv_big.dat"
+    model.snp_to_bv(impt_snp_file, snp_sol_file, snp_bv_big)
 # --------------------------------------------------------------------
 def test_sstep():
 
@@ -89,17 +104,24 @@ def test_snpblup():
     snp_file = "tests/data/big_snp_sstep/genotype_withoutID.dat"
     id_file = "tests/data/big_snp_sstep/id_geno.dat"
     Z_file = "tests/data/big_snp_sstep/Z"
+    freq_file = "tests/data/big_snp_sstep/freqs.txt";
 
-    gmat.scale_genotypes(snp_file, id_file) # making Z
-    gmat.save_matrix(Z_file) # saving matrix to .dmbin file
+    gmat.scale_genotypes(snp_file, id_file, Z_file, freq_file) # making and saving Z matrix to .dmbin file
     gmat.clear()
 
     model.define("snp = tests/data/big_snp_sstep/Z.dmbin")
     model.define("data = tests/data/big_snp_sstep/phenotype.dat; obs_missing_value = [-9999]")
     model.define("refeff = tests/data/big_snp_sstep/ref_id.dat")
     model.define("obs ~ 1 + (1|id{ref_id}&snp)")
-    model.define("var = (snp)*I*G + R; G = [0.0002]; R = [24.5]")
+    model.define("var = (snp)*I*G + R; G = [0.00082]; R = [24.5]") # 3.5241/4297 => sigma_g
     model.solve("pcg", 10, 5,  "big_snpblup.log", "solution_big_snpblup.dat")
+
+def get_snp_bv_small():
+    model = evolm.lmm()
+    impt_snp_file = "tests/data/big_snp_sstep/Z.dmbin"
+    snp_sol_file = "tests/data/big_snp_sstep/snp_sol.dat"
+    snp_bv = "tests/data/big_snp_sstep/snp_bv.dat"
+    model.snp_to_bv(impt_snp_file, snp_sol_file, snp_bv)
 
 # --------------------------------------------------------------------
 if __name__ == '__main__':

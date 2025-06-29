@@ -120,6 +120,8 @@ namespace evolm
         void set_fname(evolm::IOInterface &io_class_instance, const std::string &var);
         void get_missing_obs();
 
+        void binmatr_by_txtvect( const std::string &fname_matr, const std::string &fname_vect, const std::string &fname_outres );
+
     public:
         model_parser();
         ~model_parser();

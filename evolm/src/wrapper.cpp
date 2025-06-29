@@ -55,6 +55,7 @@ PYBIND11_MODULE(evolm, m)
         .def("clear", &evolm::lmm::clear)
         .def( "define", &evolm::lmm::define )
         .def( "define_infile", &evolm::lmm::define_infile )
+        .def( "snp_to_bv", &evolm::lmm::snp_to_bv )
         .def( "solve", pybind11::overload_cast<const std::string &, int, int, const std::string &, const std::string &>(&evolm::lmm::solve) )
         .def( "solve", pybind11::overload_cast<const std::string &, int, int, const std::string &, const std::string &, double>(&evolm::lmm::solve) )
         .def( "solve", pybind11::overload_cast<const std::string &, int, int, const std::string &, const std::string &, double, size_t>(&evolm::lmm::solve) );

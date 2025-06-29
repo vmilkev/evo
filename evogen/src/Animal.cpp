@@ -3,7 +3,6 @@
 namespace evogen
 {
     //===============================================================================================================
-
     Animal::Animal()
     {
         try
@@ -36,21 +35,21 @@ namespace evogen
             throw;
         }
     }
-
     //===============================================================================================================
-
-    Animal::Animal(Animal &a_sire, Animal &b_dame)
+    Animal::Animal(Animal &a_sire, Animal &b_dame, double mutation_freq, size_t num_crossovers)
     {
         try
         {
-            size_t n_crossovers = 4;
-            float mutat_frequency = 0.005;
+            size_t n_crossovers = num_crossovers;
+            double mutat_frequency = mutation_freq;
 
             std::vector<std::vector<bool>> gamete_a;
-            a_sire.genome.get_reproduction_gamete(gamete_a, n_crossovers, mutat_frequency);
+            std::vector<std::vector<ancestry_segment>> ancestry_a;
+            a_sire.genome.get_reproduction_gamete(gamete_a, ancestry_a, n_crossovers, mutat_frequency);
 
             std::vector<std::vector<bool>> gamete_b;
-            b_dame.genome.get_reproduction_gamete(gamete_b, n_crossovers, mutat_frequency);
+            std::vector<std::vector<ancestry_segment>> ancestry_b;
+            b_dame.genome.get_reproduction_gamete(gamete_b, ancestry_b, n_crossovers, mutat_frequency);
 
             std::vector<std::vector<unsigned long>> gstructure = a_sire.genome.get_genome_structure();
 
@@ -60,16 +59,31 @@ namespace evogen
             if (gamete_a.size() != gamete_b.size())
                     throw std::string("The ploidy of parents are not the same!");
 
-            //std::vector<std::vector<bool>> gamete( gamete_a );
-            std::vector<std::vector<bool>> gamete;
+            if (ancestry_a.size() != ancestry_b.size())
+                    throw std::string("The ploidy of ancestry vectors are not the same!");
+//std::cout<<"ancestry_a.size() = "<<ancestry_a.size()<<", gamete_a.size() = "<<gamete_a.size()<<'\n';
+            if (ancestry_a.size() != gamete_a.size())
+                    throw std::string("The ploidy of markers and ancestry vectors are not the same!");
+                    
+            if (gamete_b.size() != ancestry_b.size())
+                    throw std::string("The ploidy of markers and ancestry vectors are not the same!");
 
-            for (size_t i = 0; i < gamete_b.size(); i++)
+            std::vector<float> g_dist = a_sire.genome.get_gen_distance();
+
+            std::vector<std::vector<bool>> gamete;
+            std::vector<std::vector<ancestry_segment>> ancestry;
+
+            for (size_t i = 0; i < gamete_b.size(); i++) // in case of poly-ploidy
             {
-                gamete.push_back( gamete_b[i] );
-                gamete.push_back( gamete_a[i] );
+                // adding mat and pat gametes by pairs
+                gamete.push_back( gamete_b[i] ); // first, maternal gamete
+                gamete.push_back( gamete_a[i] ); // second, paternal gamete
+                ancestry.push_back( ancestry_b[i] ); // first, maternal gamete
+                ancestry.push_back( ancestry_a[i] ); // second, paternal gamete
+                // ... than the next pair of gametes in case of ploidy > 2
             }
-                        
-            genome.set_genome(gamete, gstructure);
+            
+            genome.set_genome(gamete, ancestry, gstructure, g_dist); // here we do not initialize gene ancestry, the gen_ancestry should already be non-empty
 
             properties.id = asign_id();
             properties.sire = a_sire.get_id();
@@ -78,7 +92,6 @@ namespace evogen
             properties.alive = true;
             properties.isgenotyped = false;
             properties.active = true;
-
             properties.sex = asign_sex();
 
             //std::cout<<"NEW Animal "<<properties.id<<" sire "<<a_sire.properties.id<<", dame "<<b_dame.properties.id<<'\n';
@@ -128,248 +141,68 @@ namespace evogen
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Animal::Animal(Animal &, Animal &)" << '\n';
+            std::cerr << "Exception in Animal::Animal(Animal &, Animal &, double, size_t, popid_t)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Animal::Animal(Animal &, Animal &)" << '\n';
+            std::cerr << "Exception in Animal::Animal(Animal &, Animal &, double, size_t, popid_t)" << '\n';
             std::cerr <<"Reason: "<< e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Animal::Animal(Animal &, Animal &)" << '\n';
+            std::cerr << "Exception in Animal::Animal(Animal &, Animal &, double, size_t, popid_t)" << '\n';
             throw;
         }
     }
-
     //===============================================================================================================
-
     Animal::~Animal()
     {
         clear();
     }
-
     //===============================================================================================================
-
     void Animal::set_id(unsigned long id)
     {
-        try
-        {
-            properties.id = id;
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Exception in Animal::set_id(unsigned long)." << '\n';
-            std::cerr << e.what() << '\n';
-            throw;
-        }
-        catch (const std::string &e)
-        {
-            std::cerr << "Exception in Animal::set_id(unsigned long)" << '\n';
-            std::cerr <<"Reason: "<< e << '\n';
-            throw;
-        }
-        catch (...)
-        {
-            std::cerr << "Exception in Animal::set_id(unsigned long)." << '\n';
-            throw;
-        }
+        properties.id = id;
     }
-
     //===============================================================================================================
-
     void Animal::set_sire(unsigned long sire)
     {
-        try
-        {
-            properties.sire = sire;
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Exception in Animal::set_sire(unsigned long)." << '\n';
-            std::cerr << e.what() << '\n';
-            throw;
-        }
-        catch (const std::string &e)
-        {
-            std::cerr << "Exception in Animal::set_sire(unsigned long)" << '\n';
-            std::cerr <<"Reason: "<< e << '\n';
-            throw;
-        }
-        catch (...)
-        {
-            std::cerr << "Exception in Animal::set_sire(unsigned long)." << '\n';
-            throw;
-        }
+        properties.sire = sire;
     }
-
     //===============================================================================================================
-
     void Animal::set_dame(unsigned long dame)
     {
-        try
-        {
-            properties.dame = dame;
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Exception in Animal::set_sire(unsigned long)." << '\n';
-            std::cerr << e.what() << '\n';
-            throw;
-        }
-        catch (const std::string &e)
-        {
-            std::cerr << "Exception in Animal::set_dame(unsigned long)" << '\n';
-            std::cerr <<"Reason: "<< e << '\n';
-            throw;
-        }
-        catch (...)
-        {
-            std::cerr << "Exception in Animal::set_sire(unsigned long)." << '\n';
-            throw;
-        }
+        properties.dame = dame;
     }
-
     //===============================================================================================================
-
     void Animal::set_age(int age)
     {
-        try
-        {
-            properties.age = age;
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Exception in Animal::set_age(int)" << '\n';
-            std::cerr << e.what() << '\n';
-            throw;
-        }
-        catch (const std::string &e)
-        {
-            std::cerr << "Exception in Animal::set_age(int)" << '\n';
-            std::cerr <<"Reason: "<< e << '\n';
-            throw;
-        }
-        catch (...)
-        {
-            std::cerr << "Exception in Animal::set_age(int)" << '\n';
-            throw;
-        }
+        properties.age = age;
     }
-
     //===============================================================================================================
-
     void Animal::set_alive(bool alive)
     {
-        try
-        {
-            properties.alive = alive;
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Exception in Animal::set_alive(bool)." << '\n';
-            std::cerr << e.what() << '\n';
-            throw;
-        }
-        catch (const std::string &e)
-        {
-            std::cerr << "Exception in Animal::set_alive(bool)" << '\n';
-            std::cerr <<"Reason: "<< e << '\n';
-            throw;
-        }
-        catch (...)
-        {
-            std::cerr << "Exception in Animal::set_alive(bool)." << '\n';
-            throw;
-        }
+        properties.alive = alive;
     }
-
     //===============================================================================================================
-
     void Animal::set_isgenotyped(bool genotyped)
     {
-        try
-        {
-            properties.isgenotyped = genotyped;
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Exception in Animal::set_isgenotyped(bool)." << '\n';
-            std::cerr << e.what() << '\n';
-            throw;
-        }
-        catch (const std::string &e)
-        {
-            std::cerr << "Exception in Animal::set_isgenotyped(bool)" << '\n';
-            std::cerr <<"Reason: "<< e << '\n';
-            throw;
-        }
-        catch (...)
-        {
-            std::cerr << "Exception in Animal::set_isgenotyped(bool)." << '\n';
-            throw;
-        }
+        properties.isgenotyped = genotyped;
     }
-
     //===============================================================================================================
-
     void Animal::set_active(bool active)
     {
-        try
-        {
-            properties.active = active;
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Exception in Animal::set_active(bool)." << '\n';
-            std::cerr << e.what() << '\n';
-            throw;
-        }
-        catch (const std::string &e)
-        {
-            std::cerr << "Exception in Animal::set_active(bool)" << '\n';
-            std::cerr <<"Reason: "<< e << '\n';
-            throw;
-        }
-        catch (...)
-        {
-            std::cerr << "Exception in Animal::set_active(bool)." << '\n';
-            throw;
-        }
+        properties.active = active;
     }
-
     //===============================================================================================================
-
     void Animal::set_sex(int sex)
     {
-        try
-        {
-            properties.sex = sex;
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Exception in Animal::set_sex(int)." << '\n';
-            std::cerr << e.what() << '\n';
-            throw;
-        }
-        catch (const std::string &e)
-        {
-            std::cerr << "Exception in Animal::set_sex(int)" << '\n';
-            std::cerr <<"Reason: "<< e << '\n';
-            throw;
-        }
-        catch (...)
-        {
-            std::cerr << "Exception in Animal::set_sex(int)." << '\n';
-            throw;
-        }
+        properties.sex = sex;
     }
-
     //===============================================================================================================
-
     void Animal::set_phenotype(std::vector<float> &phen)
     {
         try
@@ -398,9 +231,7 @@ namespace evogen
             throw;
         }
     }
-
     //===============================================================================================================
-
     void Animal::set_breeding_value(std::vector<float> &bv)
     {
         try
@@ -429,315 +260,57 @@ namespace evogen
             throw;
         }
     }
-
     //===============================================================================================================
-
     unsigned long Animal::get_id()
     {
-        unsigned long id = 0;
-
-        try
-        {
-            id = properties.id;
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Exception in Animal::get_id()." << '\n';
-            std::cerr << e.what() << '\n';
-            throw;
-        }
-        catch (const std::string &e)
-        {
-            std::cerr << "Exception in Animal::get_id()" << '\n';
-            std::cerr <<"Reason: "<< e << '\n';
-            throw;
-        }
-        catch (...)
-        {
-            std::cerr << "Exception in Animal::get_id()." << '\n';
-            throw;
-        }
-
-        return id;
+        return properties.id;
     }
-
     //===============================================================================================================
-
     unsigned long Animal::get_sire()
     {
-        unsigned long sire = 0;
-
-        try
-        {
-            sire = properties.sire;
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Exception in Animal::get_sire()." << '\n';
-            std::cerr << e.what() << '\n';
-            throw;
-        }
-        catch (const std::string &e)
-        {
-            std::cerr << "Exception in Animal::get_sire()" << '\n';
-            std::cerr <<"Reason: "<< e << '\n';
-            throw;
-        }
-        catch (...)
-        {
-            std::cerr << "Exception in Animal::get_sire()." << '\n';
-            throw;
-        }
-
-        return sire;
+        return properties.sire;
     }
-
     //===============================================================================================================
-
     unsigned long Animal::get_dame()
     {
-        unsigned long dame = 0;
-
-        try
-        {
-            dame = properties.dame;
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Exception in Animal::get_dame()." << '\n';
-            std::cerr << e.what() << '\n';
-            throw;
-        }
-        catch (const std::string &e)
-        {
-            std::cerr << "Exception in Animal::get_dame()" << '\n';
-            std::cerr <<"Reason: "<< e << '\n';
-            throw;
-        }
-        catch (...)
-        {
-            std::cerr << "Exception in Animal::get_dame()." << '\n';
-            throw;
-        }
-
-        return dame;
+        return properties.dame;
     }
-
     //===============================================================================================================
-
     int Animal::get_age()
     {
-        int age = 0;
-
-        try
-        {
-            age = properties.age;
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Exception in Animal::get_age()." << '\n';
-            std::cerr << e.what() << '\n';
-            throw;
-        }
-        catch (const std::string &e)
-        {
-            std::cerr << "Exception in Animal::get_age()" << '\n';
-            std::cerr <<"Reason: "<< e << '\n';
-            throw;
-        }
-        catch (...)
-        {
-            std::cerr << "Exception in Animal::get_age()." << '\n';
-            throw;
-        }
-
-        return age;
+        return properties.age;
     }
-
     //===============================================================================================================
-
     bool Animal::get_alive()
     {
-        bool alive = false;
-
-        try
-        {
-            alive = properties.alive;
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Exception in Animal::get_alive()." << '\n';
-            std::cerr << e.what() << '\n';
-            throw;
-        }
-        catch (const std::string &e)
-        {
-            std::cerr << "Exception in Animal::get_alive()" << '\n';
-            std::cerr <<"Reason: "<< e << '\n';
-            throw;
-        }
-        catch (...)
-        {
-            std::cerr << "Exception in Animal::get_alive()." << '\n';
-            throw;
-        }
-
-        return alive;
+        return properties.alive;
     }
-
     //===============================================================================================================
-
     bool Animal::get_isgenotyped()
     {
-        try
-        {
-            return properties.isgenotyped;
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Exception in Animal::get_isgenotyped()" << '\n';
-            std::cerr << e.what() << '\n';
-            throw;
-        }
-        catch (const std::string &e)
-        {
-            std::cerr << "Exception in Animal::get_isgenotyped()" << '\n';
-            std::cerr <<"Reason: "<< e << '\n';
-            throw;
-        }
-        catch (...)
-        {
-            std::cerr << "Exception in Animal::get_isgenotyped()" << '\n';
-            throw;
-        }
+        return properties.isgenotyped;
     }
-
     //===============================================================================================================
-
     bool Animal::get_active()
     {
-        bool active = false;
-
-        try
-        {
-            active = properties.active;
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Exception in Animal::get_active()." << '\n';
-            std::cerr << e.what() << '\n';
-            throw;
-        }
-        catch (const std::string &e)
-        {
-            std::cerr << "Exception in Animal::get_active()" << '\n';
-            std::cerr <<"Reason: "<< e << '\n';
-            throw;
-        }
-        catch (...)
-        {
-            std::cerr << "Exception in Animal::get_active()." << '\n';
-            throw;
-        }
-
-        return active;
+        return properties.active;
     }
-
     //===============================================================================================================
-
     int Animal::get_sex()
     {
-        int sex = 1;
-
-        try
-        {
-            sex = properties.sex;
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Exception in Animal::get_sex()." << '\n';
-            std::cerr << e.what() << '\n';
-            throw;
-        }
-        catch (const std::string &e)
-        {
-            std::cerr << "Exception in Animal::get_sex()" << '\n';
-            std::cerr <<"Reason: "<< e << '\n';
-            throw;
-        }
-        catch (...)
-        {
-            std::cerr << "Exception in Animal::get_sex()." << '\n';
-            throw;
-        }
-
-        return sex;
+        return properties.sex;
     }
-
     //===============================================================================================================
-
     std::vector<float> Animal::get_phenotype()
     {
-        std::vector<float> out;
-
-        try
-        {
-            out = properties.phenotype;
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Exception in Animal::get_phenotype()" << '\n';
-            std::cerr << e.what() << '\n';
-            throw;
-        }
-        catch (const std::string &e)
-        {
-            std::cerr << "Exception in Animal::get_phenotype()" << '\n';
-            std::cerr <<"Reason: "<< e << '\n';
-            throw;
-        }
-        catch (...)
-        {
-            std::cerr << "Exception in Animal::get_phenotype()" << '\n';
-            throw;
-        }
-
-        return out;
+        return properties.phenotype;
     }
-
     //===============================================================================================================
-
     std::vector<float> Animal::get_breeding_value()
     {
-        std::vector<float> out;
-
-        try
-        {
-            out = properties.breeding_value;
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Exception in Animal::get_breeding_value()" << '\n';
-            std::cerr << e.what() << '\n';
-            throw;
-        }
-        catch (const std::string &e)
-        {
-            std::cerr << "Exception in Animal::get_breeding_value()" << '\n';
-            std::cerr <<"Reason: "<< e << '\n';
-            throw;
-        }
-        catch (...)
-        {
-            std::cerr << "Exception in Animal::get_breeding_value()" << '\n';
-            throw;
-        }
-
-        return out;
+        return properties.breeding_value;
     }
-
     //===============================================================================================================
-
     void Animal::clear()
     {
         try
@@ -764,17 +337,13 @@ namespace evogen
         }
 
     }
-
     //===============================================================================================================
-
     unsigned long Animal::asign_id()
     {
         unsigned long id = 0;
-
         try
         {
             Utilites u;
-
             id = u.get_randi( 1, 1000000000 );
         }
         catch (const std::exception &e)
@@ -788,26 +357,16 @@ namespace evogen
             std::cerr << "Exception in Animal::asign_id()." << '\n';
             throw;
         }
-
         return id;
     }
-
     //===============================================================================================================
-
     int Animal::asign_sex()
     {
         int sex = 0;
-
         try
         {
             Utilites u;
-
-            unsigned long id = u.get_randi(1, 100);
-
-            if (id <= 50)
-                sex = 1;
-            else
-                sex = 0;
+            sex = u.bin_rand(1,0.5);
         }
         catch (const std::exception &e)
         {
@@ -820,10 +379,7 @@ namespace evogen
             std::cerr << "Exception in Animal::asign_sex()." << '\n';
             throw;
         }
-
         return sex;
     }
-
     //===============================================================================================================
-
 }

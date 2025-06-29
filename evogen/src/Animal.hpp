@@ -9,7 +9,7 @@ namespace evogen
     {
     public:
         Animal();
-        Animal(Animal &a, Animal &b);
+        Animal(Animal &a, Animal &b, double mutation_freq, size_t num_crossovers);
         ~Animal();
 
         Genome genome;
@@ -64,7 +64,6 @@ namespace evogen
             bool active;
             bool isgenotyped;
             int sex;
-
             std::vector<float> phenotype;
             std::vector<float> breeding_value;
         };

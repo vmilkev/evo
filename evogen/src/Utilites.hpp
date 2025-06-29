@@ -46,8 +46,10 @@ namespace evogen
         std::vector<int> get_bin_rand(size_t n_values,
                                            int n,
                                            double p,
-                                           bool reset); /* returns a vector of gamma distributed random floating point values */
-
+                                           bool reset); /* returns a vector of binary distributed random values */
+                                           
+        int bin_rand( int n, double p ); /* returns one binary distributed random value */
+ 
         void fremove(std::string file_name);
 
     private:

@@ -3,10 +3,14 @@
 
 #include "Animal.hpp"
 #include "Iointerface.hpp"
+#include "Types_aliases.hpp"
 #include <vector>
 #include <algorithm>
 #include <memory>
 #include <numeric>
+#include <map>
+#include <bitset>
+#include <limits>
 
 #ifdef PYBIND
 #include <pybind11/pybind11.h>
@@ -36,7 +40,8 @@ namespace evogen
         void clear();
         void reshape();    // reduce capaciity to fit size (hence, memory)
 
-        void get_ld(const std::string &out_file);
+        void get_ld(const std::string &out_file, bool full_info = false, int which_chr = -1, unsigned int snp_step = 1);
+        size_t get_popid();
 
         void aging(int delta_t);
 
@@ -61,6 +66,9 @@ namespace evogen
         void sex_at(size_t at, int sex);
         short sex_at(size_t at);
 
+        size_t get_valid_pos(poplen_t in_pos);
+        bool is_valid_pos(poplen_t in_pos);
+
 #ifdef PYBIND
         void phenotype_at(size_t at, pybind11::array_t<float> phen); // do not make this public ?
         pybind11::array_t<float> phenotype_at(size_t at);
@@ -78,7 +86,14 @@ namespace evogen
         std::vector<short> get_genome_at(size_t which_genome, size_t locus);
         void get_all_genotypes(const std::string &file_out);
         void get_all_genotypes(std::vector<std::vector<short>> &vect_out);
-        void get_all_haplotypes(std::vector<std::vector<bool>> &vect_out, std::vector<std::vector<unsigned long>> &out_snp_table);
+        void get_all_haplotypes(std::vector<std::vector<bool>> &vect_out,
+                                std::vector<std::vector<unsigned long>> &out_snp_table,
+                                std::vector<float> &out_gen_distance);
+        
+        // ------------- Is publik in Python ------------------------
+        void get_genotypes(const std::string &file_out);
+        void get_haplotypes(const std::string &file_out);
+        void get_ancestry(const std::string &file_out);
 
         // ------------- Required in Trait class ---------------------
         std::vector<std::vector<unsigned long>> get_genome_table();
@@ -111,13 +126,18 @@ namespace evogen
 
     private:
         std::vector<Animal> individuals;
-        std::vector<size_t> active_individuals;
+        std::vector<poplen_t> active_individuals;
+        popid_t origin_id = 0; // pop id used to track genomic ancestry
+
+        const std::string gdistance_name = "Genetic_Map(cM)";
+        const std::string chr_name = "chr";
 
         void remove_at(size_t which_list_position);
         void add(Animal &in_a); // adds existent entiety from another population
 
-        void add_at(Animal &in_a, size_t position, size_t position2);
+        void add_at(Animal &in_a, size_t position);
         void resize(size_t n_elements);
+        popid_t assign_origin_id();
     };
 
     inline bool operator==(const Population &rhs, const Population &lhs)

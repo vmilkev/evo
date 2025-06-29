@@ -71,6 +71,7 @@ namespace evolm
         double size_inmem();
         size_t ncols();
         size_t nrows();
+        int nrows_nonzerro();
         size_t max_key();
         double sparsity();
         void set_sparsity_threshold(double threshold);
@@ -1021,6 +1022,58 @@ namespace evolm
             nRows = nCols;
             nCols = t_row;
         }
+    }
+        //===========================================================================================
+    template <typename T>
+    int compact_storage<T>::nrows_nonzerro()
+    {
+        int nzrows = 0; // initialize
+
+        if (symmetric) // no calculation for symmetric
+            return -1;
+
+        if (is_sparse())
+        {
+            if ( keys.empty() ) // in case of empty matrix
+                return 0;
+
+            size_t i_row = 0;
+            size_t last_row = row_inrec( keys[0] ); // get very first row
+            nzrows++;
+            i_row = last_row;
+
+            for (size_t i = 1; i < keys.size(); i++)
+            {
+                i_row = row_inrec( keys[i] );
+                if ( i_row != last_row ) // if the new row is detected
+                {
+                    last_row = i_row;
+                    nzrows++; // increase the size of nonzerro rows
+                }
+            }
+        }
+        else
+        {
+            if ( vals.empty() ) // in case of empty matrix
+                return 0;
+
+                size_t i_row = 0;
+                size_t last_row = row_inrec( 0 ); // get very first row
+                nzrows++;
+                i_row = last_row;
+
+            for (size_t i = 1; i < vals.size(); i++)
+            {
+                i_row = row_inrec( i );
+                if ( i_row != last_row ) // if the new row is detected
+                {
+                    last_row = i_row;
+                    nzrows++; // increase the size of nonzerro rows
+                }
+            }
+        }
+
+        return nzrows;
     }
     //===========================================================================================
     template <typename T>

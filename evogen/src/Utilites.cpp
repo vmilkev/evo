@@ -87,8 +87,9 @@ namespace evogen
 
     template short Utilites::get_randi(short low_bound, short upp_bound);
     template int Utilites::get_randi(int low_bound, int upp_bound);
-    template ushort Utilites::get_randi(ushort low_bound, ushort upp_bound);
-    template uint Utilites::get_randi(uint low_bound, uint upp_bound);
+    template unsigned short Utilites::get_randi(unsigned short low_bound, unsigned short upp_bound);
+    template unsigned char Utilites::get_randi(unsigned char low_bound, unsigned char upp_bound);
+    template unsigned int Utilites::get_randi(unsigned int low_bound, unsigned int upp_bound);
     template long Utilites::get_randi(long low_bound, long upp_bound);
     template unsigned long Utilites::get_randi(unsigned long low_bound, unsigned long upp_bound);
     template unsigned long long Utilites::get_randi(unsigned long long low_bound, unsigned long long upp_bound);
@@ -315,6 +316,46 @@ namespace evogen
         return rnum_vect;
     }
 
+    //===============================================================================================================
+
+    int Utilites::bin_rand(int n, double p)
+    {
+        /*
+            n - number of trials, n > 0;
+            p - probability of success, 0 <= p <= 1;
+            reset - resets the distribution, if true - all the numbers will be from different distributions )
+                    independent, if false - all numbers are from the same distribution.
+        */
+
+        int rnum_vect = 0;
+
+        try
+        {
+            std::random_device rd;
+            std::mt19937 generator(rd());
+
+            std::binomial_distribution<int> distribution(n, p);
+
+            //if (reset)
+            //    distribution.reset();
+
+            rnum_vect = distribution(generator);
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Utilites::get_bin_rand(size_t, int, double, bool)." << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Utilites::get_bin_rand(size_t, int, double, bool)." << '\n';
+            throw;
+        }
+
+        return rnum_vect;
+    }
+    
     //===============================================================================================================
 
     void Utilites::fremove(std::string file_name)

@@ -41,11 +41,6 @@ namespace evoped
     {        
         try
         {
-            //if ( !G.is_ondisk() )
-            //    G.fwrite();
-            //if ( G.is_ondisk() )
-            //    G.fread();
-
             arr = G;
 
             if (!ids.empty())
@@ -138,12 +133,6 @@ namespace evoped
             if ( G.size() == (size_t)0 )
                 throw std::string("Saving the empty matrix, G.size() == (size_t)0.");
 
-            /*std::string name_suffix(".dmbin");
-            size_t find = arr.find(name_suffix);
-            std::string fname(arr);
-            if( find == std::string::npos ) // there is no suffix
-                fname = arr + name_suffix; // add suffix
-            */
             G.fwrite(arr);
         }
         catch (const std::exception &e)
@@ -181,9 +170,6 @@ namespace evoped
     {        
         try
         {
-            //Utilities2 u;
-            //u.vect_to_binary(gmatID, ids);
-
             std::ofstream out(ids);
             if (out.is_open())
             {
@@ -231,9 +217,6 @@ namespace evoped
     {        
         try
         {
-            //if ( !G.is_ondisk() )
-            //    G.fwrite();
-
             arr = G;
         }
         catch (const std::exception &e)
@@ -300,7 +283,6 @@ namespace evoped
     //===============================================================================================================
     /**
      * @brief I/O interface for accessing the internal container storing the results.
-     *          Note, we operate with L-stored format, hence return lower triangular part
      * 
      * @param arr empty std vector object where the internal storage conttainer (holding result) will be copied
      * @param ids empty std vector where samples (individuals) IDs corresponding to the data in arr will be copied
@@ -317,14 +299,8 @@ namespace evoped
 
             if ( G.size() == (size_t)0 )
                 throw std::string("Saving the empty matrix, G.size() == (size_t)0.");
-            /*
-            if ( shp[0] != shp[1] )
-                throw std::string("Saving non-square matrix by the method required only the square symmetric matrix.");
 
-            if ( !G.is_symmetric() )
-                throw std::string("Saving non-symmetric matrix by the method required only the square symmetric matrix.");
-            */
-            Utilities2 u;
+                Utilities2 u;
             u.fwrite_matrix(out_fname, G, gmatID);
         }
         catch (const std::exception &e)
@@ -447,7 +423,6 @@ namespace evoped
             throw;
         }
     }
-
     template void Gmat<float>::make_matrix(const std::string &fname, const std::string &fname_ids);
     template void Gmat<double>::make_matrix(const std::string &fname, const std::string &fname_ids);
     //===============================================================================================================
@@ -712,7 +687,6 @@ namespace evoped
             {
                 read_snp(fname); // reads SNPs with IDs from ASCII fiele
                 make_zmatrix(); // scalling
-                //make_zmatrixf(); // scalling SNPs
                 G = Z; // copy to the main container
                 snp_map.clear();
                 Z.fclear();
@@ -741,6 +715,78 @@ namespace evoped
     template void Gmat<double>::scale_genotypes(const std::string &fname);
     //===============================================================================================================
     /**
+     * @brief (1) Scales SNPs from the text file; (2) save it to a binary file; (3) save frequencies into txt file.
+     * 
+     * @tparam T defines type, float or double
+     * @param fname the text file name consisting the snp variants with samples information (IDs)
+     * @param out_fname_zmatr the name of binary file where the resulting Z matrix will be writen
+     * @param out_fname_freq the name of text file where the frequencies of all snps will be writen;
+     *                       Note: the very first value is 2*sum(p*(1-p)), then comes frequencies for every snp.
+     * 
+     * @returns none
+     * 
+     */
+    template <typename T> void Gmat<T>::
+    scale_genotypes(const std::string &fname, const std::string &out_fname_zmatr, const std::string &out_fname_freq)
+    {
+        try
+        {
+            if ( is_plink_file(fname) ) // the pipeline for binary (.bad) plink-formated data
+            {
+                evolm::matrix<int> M;
+                make_m_matrix_plink(fname, M);
+                make_zmatrix(M); // scalling SNPs
+                M.clear();
+            }
+            else
+            {
+                read_snp(fname); // reads SNPs with IDs from ASCII fiele
+                make_zmatrix(); // scalling
+                snp_map.clear(); // cleaning
+            }
+
+            evolm::matrix<size_t> shp = Z.shape();
+            if ( Z.size() == (size_t)0 )
+                throw std::string("Saving the empty matrix, Z.size() == (size_t)0.");
+            Utilities2 u;
+            u.fwrite_matrix(out_fname_zmatr, Z, gmatID); // saving
+
+            Z.fclear();
+            Z.clear();
+
+            std::ofstream out(out_fname_freq);
+            if (out.is_open())
+            {
+                out << freq<<'\n';
+                for (size_t i = 0; i < snp_frequencies.size(); i++)
+                    out << snp_frequencies[i]<<'\n';
+                out.close();
+            }
+            else
+                throw std::string("Unable to open the file for output: " + out_fname_freq + ".");
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Gmat<T>::scale_genotypes(const std::string &, const std::string &, const std::string &)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Gmat<T>::scale_genotypes(const std::string &, const std::string &, const std::string &)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Gmat<T>::scale_genotypes(const std::string &, const std::string &, const std::string &)" << '\n';
+            throw;
+        }
+    }
+    template void Gmat<float>::scale_genotypes(const std::string &fname, const std::string &out_fname_zmatr, const std::string &out_fname_freq);
+    template void Gmat<double>::scale_genotypes(const std::string &fname, const std::string &out_fname_zmatr, const std::string &out_fname_freq);
+    //===============================================================================================================
+    /**
      * @brief Scales SNPs from the text file.
      * 
      * @tparam T defines type, float or double
@@ -757,7 +803,6 @@ namespace evoped
         {
             read_snp(fname, fname_ids); // reads SNPs and its IDs from ASCII fieles (one for SNPs, another for IDs)
             make_zmatrix(); // scalling
-            //make_zmatrixf(); // scalling SNPs
             G = Z; // copy to the main container
             snp_map.clear();
             Z.fclear();
@@ -785,17 +830,81 @@ namespace evoped
     template void Gmat<double>::scale_genotypes(const std::string &fname, const std::string &fname_ids);
     //===============================================================================================================
     /**
-     * @brief Scales SNPs from the text file.
+     * @brief (1) Scales SNPs from the text file; (2) save it to a binary file; (3) save frequencies into txt file.
      * 
      * @tparam T defines type, float or double
      * @param fname the text file name consisting the snp variants without samples information (IDs)
      * @param fname_ids the text file name with samples IDs
+     * @param out_fname_zmatr the name of binary file where the resulting Z matrix will be writen
+     * @param out_fname_freq the name of text file where the frequencies of all snps will be writen
+     *                       Note: the very first value is 2*sum(p*(1-p)), then comes frequencies for every snp.
      * 
      * @returns none
      * 
      */
     template <typename T> void Gmat<T>::
-    impute_genotypes(const std::string &snp_fname, const std::string &snp_fname_ids, const std::string &ped_fname, const std::string &out_fname)
+    scale_genotypes(const std::string &fname, const std::string &fname_ids, const std::string &out_fname_zmatr, const std::string &out_fname_freq)
+    {
+        try
+        {
+            read_snp(fname, fname_ids); // reads SNPs and its IDs from ASCII fieles (one for SNPs, another for IDs)
+            make_zmatrix(); // scalling
+            // saving
+            evolm::matrix<size_t> shp = Z.shape();
+            if ( Z.size() == (size_t)0 )
+                throw std::string("Saving the empty matrix, Z.size() == (size_t)0.");
+            Utilities2 u;
+            u.fwrite_matrix(out_fname_zmatr, Z, gmatID);
+            // cleaning
+            snp_map.clear();
+            Z.fclear();
+            Z.clear();
+
+            std::ofstream out(out_fname_freq);
+            if (out.is_open())
+            {
+                out << freq<<'\n';
+                for (size_t i = 0; i < snp_frequencies.size(); i++)
+                    out << snp_frequencies[i]<<'\n';
+                out.close();
+            }
+            else
+                throw std::string("Unable to open the file for output: " + out_fname_freq + ".");
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Gmat<T>::scale_genotypes(const std::string &, const std::string &, const std::string &, const std::string &)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Gmat<T>::scale_genotypes(const std::string &, const std::string &, const std::string &, const std::string &)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Gmat<T>::scale_genotypes(const std::string &, const std::string &, const std::string &, const std::string &)" << '\n';
+            throw;
+        }
+    }
+    template void Gmat<float>::scale_genotypes(const std::string &fname, const std::string &fname_ids, const std::string &out_fname_zmatr, const std::string &out_fname_freq);
+    template void Gmat<double>::scale_genotypes(const std::string &fname, const std::string &fname_ids, const std::string &out_fname_zmatr, const std::string &out_fname_freq);
+    //===============================================================================================================
+    /**
+     * @brief Scales SNPs from the text file.
+     * 
+     * @tparam T defines type, float or double
+     * @param fname the text file name consisting the snp variants without samples information (IDs)
+     * @param fname_ids the text file name with samples IDs
+     * @param out_fname_freq the text file name where snps frequencies will be writen
+     * 
+     * @returns none
+     * 
+     */
+    template <typename T> void Gmat<T>::
+    impute_genotypes(const std::string &snp_fname, const std::string &snp_fname_ids, const std::string &ped_fname, const std::string &out_fname, const std::string &out_fname_freq)
     {
         try
         {
@@ -1029,7 +1138,7 @@ std::cout<<"Calculating variants frequences ..."<<'\n';
 
             float all_samples = shp_rhs[0] + shp_M[0];
             for (size_t i = 0; i < P.size(); i++)
-                P[i] = P[i] / all_samples;
+                P[i] = P[i] / (2.0 * all_samples);
             // --------------------------------------
 std::cout<<"completed."<<'\n';
 std::cout<<"Scale genotypes ..."<<'\n';
@@ -1038,8 +1147,13 @@ std::cout<<"Scale genotypes ..."<<'\n';
 
             for (size_t i = 0; i < shp_rhs[0] + shp_M[0]; i++)
                 for (size_t j = 0; j < shp_rhs[1]; j++)
-                    Z(i, j) = M_imp(i, j) - P[j];
+                    Z(i, j) = M_imp(i, j) - 2.0 * P[j];
 
+            T sum_p_q = 0.0;
+            for (size_t j = 0; j < P.size(); j++)
+                sum_p_q += P[j] * (1.0 - P[j]);
+            sum_p_q = 2.0 * sum_p_q;
+        
             //Z.print("Z_all");
             // ---------- Scale genotypes -----------
 std::cout<<"completed."<<'\n';
@@ -1057,12 +1171,23 @@ std::cout<<"Combine IDs ..."<<'\n';
             //    std::cout<<v<<" ";
             //std::cout<<"\n";
             // --------------------------------------
-            //M_imp.clear();
-            u.fwrite_matrix(out_fname, M_imp, all_ids);
-            //u.fwrite_matrix(out_fname, Z, all_ids);
+            M_imp.clear();
+            //u.fwrite_matrix(out_fname, M_imp, all_ids);
+            u.fwrite_matrix(out_fname, Z, all_ids);
 
             Z.clear();
             all_ids.clear();
+
+            std::ofstream out(out_fname_freq);
+            if (out.is_open())
+            {
+                out << sum_p_q<<'\n';
+                for (size_t i = 0; i < P.size(); i++)
+                    out << P[i]<<'\n';
+                out.close();
+            }
+            else
+                throw std::string("Unable to open the file for output: " + out_fname_freq + ".");
 
 std::cout<<"completed."<<'\n';
             /*Z.print("Z_imp");
@@ -1091,24 +1216,24 @@ std::cout<<"completed."<<'\n';
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Gmat<T>::impute_genotypes(const std::string &, const std::string &)" << '\n';
+            std::cerr << "Exception in Gmat<T>::impute_genotypes(const std::string &, const std::string &, const std::string &, const std::string &, const std::string &)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Gmat<T>::impute_genotypes(const std::string &, const std::string &)" << '\n';
+            std::cerr << "Exception in Gmat<T>::impute_genotypes(const std::string &, const std::string &, const std::string &, const std::string &, const std::string &)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Gmat<T>::impute_genotypes(const std::string &, const std::string &)" << '\n';
+            std::cerr << "Exception in Gmat<T>::impute_genotypes(const std::string &, const std::string &, const std::string &, const std::string &, const std::string &)" << '\n';
             throw;
         }
     }
-    template void Gmat<float>::impute_genotypes(const std::string &snp_fname, const std::string &snp_fname_ids, const std::string &ped_fname, const std::string &out_fname);
-    template void Gmat<double>::impute_genotypes(const std::string &snp_fname, const std::string &snp_fname_ids, const std::string &ped_fname, const std::string &out_fname);
+    template void Gmat<float>::impute_genotypes(const std::string &snp_fname, const std::string &snp_fname_ids, const std::string &ped_fname, const std::string &out_fname, const std::string &out_fname_freq);
+    template void Gmat<double>::impute_genotypes(const std::string &snp_fname, const std::string &snp_fname_ids, const std::string &ped_fname, const std::string &out_fname, const std::string &out_fname_freq);
     //===============================================================================================================
     /**
      * @brief Inverting G matrix regardless of whether it is in compact or full storage format.
@@ -2481,6 +2606,8 @@ std::cout<<"completed."<<'\n';
                 P[i] = P[i] / ( 2.0 * ( map_size - (T)missed[i] ) );
             }
 
+            snp_frequencies = P;
+
             Z.resize(snp_map.size(), snpNum);
 
             for (size_t i = 0; i < snp_map.size(); i++)
@@ -2509,6 +2636,7 @@ std::cout<<"completed."<<'\n';
             {
                 freq += P[j] * (1.0 - P[j]);
             }
+
             freq = 2.0 * freq;
 
 #pragma omp parallel for //schedule(static, block_size) num_threads(n_threads)
@@ -2625,6 +2753,8 @@ std::cout<<"completed."<<'\n';
             {
                 P[i] = P[i] / ( 2.0 * ( map_size - (T)missed[i] ) );
             }
+
+            snp_frequencies = P;
 
             Z.resize(snp_map.size(), snpNum);
 
@@ -2765,6 +2895,8 @@ std::cout<<"completed."<<'\n';
             {
                 P[i] = P[i] / (2.0 * (T)(sampleNum - missed[i]));
             }
+
+            snp_frequencies = P;
 
             Z.resize(sampleNum, snpNum);
 

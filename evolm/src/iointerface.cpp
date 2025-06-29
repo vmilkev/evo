@@ -2183,10 +2183,9 @@ namespace evolm
 
         // info about matrix values
         size_t var_inbytes = B[3];
-        //size_t var_type = B[1]; // expected 2 or 3
-        
-        // info about matrix IDs
-        //size_t var_type2 = B[2]; // expected 4 or 5
+
+        if ( var_inbytes != sizeof(T) )
+            throw std::string("The matrix data type stored in file is not consistent with type of data trying to read in.");
 
         size_t vals_size;
         size_t keys_size;
@@ -2232,10 +2231,9 @@ namespace evolm
 
         // info about matrix values
         size_t var_inbytes = B[3];
-        //size_t var_type = B[1]; // expected 2 or 3
-        
-        // info about matrix IDs
-        //size_t var_type2 = B[2]; // expected 4 or 5
+
+        if ( var_inbytes != sizeof(T) )
+            throw std::string("The matrix data type stored in file is not consistent with type of data trying to read in.");
 
         size_t vals_size;
         size_t keys_size;

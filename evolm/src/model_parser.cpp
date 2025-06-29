@@ -368,15 +368,6 @@ namespace evolm
                 return;
             }
 
-            /*if ( is_str_in_expr(name_value_pair[1], ".dmbin") ) // check if there is suffix .dmbin in name_value_pair[1]
-            {
-                std::vector<std::string> dmatr_var;
-                dmatr_var.push_back(name_value_pair[0]); // var name
-                dmatr_var.push_back(name_value_pair[1]); // .dmbin file name
-                special_corr_vars.push_back(dmatr_var);  // we store .dmbin files in the same storage as .corbin files
-                return;
-            }*/
-
             // handle variables
 
             evolm::IOInterface in;
@@ -1130,6 +1121,7 @@ namespace evolm
     // -------------------------------------------------------------
     void model_parser::load_eff_file(std::string &eff_matr_file, smatrix<float> &s_matr, matrix<float> &d_matr, std::vector<std::int64_t> &i_ids, std::vector<std::string> &s_ids)
     {
+        // Note: here we may read matrices of type double, but convert them to float
         try
         {
             IOInterface in;
@@ -1523,7 +1515,7 @@ namespace evolm
                 std::vector<size_t> shape_of_from_data = ref_data_effect.shape();
                 ref_irow = shape_of_from_data[0];
                 ref_icol = shape_of_from_data[1];
-                
+
                 size_t t_irow[] = { 0, ref_irow-1 };
                 size_t t_icol[] = { 0, ref_icol-1 };
                 ref_data_effect.get_fcast(ref_effect, t_irow, t_icol);
@@ -1656,7 +1648,9 @@ namespace evolm
                     if ( found_pos == -1 )
                         throw std::string("There is no id " + std::to_string(pos_map[i]) + " of the variable " + ref_data_var + " at the ids list of the variable " + extern_eff_var + ".");
                     else
+                    {
                         raws_in_extern_eff[i] = found_pos;
+                    }
                 }
             }
             else // variable extern_eff_var has string type of ids
@@ -3165,6 +3159,113 @@ namespace evolm
         }
     }
     // -------------------------------------------------------------
+    void model_parser::binmatr_by_txtvect( const std::string &fname_matr, const std::string &fname_vect, const std::string &fname_outres )
+    {
+        try
+        {
+            // Reading vector from txt  file
+            std::vector<std::vector<float>> vect_data;
+            IOInterface in;
+            in.set_fname(fname_vect);
+            in.fgetdata(vect_data);
+
+            if ( vect_data.empty() )
+                throw std::string("Empty data read from the file"+fname_vect+".");
+            
+            size_t vect_rows = vect_data.size();
+            size_t vect_cols = vect_data[0].size();
+
+            if ( vect_cols != 1 )
+                throw std::string("Multiple columns read from the file"+fname_vect+"; expected only a vector data.");
+
+            // Reading matrix from binary file
+            evolm::matrix<float> d_ext_eff;
+            evolm::smatrix<float> s_ext_eff;
+            std::vector<std::int64_t> i_ids;
+            std::vector<std::string> s_ids;
+            size_t ext_irow = 0;
+            size_t ext_icol = 0;
+
+            std::string name(fname_matr);
+            load_eff_file(name, s_ext_eff, d_ext_eff, i_ids, s_ids);
+
+            if ( s_ext_eff.empty() && d_ext_eff.empty() )
+                throw std::string("The matrix provided by load_eff_file(...) method is empty: s_ext_eff.empty() && d_ext_eff.empty().");
+            
+            if (s_ext_eff.empty()) // having the dense matrix
+            {
+                matrix<size_t> shp = d_ext_eff.shape();
+                ext_irow = shp[0];
+                ext_icol = shp[1];
+
+                evolm::matrix<float> vect;
+                evolm::matrix<float> res;
+
+                vect.from_vector2d(vect_data);
+                res = d_ext_eff * vect;
+
+                std::ofstream out(fname_outres);
+                if (out.is_open())
+                {
+                    for (size_t i = 0; i < ext_irow; i++)
+                    {
+                        if ( !i_ids.empty() )
+                            out << i_ids[i] << "," << res(i,0) << "\n";
+                        else
+                        out << s_ids[i] << "," << res(i,0) << "\n";
+                    }
+                    out.close();
+                }
+                else
+                    throw std::string("Unable to open file " + fname_outres + " for output!");
+            }
+            else // having the sparse matrix
+            {
+                ext_irow = s_ext_eff.nrows();
+                ext_icol = s_ext_eff.ncols();
+
+                evolm::smatrix<float> vect(vect_data.size(),1);
+                evolm::smatrix<float> res;
+                for (size_t i = 0; i < vect_data.size(); i++)
+                    vect(i,1) = vect_data[i][0];
+                
+                res = s_ext_eff * vect;
+
+                std::ofstream out(fname_outres);
+                if (out.is_open())
+                {
+                    for (size_t i = 0; i < ext_irow; i++)
+                    {
+                        if ( !i_ids.empty() )
+                            out << i_ids[i] << "," << res(i,0) << "\n";
+                        else
+                        out << s_ids[i] << "," << res(i,0) << "\n";
+                    }
+                    out.close();
+                }
+                else
+                    throw std::string("Unable to open file " + fname_outres + " for output!");
+            }
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in model_parser::binmatr_by_txtvect(const std::string &, const std::string &, const std::string &)"<< "\n";
+            std::cerr << "Reason => " << e << "\n";
+            throw e;
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in model_parser::binmatr_by_txtvect(const std::string &, const std::string &, const std::string &)"<< "\n";
+            std::cerr << "Reason => " << e.what() << "\n";
+            throw e;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in model_parser::binmatr_by_txtvect(const std::string &, const std::string &, const std::string &)"<< "\n";
+            throw;
+        }
+    }
+    // -------------------------------------------------------------
     void model_parser::set_fname(evolm::IOInterface &io_class_instance, const std::string &var)
     {
         try
@@ -3357,17 +3458,20 @@ namespace evolm
             summary<<std::setw(15)<<std::left<<" name "<<std::setw(10)<<std::left<<" position "<<std::setw(15)<<std::left<<" records"<<std::setw(15)<<std::left<<" levels"<<'\n';
             summary<<"-------------------------------------------------------"<<'\n';
             std::vector<size_t> shape_var;
+            int nzrows = -1; // num of non zerro rows (actual observations for effect)
             for (size_t i = 0; i < random_and_fixed_effects.size(); i++)
             {
                 if (random_and_fixed_in_extra_storage[i] == -1) // is not in extra storage
                 {
                     shape_var = random_and_fixed_effects[i].shape();
-                    summary<<" "<<std::setw(15)<<std::left<<random_and_fixed_effects_names[i]<<std::setw(10)<<std::left<<i<<std::setw(15)<<std::left<<shape_var[0]<<std::setw(15)<<std::left<<random_and_fixed_effects_levels[i].size()<<'\n';
+                    nzrows = random_and_fixed_effects[i].nzrows();
+                    summary<<" "<<std::setw(15)<<std::left<<random_and_fixed_effects_names[i]<<std::setw(10)<<std::left<<i<<std::setw(15)<<std::left<<nzrows<<std::setw(15)<<std::left<<random_and_fixed_effects_levels[i].size()<<'\n';
                 }
                 else
                 {
                     shape_var = extra_effects[random_and_fixed_in_extra_storage[i]].shape();
-                    summary<<" "<<std::setw(15)<<std::left<<random_and_fixed_effects_names[i]<<std::setw(10)<<std::left<<random_and_fixed_in_extra_storage[i]<<std::setw(15)<<std::left<<shape_var[0]<<std::setw(15)<<std::left<<random_and_fixed_effects_levels[i].size()<<'\n';
+                    nzrows = extra_effects[random_and_fixed_in_extra_storage[i]].nzrows();
+                    summary<<" "<<std::setw(15)<<std::left<<random_and_fixed_effects_names[i]<<std::setw(10)<<std::left<<random_and_fixed_in_extra_storage[i]<<std::setw(15)<<std::left<<nzrows<<std::setw(15)<<std::left<<random_and_fixed_effects_levels[i].size()<<'\n';
                 }
             }
             summary<<"-------------------------------------------------------"<<'\n';

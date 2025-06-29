@@ -1,0 +1,221 @@
+clear;
+
+n_snp = 200; % num of all snps
+n_blocks = 3; % num of haplotype blocks or recombination hot-spots
+rd = 0.01; % decay rate of correlated part of a block; range is [0,1], where 0 is no shift; 1 is max shift = ihp
+rd2 = 0.0; % (opposite) decay rate of uncorrelaated part of a block
+no_corr_fraction = 0.2; % uncorrelated fraction of a block
+delay = 1; % delay of decay rate: delay > 1 => num of adjusent loci with corr of 1.0 increases
+
+n_snp_blk = floor(n_snp/n_blocks); % num snp in a block
+ihp = floor(n_snp_blk*1.0); % some number of haplotypes in one snp column is one block
+hp_shift_blk = ceil(rd*ihp); % decay rate rescaled in terms of vertical haplotypes shift
+
+
+uncor_snp_blk = floor(n_snp_blk * no_corr_fraction);
+uncor_shift = ceil(ihp*(1-rd2)); % decay rate rescaled in terms of vertical haplotypes shift for uncorrelated part of a block
+
+n_hp_blk = ( ceil(n_snp_blk/delay)-uncor_snp_blk-1)*hp_shift_blk + ihp + (uncor_snp_blk-1)*uncor_shift + ihp; % num haplotypes in a block
+
+%------------------
+n_corr_snp_blk = n_snp_blk-uncor_snp_blk;
+first_half = 1:floor(n_corr_snp_blk/2);
+second_half = floor(n_corr_snp_blk/2)+1:n_corr_snp_blk;
+vert_shifts = zeros(n_corr_snp_blk,1);
+range = 1:n_snp_blk-uncor_snp_blk;
+t_var = exp(-0.1*first_half');
+vert_shifts(first_half,1) = floor(rescale(t_var,1,n_snp_blk-uncor_snp_blk));
+vert_shifts(second_half,1) = exp(0.1*second_half');
+vert_shifts = floor(rescale(vert_shifts,1,n_snp_blk-uncor_snp_blk));
+all_ihp = 0;
+for i = 1:size(vert_shifts,1)-1
+    all_ihp = all_ihp + vert_shifts(i,1);
+end
+all_ihp = all_ihp + ihp;
+
+n_hp_blk = all_ihp + (uncor_snp_blk-1)*uncor_shift + ihp;
+
+block = zeros(n_hp_blk,n_snp_blk);
+
+l = 0;
+for i = 1:n_snp_blk-uncor_snp_blk
+    for j = 1:ihp
+        block(j+l,i) = 1;
+    end
+    if ~mod(i,delay)
+        l = l + vert_shifts(i,1);
+    end
+end
+
+l = all_ihp;
+for i = n_snp_blk-uncor_snp_blk+1:n_snp_blk
+    for j = 1:ihp
+        block(j+l,i) = 1;
+    end
+    l = l + uncor_shift;
+end
+
+%------------------
+% block = zeros(n_hp_blk,n_snp_blk);
+% 
+% l = 0;
+% for i = 1:n_snp_blk-uncor_snp_blk
+%     for j = 1:ihp
+%         block(j+l,i) = 1;
+%     end
+%     if ~mod(i,delay)
+%         l = l + hp_shift_blk;
+%     end
+% end
+
+% l = (ceil(n_snp_blk/delay)-uncor_snp_blk-1)*hp_shift_blk + ihp;
+% for i = n_snp_blk-uncor_snp_blk+1:n_snp_blk
+%     for j = 1:ihp
+%         block(j+l,i) = 1;
+%     end
+%     l = l + uncor_shift;
+% end
+
+%----
+% block2 = zeros(n_hp_blk,n_snp_blk);
+% l = 0;
+% for i = 1:n_snp_blk-uncor_snp_blk*0
+%     for j = 1:floor(ihp/3)
+%         block2(j+l,i) = 1;
+%     end
+%     if ~mod(i,delay)
+%         l = l + floor(hp_shift_blk*2);
+%     end
+% end
+%----
+
+n_hp = n_hp_blk*n_blocks;
+
+hp = zeros(n_hp, n_snp_blk*n_blocks);
+
+snp1 = 1;
+snp2 = n_snp_blk;
+hp1 = 1;
+hp2 = n_hp_blk;
+
+for i = 1:n_blocks
+    hp(hp1:hp2,snp1:snp2) = block;
+    snp1 = snp2 + 1;
+    snp2 = snp2 + n_snp_blk;
+    hp1 = hp2 + 1;
+    hp2 = hp2 + n_hp_blk;
+end
+
+rest = n_snp - n_snp_blk*n_blocks; % number of unfilled columns
+l = 0;
+for i = 1:rest
+    hp(:,n_snp-l) = hp(:,n_snp_blk*n_blocks);
+    l = l + 1;
+end
+
+%----
+% hp1 = 1;
+% hp2 = n_hp_blk;
+% 
+% for i = 1:n_blocks-1
+%     snp1 = n_snp_blk*i + 1;
+%     snp2 = snp1 - 1 + n_snp_blk;
+%     for j = 1:n_blocks-i
+%         hp(hp1:hp2,snp1:snp2) = block2;
+%         snp1 = snp2 + 1;
+%         snp2 = snp2 + n_snp_blk;
+%     end
+%     hp1 = hp2 + 1;
+%     hp2 = hp2 + n_hp_blk;
+% end
+%----
+
+% add random ref alleles for some haplotypes at every snp
+num_added = floor(n_hp*0.00);
+for i = 1:n_snp
+    locations = randi(n_hp, [num_added,1]);
+    for j = 1:num_added
+        hp(locations(j,1),i) = 1;
+    end
+end
+% num_added = floor(n_snp*0.005);
+% for i = 1:n_hp
+%     locations = randi(n_snp, [num_added,1]);
+%     for j = 1:num_added
+%         hp(i,locations(j,1)) = 1;
+%     end
+% end
+
+nnz(hp)/(n_hp*n_snp)
+
+% random shufling
+%hp = hp(randperm(size(hp, 1)), :);
+
+%%
+% calculate frequencies
+fq = zeros(n_snp,1);
+fq2 = zeros(n_snp,n_snp);
+
+for i = 1:n_snp
+    fq(i,1) = sum(hp(:,i));
+    fq(i,1) = fq(i,1)/n_hp;
+    if fq(i,1) == 0
+        fq(i,1) = 0.01;
+    end
+end
+
+for i = 1:n_snp
+    for i2 = i:n_snp
+        for j = 1:n_hp
+            if (hp(j,i) == 1) && (hp(j,i2) == 1)
+                fq2(i,i2) = fq2(i,i2) + 1;
+            end
+        end
+        fq2(i,i2) = fq2(i,i2)/n_hp;
+    end
+end
+
+% calculate LD
+ld = zeros(size(fq2));
+
+for i = 1:n_snp
+    for j = i:n_snp
+        a = fq2(i,j) - fq(i,1)*fq(j,1);
+        b = fq(i,1)*fq(j,1)*(1-fq(i,1))*(1-fq(j,1));
+        c = fq(i,1)*(1-fq(i,1));
+        d = fq(i,1)*(1-fq(j,1));
+        
+        if a <= 0
+            scaler = min( fq(i,1)*fq(j,1), (1-fq(i,1))*(1-fq(j,1)) );
+        else
+            scaler = min( fq(i,1)*(1-fq(j,1)), (1-fq(i,1))*fq(j,1) );
+        end
+        %ld(i,j) = a/scaler;
+        %ld(i,j) = a;
+        ld(i,j) = a*a/b; % scaling 1: corr coefficient
+    end
+end
+
+% calculate mean LD
+mean_ld = zeros(1,n_snp);
+
+figure(1);
+%clf;
+set(gcf,'Color','white');
+
+hold on;
+for i = 1:n_snp-1
+    range = i:n_snp;
+    range2 = range-i+1;
+    %plot(1:n_snp-i+1, ld(i,i:n_snp), 'k*');
+    mean_ld(1,1:n_snp-i+1) = mean_ld(1,1:n_snp-i+1) + ld(i,i:n_snp);
+end
+for i = 1:n_snp-1
+    mean_ld(1,i) = mean_ld(1,i)/(n_snp-i+1);
+end
+plot(1:n_snp, mean_ld, '-', 'LineWidth',2.0);
+box on;
+grid on;
+axis square;
+%ylim([0 1]);
+
