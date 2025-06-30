@@ -9,6 +9,7 @@ evogen/tests/data/discrete_gen/*.txt
 evogen/tests/data/bjarke/*.ssv
 evogen/tests/data/bjarke/*.csv
 evogen/tests/data/bjarke/*.txt
+evogen/tests/data/bjarke/*.ld
 evogen/trait_pop.dat
 evogen/trait_pop2.dat
 evogen/trait_pop_reduced.dat

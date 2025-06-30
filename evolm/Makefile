@@ -11,6 +11,16 @@ TSRCDIR := $(TESTDIR)/src
 EXTSRC2 := ../libplinkio/src
 EXTLIBNAME := plinkio
 
+# MAC
+LIBRARY_PATH := /Users/au383883/Documents/MY/codebase/evo/libplinkio/release_lib
+LIBRARY_PATH_2 := /Users/au383883/Documents/MY/codebase/evo/evolm/release2
+# DEBIAN
+#LIBRARY_PATH := /usr/home/qgg/vimi/codebase/evo/libplinkio/release_lib
+#LIBRARY_PATH_2 := /usr/home/qgg/vimi/codebase/evo/evolm/release2
+# UBUNTU
+#LIBRARY_PATH := /home/vimi/Documents/codebase/evo/libplinkio/release_lib
+#LIBRARY_PATH_2 := /home/vimi/Documents/codebase/evo/evolm/release2
+
 # determine OS and source of BLAS lib
 UNAME_OS := $(shell uname -s)
 SOURSE_BLAS_IS_INTEL := 0

@@ -501,17 +501,17 @@ def simulate_admixture_pop(n_gen, n_offsprings, create_mix_mode):
 
     # note, for a big data writing to a file may take a while
 
-    # print("Calculating and writing to files LD ...")
-    # afr_pop.get_ld("afr_ld", False, 0, 10);
-    # eas_pop.get_ld("eas_ld", False, 0, 10);
-    # eur_pop.get_ld("eur_ld", False, 0, 10);
-    # mix_pop.get_ld("mix_ld", False, 0, 10);
+    print("Calculating and writing to files LD ...")
+    afr_pop.get_ld("afr_ld", False, 0, 2);
+    eas_pop.get_ld("eas_ld", False, 0, 2);
+    eur_pop.get_ld("eur_ld", False, 0, 2);
+    mix_pop.get_ld("mix_ld", False, 0, 2);
 
-    # print("Writing ancestry data to files ...")
+    print("Writing ancestry data to files ...")
     # afr_pop.get_ancestry("afr_ancestry.txt");
     # eas_pop.get_ancestry("eas_ancestry.txt");
     # eur_pop.get_ancestry("eur_ancestry.txt");
-    # mix_pop.get_ancestry("mix_ancestry.txt");
+    mix_pop.get_ancestry("mix_ancestry.txt");
     
     # print("Writing haplotypes to files ...")
     # afr_pop.get_haplotypes("afr_haplotypes.txt");

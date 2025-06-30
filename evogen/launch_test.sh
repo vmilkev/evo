@@ -6,7 +6,7 @@ case "$uname" in
     Linux)
         echo -n "Linux"
         # adding evogen library to the python path
-        export PYTHONPATH=$PYTHONPATH:/Users/au383883/Documents/MY/codebase/evo/evogen/release
+        export PYTHONPATH=$PYTHONPATH:/home/vimi/Documents/codebase/evo/evogen/release
         ;;
     Darwin)
         # adding evogen library to the python path
