@@ -5,15 +5,16 @@ namespace evogen
     //===============================================================================================================
     Animal::Animal()
     {
+        // this is the default constructor needed, in particular, in std::vector resize call
         try
         {
-            // genotype2 = new Genome();
             properties.id = asign_id();
             properties.sire = 0;
             properties.dame = 0;
             properties.age = 0;
+            properties.birth = 0;
             properties.alive = true;
-            properties.isgenotyped = false;
+            properties.isgenotyped = true;
             properties.active = true;
             properties.sex = asign_sex();
         }
@@ -35,8 +36,43 @@ namespace evogen
             throw;
         }
     }
+    
     //===============================================================================================================
-    Animal::Animal(Animal &a_sire, Animal &b_dame, double mutation_freq, size_t num_crossovers)
+    Animal::Animal(size_t pos_as_id)
+    {
+        try
+        {
+            // genotype2 = new Genome();
+            properties.id = pos_as_id; //asign_id();
+            properties.sire = 0;
+            properties.dame = 0;
+            properties.age = 0;
+            properties.birth = 0;
+            properties.alive = true;
+            properties.isgenotyped = true;
+            properties.active = true;
+            properties.sex = asign_sex();
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Animal::Animal(size_t)." << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Animal::Animal(size_t)" << '\n';
+            std::cerr <<"Reason: "<< e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Animal::Animal(size_t)." << '\n';
+            throw;
+        }
+    }
+    //===============================================================================================================
+    Animal::Animal(Animal &a_sire, Animal &b_dame, double mutation_freq, size_t num_crossovers, size_t pos_as_id)
     {
         try
         {
@@ -85,12 +121,13 @@ namespace evogen
             
             genome.set_genome(gamete, ancestry, gstructure, g_dist); // here we do not initialize gene ancestry, the gen_ancestry should already be non-empty
 
-            properties.id = asign_id();
+            properties.id = pos_as_id; //asign_id();
             properties.sire = a_sire.get_id();
             properties.dame = b_dame.get_id();
             properties.age = 0;
+            properties.birth = 0;
             properties.alive = true;
-            properties.isgenotyped = false;
+            properties.isgenotyped = true;
             properties.active = true;
             properties.sex = asign_sex();
 
@@ -141,19 +178,19 @@ namespace evogen
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Animal::Animal(Animal &, Animal &, double, size_t, popid_t)" << '\n';
+            std::cerr << "Exception in Animal::Animal(Animal &, Animal &, double, size_t, popid_t, size_t)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Animal::Animal(Animal &, Animal &, double, size_t, popid_t)" << '\n';
+            std::cerr << "Exception in Animal::Animal(Animal &, Animal &, double, size_t, popid_t, size_t)" << '\n';
             std::cerr <<"Reason: "<< e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Animal::Animal(Animal &, Animal &, double, size_t, popid_t)" << '\n';
+            std::cerr << "Exception in Animal::Animal(Animal &, Animal &, double, size_t, popid_t, size_t)" << '\n';
             throw;
         }
     }
@@ -181,6 +218,11 @@ namespace evogen
     void Animal::set_age(int age)
     {
         properties.age = age;
+    }
+    //===============================================================================================================
+    void Animal::set_birth(int birth)
+    {
+        properties.birth = birth;
     }
     //===============================================================================================================
     void Animal::set_alive(bool alive)
@@ -281,6 +323,11 @@ namespace evogen
         return properties.age;
     }
     //===============================================================================================================
+    int Animal::get_birth()
+    {
+        return properties.birth;
+    }
+    //===============================================================================================================
     bool Animal::get_alive()
     {
         return properties.alive;
@@ -345,6 +392,7 @@ namespace evogen
         {
             Utilites u;
             id = u.get_randi( 1, 1000000000 );
+            //id = u.get_randi( 1, 100000 );
         }
         catch (const std::exception &e)
         {

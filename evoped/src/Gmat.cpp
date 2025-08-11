@@ -349,7 +349,7 @@ namespace evoped
             }
             else // the pipeline for text (.ped) plink-formated data !!! not implemented yet
             {
-                read_snp(fname); // reads SNPs with variant IDs from ASCII fiele and output to the snp_map
+                read_snp(fname); // reads SNPs with variant IDs from ASCII file and output to the snp_map
                 make_zmatrix(); // scalling SNPs
                 //make_zmatrixf(); // scalling SNPs
                 snp_map.clear();
@@ -593,7 +593,7 @@ namespace evoped
             // declare the matrix M
             M.resize(snp_map.size(), snpNum);
 
-            /* vector of SNPs frequences and missed values */
+            // vector of SNPs frequences and missed values
             std::vector<T> P(snpNum, 0.0);
             std::vector<int> missed(snpNum, 0);
             std::vector<T> missed2pq(snp_map.size(), 0.0);
@@ -909,13 +909,23 @@ namespace evoped
         try
         {
 std::cout<<"making M ..."<<'\n';
+            int read_column = get_snp_asciifile_format(snp_fname);
+            
+std::cout<<"read_column "<<read_column<<'\n';
+            if ( read_column == 0 )
+                throw std::string("read_column == 0");
+
             // --------- Making M matrix ------------
-            read_snp(snp_fname, snp_fname_ids); // reads SNPs and its IDs from ASCII fieles (one for SNPs, another for IDs)
+
+            if ( read_column == 1 )
+                read_snp(snp_fname, snp_fname_ids); // reads SNPs and its IDs from ASCII files (one for SNPs, another for IDs)
+            else
+                read_snp(snp_fname); // reads SNPs and its IDs from the same ASCII file
+            
             evolm::matrix<T> M;
             make_m_matrix(M);
             snp_map.clear();
 
-            //M.print("M");
             M.fwrite("M.dmbin");
             // --------------------------------------
 std::cout<<"completed making M."<<'\n';
@@ -929,6 +939,13 @@ std::cout<<"Loading A(-1) matrix ..."<<'\n';
             Utilities2 u;
             u.fread_matrix(ped_fname, values, keys, ids); // we should read L-store format
 
+// std::cout<<"gmatID:"<<'\n';
+// for (auto const &v: gmatID)
+//     std::cout<<v<<'\n';
+// std::cout<<"A mat ID:"<<'\n';
+// for (auto const &v: ids)
+//     std::cout<<v<<'\n';
+                
             if ( !u.is_value_in_vect(ids, gmatID) )
                 throw std::string("There are genotyped IDs which are not part of the A(-1) matrix!");
 
@@ -955,6 +972,10 @@ std::cout<<"Creating IDs lists ..."<<'\n';
                 if (res == -1)
                     nn_ids.push_back(ids[i]);
             }
+// std::cout<<"nn_ids:"<<'\n';
+// for (auto const &v: nn_ids)
+//     std::cout<<v<<'\n';
+            
             std::vector<size_t> nn_pos; // positions of non-genotyped IDs in A(-1)
             for (size_t i = 0; i < nn_ids.size(); i++)
                 nn_pos.push_back(u.find_invect(ids, nn_ids[i]));
@@ -963,7 +984,25 @@ std::cout<<"Creating IDs lists ..."<<'\n';
             for (size_t i = 0; i < gmatID.size(); i++)
                 gg_pos.push_back(u.find_invect(ids, gmatID[i]));
 
+// -------------------------------
 std::cout<<"n ids in iA: "<<ids.size()<<" gmat ids: "<<gmatID.size()<<" nn_ids: "<<nn_ids.size()<<'\n';
+// std::vector<double> ids2;
+// for(auto const &v: ids)
+//     ids2.push_back((double)v);
+// evolm::matrix<double> mat_ids2;
+// mat_ids2.from_vector(ids2);
+// mat_ids2.printf("A_ids.txt", false);
+// evolm::matrix<double> A(ids.size());
+// for (size_t i = 0; i < ids.size(); i++)
+// {
+//     for (size_t j = 0; j <= i; j++)
+//     {
+//         A(i, j) = amat.get_nonzero(i, j);
+//     }
+// }
+// A.symtorec();
+// A.printf("A.txt", false);
+// --------------------------------
 
             ids.clear();
             ids.shrink_to_fit();
@@ -1029,8 +1068,11 @@ std::cout<<"Calculating: rhs = Ang * M ..."<<'\n';
             Ang.scale(-1.0);
             M.fread("M.dmbin");
 
-            rhs = Ang * M;
+//Ang.printf("Ang", false);
+//M.print("M");
 
+            rhs = Ang * M;
+//rhs.print("rhs");
             Ang.clear();
 
             evolm::matrix<size_t> shp_M;
@@ -1066,6 +1108,7 @@ std::cout<<"passed 2."<<'\n';
 
             // -----------------
             Ann.symtorec();
+//Ann.printf("Ann", false);
             Ann.linsolve( rhs );
             Ann.clear();
             // -----------------
@@ -1101,7 +1144,6 @@ std::cout<<"Solving: L*L' = rhs ..."<<'\n';
             Ann.clear();
             rhs.clear();
 */
-            //M_imp.print("M_imp");
             // --------------------------------------
 std::cout<<"completed."<<'\n';
 std::cout<<"Combine genotypes ..."<<'\n';
@@ -1125,7 +1167,7 @@ std::cout<<"Combine genotypes ..."<<'\n';
             M.clear();
             M.fclear("M.dmbin");
 
-            //M_imp.print("M_imp");
+//M_imp.printf("M_imp.txt", false);
             // --------------------------------------
 std::cout<<"completed."<<'\n';
 std::cout<<"Calculating variants frequences ..."<<'\n';
@@ -1166,10 +1208,17 @@ std::cout<<"Combine IDs ..."<<'\n';
             for (auto const &v: gmatID)
                 all_ids.push_back(v);
 
-            //std::cout<<"all_ids: ";
-            //for (auto const &v: all_ids)
-            //    std::cout<<v<<" ";
-            //std::cout<<"\n";
+// std::vector<double> all_ids2;
+// for(auto const &v: all_ids)
+//     all_ids2.push_back((double)v);
+// evolm::matrix<double> mat_ids;
+// mat_ids.from_vector(all_ids2);
+// mat_ids.printf("ids.txt", false);
+
+// std::cout<<"all_ids: ";
+// for (auto const &v: all_ids)
+//     std::cout<<v<<"\n";
+// std::cout<<"\n";
             // --------------------------------------
             M_imp.clear();
             //u.fwrite_matrix(out_fname, M_imp, all_ids);
@@ -2061,7 +2110,7 @@ std::cout<<"completed."<<'\n';
 
             char *end;
             const char *p;
-            std::vector<T> tmp_list;
+            std::vector<double> tmp_list;
             size_t diagonals = 0;
 
             std::ifstream ped;
@@ -2081,13 +2130,12 @@ std::cout<<"completed."<<'\n';
                         throw std::string("Range error during reading G matrix");
                         errno = 0;
                     }
-                    tmp_list.push_back(static_cast<T>(f));
+                    tmp_list.push_back(static_cast<double>(f));
                 }
                 g_row.push_back(static_cast<std::int64_t>(tmp_list[0]));
                 g_col.push_back(static_cast<std::int64_t>(tmp_list[1]));
-                g_val.push_back(tmp_list[2]);
-                gmatID.push_back(int(tmp_list[0]));
-                // gmatID.push_back(int(tmp_list[1]));
+                g_val.push_back((T)tmp_list[2]);
+                gmatID.push_back(std::int64_t(tmp_list[0]));
 
                 if (static_cast<std::int64_t>(tmp_list[0]) == static_cast<std::int64_t>(tmp_list[1]))
                     diagonals++;
@@ -2224,6 +2272,11 @@ std::cout<<"completed."<<'\n';
     {
         try
         {
+            int skip_num = get_snp_asciifile_format(snp_file) - 1; // we should have here either: 2, 3, or -1
+            
+            if ( skip_num <= 0 )
+                throw std::string("skip_num <= 0");
+
             Utilities2 u;
 
             std::string line;
@@ -2255,16 +2308,18 @@ std::cout<<"completed."<<'\n';
 
                     data_list.push_back(token);
 
-                    if (data_list.size() == 2)
+                    if (data_list.size() == (size_t)skip_num)
                         break;
                 }
                 // get the last element of the string
                 data_list.push_back(line);
+                
+                long rec_id = std::stol(data_list[0]);
 
                 // now we have got the SNP data for one ID
-                snp_map[stoi(data_list[0])] = data_list[2];
+                snp_map[rec_id] = data_list[skip_num];
 
-                gmatID.push_back(stoi(data_list[0]));
+                gmatID.push_back(rec_id);
 
                 data_list.erase(data_list.begin(), data_list.end());
             }
@@ -2279,14 +2334,8 @@ std::cout<<"completed."<<'\n';
                 tmpInd++;
             }
 
-            // Check if gmat IDs are unique
-            std::vector<std::int64_t> t_gmatID(gmatID);
-
-            if (!u.is_unique(t_gmatID))
+            if (!u.is_unique(gmatID)) // Check if gmat IDs are unique and do sorting in the same time
                 throw std::string("Thhere are repeated IDs in the processed SNPs file!");
-
-            t_gmatID.clear();
-            t_gmatID.shrink_to_fit();
         }
         catch (const std::exception &e)
         {
@@ -2308,6 +2357,123 @@ std::cout<<"completed."<<'\n';
     }
     template void Gmat<float>::read_snp(const std::string &snp_file);
     template void Gmat<double>::read_snp(const std::string &snp_file);
+    //===============================================================================================================
+    /**
+     * @brief detecting whether ascii file has strictly snps, snps + 1 or snps + 2 extra columns
+     * 
+     * @tparam T defines type, float or double
+     * @param snp_file the name of SNPs text file
+     * 
+     * @returns points to a first column with snp data
+     *          1 - very first column consist of snp data; only snps are in the file without extra columns;
+     *          2 - second column consist of snp data; snps + 1 extra column: individual id
+     *          3 - third column consist of snp data; if snps + 2 extra columns: individual id and chip id
+     * 
+     */
+    template <typename T> int Gmat<T>::
+    get_snp_asciifile_format(const std::string &snp_file)
+    {
+        try
+        {
+            Utilities2 u;
+
+            std::string line;
+            std::vector<std::string> data_list;
+
+            std::ifstream snpF;
+            snpF.open(snp_file, std::fstream::in);
+
+            if (!snpF.good())
+                throw std::string("Cannot open SNPs file!");
+
+            int max_row_read = 100;
+            int count = 0;
+            int return_value = 0;
+
+            while ( getline(snpF, line) && count <= max_row_read )
+            {
+                count++;
+
+                std::string delimiter = " ";
+                size_t pos = 0;
+                std::string token;
+
+                while ((pos = line.find(delimiter)) != std::string::npos)
+                {
+                    if (pos == 0)
+                        token = " ";
+                    else
+                        token = line.substr(0, pos);
+
+                    line.erase(0, pos + delimiter.length());
+
+                    if (token.compare(delimiter) == 0)
+                        continue;
+
+                    data_list.push_back(token);
+
+                    if (data_list.size() == 2)
+                        break;
+                }
+
+                if ( !is_number(data_list[0]) && !is_number(data_list[1]) )
+                {
+                    std::cout<<"WARNING: The first two columns in the file " + snp_file + " are not numbers!"<<'\n';
+                    return 3;
+                }
+
+                if ( is_number(data_list[0]) && !is_number(data_list[1]) )
+                {
+                    std::cout<<"WARNING: The second column in the file " + snp_file + " is not a number!"<<'\n';
+                    return 3;
+                }
+
+                if ( !is_number(data_list[0]) && is_number(data_list[1]) )
+                {
+                    std::cout<<"WARNING: The first column in the file " + snp_file + " is not a number!"<<'\n';
+                    if ( !is_one_digit( std::stoi(data_list[1]) ) )
+                        return 3;
+                    else
+                        return_value = 2;
+                }
+
+                if ( is_number(data_list[0]) && is_number(data_list[1]) )
+                {
+                    if ( is_one_digit(std::stoi(data_list[0])) && is_one_digit(std::stoi(data_list[1])) )
+                        return_value = 1;
+                    if ( !is_one_digit(std::stoi(data_list[0])) && !is_one_digit(std::stoi(data_list[1])) )
+                        return 3;
+                    if ( !is_one_digit(std::stoi(data_list[0])) && is_one_digit(std::stoi(data_list[1])) )
+                        return_value = 2;
+                }
+
+                data_list.erase(data_list.begin(), data_list.end());
+            }
+
+            snpF.close();
+
+            return return_value;
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Gmat<T>::get_snp_asciifile_format(const std::string &)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Gmat<T>::get_snp_asciifile_format(const std::string &)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Gmat<T>::get_snp_asciifile_format(const std::string &)" << '\n';
+            throw;
+        }
+    }
+    template int Gmat<float>::get_snp_asciifile_format(const std::string &snp_file);
+    template int Gmat<double>::get_snp_asciifile_format(const std::string &snp_file);
     //===============================================================================================================
     /**
      * @brief Reads variants and samples data from a text file
@@ -2360,14 +2526,8 @@ std::cout<<"completed."<<'\n';
 
             snpF.close();
 
-            // Check if gmat IDs are unique
-            std::vector<std::int64_t> t_gmatID(gmatID);
-
-            if (!u.is_unique(t_gmatID))
+            if (!u.is_unique(gmatID)) // Check if gmat IDs are unique and do sorting in the same time
                 throw std::string("Thhere are repeated IDs in the processed SNPs file!");
-
-            t_gmatID.clear();
-            t_gmatID.shrink_to_fit();
 
             // (2) reading the SNPs:
 
@@ -2520,6 +2680,82 @@ std::cout<<"completed."<<'\n';
     }
     template void Gmat<float>::parse_string(std::string &snp_str, std::vector<float> &markers);
     template void Gmat<double>::parse_string(std::string &snp_str, std::vector<float> &markers);
+    //===============================================================================================================
+    /**
+     * @brief Detecting if std string is number
+     * 
+     * @tparam T defines type, float or double
+     * @param str std string to detect
+     * 
+     * @returns true - if the string is a number; false - otherwise
+     * 
+     */
+    template <typename T> bool Gmat<T>::
+    is_number(const std::string &str)
+    {
+        try
+        {
+            std::string::const_iterator it = str.begin();
+            while (it != str.end() && std::isdigit(*it)) ++it;
+            return !str.empty() && it == str.end();
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Gmat<T>::is_number(const std::string&)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Gmat<T>::is_number(const std::string&)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Gmat<T>::is_number(const std::string&)" << '\n';
+            throw;
+        }
+    }
+    template bool Gmat<float>::is_number(const std::string &snp_str);
+    template bool Gmat<double>::is_number(const std::string &snp_str);
+    //===============================================================================================================
+    /**
+     * @brief Detecting if an integer is one-digit number
+     * 
+     * @tparam T defines type, float or double
+     * @param number integer to detect
+     * 
+     * @returns true - if an integer is a one-digit number; false - otherwise
+     * 
+     */
+    template <typename T> bool Gmat<T>::
+    is_one_digit(int number)
+    {
+        try
+        {
+            return number >= -9 && number <= 9;
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Gmat<T>::is_one_digit(int)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Gmat<T>::is_one_digit(int)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Gmat<T>::is_one_digit(int)" << '\n';
+            throw;
+        }
+    }
+    template bool Gmat<float>::is_one_digit(int number);
+    template bool Gmat<double>::is_one_digit(int number);
     //===============================================================================================================
     /**
      * @brief Construct scaled variants (snps) matrix

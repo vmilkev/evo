@@ -29,7 +29,7 @@ namespace evolm
         void solve( const std::string &use_method, int available_memory, int available_cpu, const std::string &log_file, const std::string &sol_file );
         void solve( const std::string &use_method, int available_memory, int available_cpu, const std::string &log_file, const std::string &sol_file, double err_tol );
         void solve( const std::string &use_method, int available_memory, int available_cpu, const std::string &log_file, const std::string &sol_file, double err_tol, size_t max_iter );
-        void snp_to_bv( const std::string &fname_zmatr, const std::string &fname_solsnp, const std::string &fname_outres );
+        void snp_to_bv( const std::string &fname_zmatr, const std::string &fname_solsnp, const std::string &fname_outres, size_t start_row, size_t end_row );
         void clear();
     };
 } // end of namespace evolm

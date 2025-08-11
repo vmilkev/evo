@@ -35,7 +35,8 @@ namespace evogen
             std::random_device rd;
             srand(rd());
 
-            rnum = std::rand() % range;
+            //rnum = std::rand() % range;
+            rnum = (std::rand() * (RAND_MAX + (unsigned long)1) + std::rand()) % range;
         }
         catch (const std::exception &e)
         {

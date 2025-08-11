@@ -295,7 +295,7 @@ namespace evoped
             std::map<PedPair, PedPair> pedigree;
 
             fread_pedigree(ped_file, pedigree_from_file, pedID);
-
+            
             if (pedID.empty())
                 throw std::string("Empty pedigree IDs!");
 
@@ -306,7 +306,7 @@ namespace evoped
                 traced_pedID.erase(traced_pedID.begin(), traced_pedID.end());
 
             trace_pedigree(pedigree_from_file, pedigree, pedID); // tracing full pedigree
-
+        
             if (!inbrF.empty())
                 inbrF.erase(inbrF.begin(), inbrF.end());
 
@@ -2037,7 +2037,7 @@ namespace evoped
 
             char *end;
             const char *p;
-            std::vector<T> tmp_list;
+            std::vector<double> tmp_list;
 
             std::ifstream ped;
             ped.open(ped_file, std::fstream::in);
@@ -2048,7 +2048,7 @@ namespace evoped
             while (getline(ped, line))
             {
                 p = line.c_str();
-                for (T f = std::strtod(p, &end); p != end; f = std::strtod(p, &end))
+                for (double f = std::strtod(p, &end); p != end; f = std::strtod(p, &end))
                 {
                     p = end;
                     if (errno == ERANGE)
@@ -2116,7 +2116,7 @@ namespace evoped
 
             char *end;
             const char *p;
-            std::vector<T> tmp_list;
+            std::vector<double> tmp_list;
 
             std::ifstream ped;
             ped.open(g_file, std::fstream::in);
@@ -2128,7 +2128,7 @@ namespace evoped
             {
                 p = line.c_str();
 
-                for (T f = std::strtod(p, &end); p != end; f = std::strtod(p, &end))
+                for (double f = std::strtod(p, &end); p != end; f = std::strtod(p, &end))
                 {
                     p = end;
                     if (errno == ERANGE)
@@ -2333,8 +2333,13 @@ namespace evoped
                         id_pair.val_1 = sire[i];
                         id_pair.val_2 = dame[i];
 
-                        if ((birth_id_map[sire[i]] >= days[i]) || (birth_id_map[dame[i]] >= days[i]))
-                            throw std::string("Pedigree is not correct: parents born before offspring!");
+                        if ((birth_id_map[sire[i]] > days[i]) || (birth_id_map[dame[i]] > days[i]))
+                        {
+                            std::string s1("id: "+std::to_string(ids[i])+", birth: "+std::to_string(days[i])+"; ");
+                            std::string s2("sire: "+std::to_string(sire[i])+", birth: "+std::to_string(birth_id_map[sire[i]])+"; ");
+                            std::string s3("dame: "+std::to_string(dame[i])+", birth: "+std::to_string(birth_id_map[dame[i]])+".");
+                            throw std::string("Pedigree is not correct, parents born before offspring! "+s1+s2+s3);
+                        }
 
                         key.val_1 = days[i];
                         key.val_2 = elem_v;
@@ -2376,12 +2381,20 @@ namespace evoped
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in smatrix<T>::trace_operation( ... )" << '\n';
+            std::cerr << "Exception in Amat<T>::trace_operation( ... ): ";
             std::cerr << e.what() << '\n';
+            throw e;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Amat<T>::trace_operation( ... ): ";
+            std::cerr << e << '\n';
+            throw e;
         }
         catch (...)
         {
-            std::cerr << "Exception in smatrix<T>::trace_operation( ... )" << '\n';
+            std::cerr << "Exception in Amat<T>::trace_operation( ... )" << '\n';
+            throw;
         }
     }
 
@@ -3553,6 +3566,62 @@ namespace evoped
 
     template void Amat<float>::save_matrix(const std::string &name, const std::string &out_fname);
     template void Amat<double>::save_matrix(const std::string &name, const std::string &out_fname);
+
+    //===============================================================================================================
+
+    template <typename T>
+    void Amat<T>::save_ids(const std::string &name, const std::string &out_fname)
+    {
+        try
+        {
+            std::ofstream out;
+            out.open (out_fname, std::ofstream::out | std::ofstream::trunc);
+            
+            if (!out.is_open()) throw std::string("Cannot open file "+ out_fname + "for writing!");
+
+            out << "ref_ids"<<'\n';
+            
+            if ( name == "A" || name == "iA" )
+            {
+                if (id_iA.empty()) throw std::string("The requested vector of ids is empty!");
+                for (auto const &v: id_iA) out << v <<'\n';
+            }
+
+            if ( name == "rA" || name == "irA" )
+            {
+                if (id_irA.empty()) throw std::string("The requested vector of ids is empty!");
+                for (auto const &v: id_irA) out << v <<'\n';
+            }
+
+            if ( name == "iA22" || name == "A22" )
+            {
+                if (id_A22.empty()) throw std::string("The requested vector of ids is empty!");
+                for (auto const &v: id_A22) out << v <<'\n';
+            }
+
+            out.close();
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Amat<T>::save_ids(const std::string &, const std::string &)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Amat<T>::save_ids(const std::string &, const std::string &)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Amat<T>::save_ids(const std::string &, const std::string &)" << '\n';
+            throw;
+        }
+    }
+
+    template void Amat<float>::save_ids(const std::string &name, const std::string &out_fname);
+    template void Amat<double>::save_ids(const std::string &name, const std::string &out_fname);
 
     //===============================================================================================================
 

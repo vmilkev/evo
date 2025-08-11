@@ -1176,7 +1176,7 @@ namespace evolm
 
             snpF.open(io_file.c_str(), std::fstream::in);
             if (!snpF.good())
-                throw std::string("Cannot open file for reading!");
+                throw std::string("Cannot open file " + io_file + " for reading!");
 
             // -------------- Read header ---------------------
 
@@ -1818,7 +1818,6 @@ namespace evolm
 
             if (!snpF.good())
                 throw std::string("Cannot open file " + io_file + " to read!");
-            ;
 
             while (getline(snpF, line))
             {
@@ -1826,11 +1825,13 @@ namespace evolm
                 size_t pos = 0;
                 std::string token;
 
+                // if (line.find(delimiter) == std::string::npos)
+                //     delimiter = ",";
+                
                 while ((pos = line.find(delimiter)) != std::string::npos)
                 {
-
                     if (pos == 0)
-                        token = " ";
+                        token = delimiter;
                     else
                         token = line.substr(0, pos);
 
@@ -1877,6 +1878,98 @@ namespace evolm
     template void IOInterface::fgetdata(std::vector<std::vector<float>> &out);
     template void IOInterface::fgetdata(std::vector<std::vector<size_t>> &out);
     template void IOInterface::fgetdata(std::vector<std::vector<bool>> &out);
+
+    //===============================================================================================================
+
+    template <typename T>
+    void IOInterface::fgetdata(std::vector<T> &out, size_t start_row, size_t end_row, size_t col)
+    {
+        // Reads the specific part of general ASCII formated data
+
+        // Reads file format:
+        // [list of numbers with " " delimiter]
+        // Example:
+        //         12.2 20 51.1
+        //         15.5 30 10
+        //         21.0 45 562
+        //         30.5 50 452
+        //         40 61 231
+
+        try
+        {
+            std::ifstream snpF;
+            std::string line;
+            std::vector<std::string> data_str;
+
+            snpF.open(io_file.c_str(), std::fstream::in);
+
+            if (!snpF.good())
+                throw std::string("Cannot open file " + io_file + " to read!");
+
+            long count_rows = -1;
+
+            while (getline(snpF, line))
+            {
+                count_rows++;
+
+                if ( count_rows < (long)start_row - 1 ) continue;
+                if ( count_rows > (long)end_row - 1 ) break;
+
+                std::string delimiter = " ";
+                size_t pos = 0;
+                std::string token;
+
+                if (line.find(delimiter) == std::string::npos)
+                    delimiter = ",";
+
+                while ((pos = line.find(delimiter)) != std::string::npos)
+                {                    
+                    if (pos == 0)
+                        token = delimiter;
+                    else
+                        token = line.substr(0, pos);
+
+                    line.erase(0, pos + delimiter.length());
+
+                    if (token.compare(delimiter) == 0) continue;
+
+                    data_str.push_back(token);
+                }
+
+                data_str.push_back(line);
+
+                if (data_str.size() > col)
+                    throw std::string("The number of columns read from file " + io_file + " at row " + std::to_string(count_rows) + " is " + std::to_string(data_str.size()) + " which is lower than requested!");
+
+                out.push_back(std::stof(data_str[col-1]));
+
+                data_str.erase(data_str.begin(), data_str.end());
+            }
+
+            snpF.close();
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in IOInterface::fgetdata(std::vector<std::vector<float>> &, size_t, size_t, size_t)." << '\n';
+            std::cerr <<"Reason => "<< e.what() << '\n';
+            std::cerr << " => operating on file "<< io_file << " which expected to consist strictly numerical data without header."<<"\n";
+            throw e;
+        }
+        catch (const std::string &err)
+        {
+            std::cerr << "Exception in IOInterface::fgetdata(std::vector<std::vector<float>> &, size_t, size_t, size_t)." << '\n';
+            std::cerr << "Error => " << err << '\n';
+            throw err;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in IOInterface::fgetdata(std::vector<std::vector<float>> &, size_t, size_t, size_t)." << '\n';
+            throw;
+        }
+    }
+
+    template void IOInterface::fgetdata(std::vector<double> &out, size_t start_row, size_t end_row, size_t col);
+    template void IOInterface::fgetdata(std::vector<float> &out, size_t start_row, size_t end_row, size_t col);
 
     //===============================================================================================================
     bool IOInterface::is_plink_file(const std::string &fname)

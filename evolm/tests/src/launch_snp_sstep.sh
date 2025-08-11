@@ -21,4 +21,4 @@ case "$uname" in
 esac;
 
 # calling the python script
-python3 tests/src/test_snp_sstep.py
+python3 /Users/au383883/Documents/MY/codebase/evo/evolm/tests/src/test_snp_sstep.py

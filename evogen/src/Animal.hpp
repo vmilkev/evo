@@ -9,7 +9,8 @@ namespace evogen
     {
     public:
         Animal();
-        Animal(Animal &a, Animal &b, double mutation_freq, size_t num_crossovers);
+        Animal(size_t pos_as_id);
+        Animal(Animal &a, Animal &b, double mutation_freq, size_t num_crossovers, size_t pos_as_id);
         ~Animal();
 
         Genome genome;
@@ -19,6 +20,7 @@ namespace evogen
         void set_sire(unsigned long id);
         void set_dame(unsigned long id);
         void set_age(int age);
+        void set_birth(int birth);
         void set_alive(bool alive);
         void set_isgenotyped(bool genotyped);
         void set_sex(int sex);
@@ -29,6 +31,7 @@ namespace evogen
         unsigned long get_sire();
         unsigned long get_dame();
         int get_age();
+        int get_birth();
         bool get_alive();
         bool get_isgenotyped();
         bool get_active();
@@ -45,6 +48,7 @@ namespace evogen
             properties.sire = a.properties.sire;
             properties.dame = a.properties.dame;
             properties.age = a.properties.age;
+            properties.birth = a.properties.birth;
             properties.alive = a.properties.alive;
             properties.active = a.properties.active;
             properties.isgenotyped = a.properties.isgenotyped;
@@ -60,6 +64,7 @@ namespace evogen
             unsigned long sire;
             unsigned long dame;
             int age;
+            int birth;
             bool alive;
             bool active;
             bool isgenotyped;

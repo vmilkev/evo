@@ -15,15 +15,24 @@ PYBIND11_MODULE(evogen, m)
         // functional methods:
         .def( "size", &evogen::Population::size )
         .def( "capacity", &evogen::Population::capacity )
+
         .def( "get_popid", &evogen::Population::get_popid )
         .def( "reshape", &evogen::Population::reshape )
+
         .def( "aging", &evogen::Population::aging )
+
+        .def( "set_birthday", &evogen::Population::set_birthday )
+
+        .def( "get_pedigree", &evogen::Population::get_pedigree )
+        .def( "get_data", &evogen::Population::get_data )
+
         .def( "get_genotypes", &evogen::Population::get_genotypes )
         .def( "get_haplotypes", &evogen::Population::get_haplotypes )
         .def( "get_ancestry", &evogen::Population::get_ancestry )
         .def( "is_valid_pos", &evogen::Population::is_valid_pos )
         .def( "get_valid_pos", &evogen::Population::get_valid_pos )
         .def( "get_ld", &evogen::Population::get_ld, pybind11::arg(), pybind11::arg("a") = false, pybind11::arg("b") = -1, pybind11::arg("c") = 1 )
+        
         .def( "set_population", pybind11::overload_cast< size_t, const std::string &, float, int >(&evogen::Population::set_population) )
         .def( "set_population", pybind11::overload_cast< const std::string &, const std::string &, bool >(&evogen::Population::set_population) )
         // properties access methods:
@@ -35,6 +44,10 @@ PYBIND11_MODULE(evogen, m)
         .def( "dame_at", pybind11::overload_cast< size_t >(&evogen::Population::dame_at) )
         .def( "age_at", pybind11::overload_cast< size_t, int >(&evogen::Population::age_at) )
         .def( "age_at", pybind11::overload_cast< size_t >(&evogen::Population::age_at) )
+
+        .def( "birth_at", pybind11::overload_cast< size_t, int >(&evogen::Population::birth_at) )
+        .def( "birth_at", pybind11::overload_cast< size_t >(&evogen::Population::birth_at) )
+
         .def( "alive_at", pybind11::overload_cast< size_t, bool >(&evogen::Population::alive_at) )
         .def( "alive_at", pybind11::overload_cast< size_t >(&evogen::Population::alive_at) )
         .def( "isgenotyped_at", pybind11::overload_cast< size_t, bool >(&evogen::Population::isgenotyped_at) )
@@ -61,7 +74,15 @@ PYBIND11_MODULE(evogen, m)
         .def( "mate", pybind11::overload_cast< bool, float, float, double, size_t >(&evogen::Group::mate) )
         .def( "regroup_newborn", &evogen::Group::regroup_newborn )
         .def( "aging", &evogen::Group::aging )
-        .def( "genotype", &evogen::Group::genotype )
+
+        .def( "set_missing_observations", &evogen::Group::set_missing_observations )
+        .def( "set_not_genotyped", &evogen::Group::set_not_genotyped )
+        .def( "get_pedigree", &evogen::Group::get_pedigree )
+        .def( "get_data", &evogen::Group::get_data )
+        .def( "get_genotypes", &evogen::Group::get_genotypes )
+        .def( "get_haplotypes", &evogen::Group::get_haplotypes )
+        .def( "get_ancestry", &evogen::Group::get_ancestry )
+
         .def( "kill", &evogen::Group::kill )
         .def( "select", &evogen::Group::select )
         .def( "select_into_group", &evogen::Group::select_into_group )

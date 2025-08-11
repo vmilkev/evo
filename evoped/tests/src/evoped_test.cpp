@@ -801,15 +801,15 @@ TEST_CASE("Testing Amat class")
 
             ap.clear();
 
-            /*iA.fclear();
-            irA.fclear();
-            iA22.fclear();
-            A22.fclear();
+            // A.fclear();
+            // irA.fclear();
+            // iA22.fclear();
+            // A22.fclear();
 
-            iA.clear();
-            irA.clear();
-            iA22.clear();
-            A22.clear();*/
+            // iA.clear();
+            // irA.clear();
+            // iA22.clear();
+            // A22.clear();
 
             std::cout<<"A: passed 10"<<"\n";
 
@@ -929,10 +929,10 @@ TEST_CASE("Testing Amat class")
 
             ap.clear();
 
-            /*iA.clean();
-            irA.clean();
-            iA22.clean();
-            A22.clean();*/
+            // iA.clean();
+            // irA.clean();
+            // iA22.clean();
+            // A22.clean();
 
             std::cout<<"A: passed 11"<<"\n";
 
@@ -1055,10 +1055,10 @@ TEST_CASE("Testing Amat class")
             // We don't need to clean these matrices because they still are linked by their
             // file names with the class instance ap, hence ap.clear() delete the files
 
-            /*iA.clean();
-            irA.clean();
-            iA22.clean();
-            A22.clean();*/
+            // iA.clean();
+            // irA.clean();
+            // iA22.clean();
+            // A22.clean();
 
             std::cout<<"A: passed 12"<<"\n";
 
@@ -1501,6 +1501,7 @@ TEST_CASE("Testing Amat class")
     }
 
 }
+
 
 TEST_CASE( "Testing Gmat class" )
 {

@@ -23,6 +23,7 @@ PYBIND11_MODULE(evoped, m)
         .def("clear", &evoped::Amat<double>::clear)
         .def("set_sparsiity_threshold", &evoped::Amat<double>::set_sparsiity_threshold)
         .def("save_matrix", &evoped::Amat<double>::save_matrix)
+        .def("save_ids", &evoped::Amat<double>::save_ids)
         ;
     
     pybind11::class_<evoped::Amat<float> >( m, "Amat" )
@@ -36,6 +37,7 @@ PYBIND11_MODULE(evoped, m)
         .def("clear", &evoped::Amat<float>::clear)
         .def("set_sparsiity_threshold", &evoped::Amat<float>::set_sparsiity_threshold)
         .def("save_matrix", &evoped::Amat<float>::save_matrix)
+        .def("save_ids", &evoped::Amat<float>::save_ids)
         ;
     
     pybind11::class_< evoped::Gmat<double> >( m, "Gmatd" )

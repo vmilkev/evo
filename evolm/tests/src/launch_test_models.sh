@@ -5,6 +5,13 @@ uname=$(uname);
 case "$uname" in
     Linux)
         echo -n "Linux"
+        # adding path to the C++ libplinkio library
+        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/vimi/Documents/codebase/evo/libplinkio/release_lib
+        # adding path to the python evolm library/package
+        export PYTHONPATH=$PYTHONPATH:/home/vimi/Documents/codebase/evo/evolm/release
+        # adding path to the python evoped library/package
+        export PYTHONPATH=$PYTHONPATH:/home/vimi/Documents/codebase/evo/evoped/release
+        #echo "$DYLD_LIBRARY_PATH"
         ;;
     Darwin)
         # adding path to the C++ libplinkio library

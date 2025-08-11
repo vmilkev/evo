@@ -40,10 +40,10 @@ namespace evogen
         void clear();
         void reshape();    // reduce capaciity to fit size (hence, memory)
 
-        void get_ld(const std::string &out_file, bool full_info = false, int which_chr = -1, unsigned int snp_step = 1);
         size_t get_popid();
 
         void aging(int delta_t);
+        void set_birthday(int time);
 
         void id_at(size_t at, unsigned long id);
         unsigned long id_at(size_t at);
@@ -56,6 +56,9 @@ namespace evogen
 
         void age_at(size_t at, int age);
         int age_at(size_t at);
+
+        void birth_at(size_t at, int age);
+        int birth_at(size_t at);
 
         void alive_at(size_t at, bool alive);
         bool alive_at(size_t at);
@@ -84,16 +87,32 @@ namespace evogen
 
         // ------------- Not publik in Python ------------------------
         std::vector<short> get_genome_at(size_t which_genome, size_t locus);
-        void get_all_genotypes(const std::string &file_out);
+        //void get_all_genotypes(const std::string &file_out);
         void get_all_genotypes(std::vector<std::vector<short>> &vect_out);
         void get_all_haplotypes(std::vector<std::vector<bool>> &vect_out,
                                 std::vector<std::vector<unsigned long>> &out_snp_table,
                                 std::vector<float> &out_gen_distance);
         
+        void get_selected_haplotypes(std::vector<std::vector<bool>> &vect_out,
+                                    std::vector<std::vector<unsigned long>> &out_snp_table,
+                                    std::vector<float> &out_gen_distance,
+                                    std::vector<poplen_t> &selected_individuals); // interface to access haplotypes from the Group class
+        void get_selected_genotypes(const std::string &file_out, std::vector<poplen_t> &selected_individuals, bool append_mode); // interface to access genotypes from the Group class
+        void get_selected_haplotypes(const std::string &file_out, std::vector<poplen_t> &selected_individuals, bool append_mode); // interface to access haplotypes from the Group class
+        void get_selected_ancestry(const std::string &file_out, std::vector<poplen_t> &selected_individuals, bool append_mode); // interface to access ancestry from the Group class
+        void get_selected_pedigree(const std::string &file_out, std::vector<poplen_t> &selected_individuals, bool append_mode); // interface to access pedigree from the Group class
+        void get_selected_data(const std::string &file_out, std::vector<poplen_t> &selected_individuals, bool append_mode); // interface to access entire data (for LM) from the Group class
+        
         // ------------- Is publik in Python ------------------------
         void get_genotypes(const std::string &file_out);
         void get_haplotypes(const std::string &file_out);
         void get_ancestry(const std::string &file_out);
+        void get_ld(const std::string &out_file,
+                    bool full_info = false,
+                    int which_chr = -1,
+                    unsigned int snp_step = 1); // can be accessed only from Population class!
+        void get_pedigree(const std::string &file_out);
+        void get_data(const std::string &file_out);
 
         // ------------- Required in Trait class ---------------------
         std::vector<std::vector<unsigned long>> get_genome_table();
@@ -128,6 +147,9 @@ namespace evogen
         std::vector<Animal> individuals;
         std::vector<poplen_t> active_individuals;
         popid_t origin_id = 0; // pop id used to track genomic ancestry
+
+        size_t last_added_index = 0; // track a last index in active_individuals during a last update of the vector
+        size_t contin_individ_index = 0; // continiouslt tracking the number of added new individuals regardless of reshaping
 
         const std::string gdistance_name = "Genetic_Map(cM)";
         const std::string chr_name = "chr";

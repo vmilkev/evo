@@ -637,7 +637,7 @@ namespace evogen
             if (gen_ancestry.empty())
                 throw std::string("The ancestry_haplotypes for this individual is empty!");
 
-                ancestry_haplotypes = gen_ancestry;
+            ancestry_haplotypes = gen_ancestry;
         }
         catch (const std::exception &e)
         {
@@ -1422,7 +1422,7 @@ namespace evogen
             // because the vector gen_ancestry supposed to haave much less elements than markers vector,
             // there is high chance at there will be no records in the search interval [first_snp, last_snp],
             // in this case in order to not return empty vector ancestry_chromatide we fill it with the closest
-            // related data; than, whan this segment will be combined with other segments (upstream)
+            // related data; than, when this segment will be combined with other segments (upstream)
             // a redundant data will be removed
 
             size_t first_index = 0;
@@ -1430,23 +1430,29 @@ namespace evogen
 
             auto it_first = std::find_if(gen_ancestry[which_strand + which_strands_set].begin(), gen_ancestry[which_strand + which_strands_set].end(),
                                    [&](const ancestry_segment& e) {return std::get<0>(e) >= first_snp && std::get<0>(e) <= last_snp;} );
+            
             if (it_first != gen_ancestry[which_strand + which_strands_set].end())
+            {
                 first_index = std::distance(std::begin(gen_ancestry[which_strand + which_strands_set]), it_first);
+            }
             else
             {
                 // cannot find anything; find which pop id should be at the range [first_snp, last_snp] using previous segments; looking in revercing order
                 auto it_first2 = std::find_if(gen_ancestry[which_strand + which_strands_set].rbegin(), gen_ancestry[which_strand + which_strands_set].rend(),
                                               [&](const ancestry_segment& e) {return std::get<0>(e) >= 0 && std::get<0>(e) <= last_snp;} );
+                
                 if (it_first2 != gen_ancestry[which_strand + which_strands_set].rend())
                     first_index = std::distance(it_first2, std::rend(gen_ancestry[which_strand + which_strands_set])) - 1;
-                    ancestry_segment sgm = gen_ancestry[which_strand + which_strands_set][first_index];
-                    std::get<0>(sgm) = first_snp;
-                    ancestry_chromatide.push_back(sgm);
-                    return;
+                    
+                ancestry_segment sgm = gen_ancestry[which_strand + which_strands_set][first_index];
+                std::get<0>(sgm) = first_snp;
+                ancestry_chromatide.push_back(sgm);
+                return;
             }
 
             auto it_last = std::find_if(gen_ancestry[which_strand + which_strands_set].rbegin(), gen_ancestry[which_strand + which_strands_set].rend(),
                                    [&](const ancestry_segment& e) {return std::get<0>(e) >= first_snp && std::get<0>(e) <= last_snp;} );
+            
             if (it_last != gen_ancestry[which_strand + which_strands_set].rend())
                 last_index = std::distance(it_last, std::rend(gen_ancestry[which_strand + which_strands_set])) - 1;
 

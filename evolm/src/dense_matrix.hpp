@@ -4999,7 +4999,7 @@ namespace evolm
 
         if ( numRow != numCol )
             throw std::string("A square matrix is required for matrix<T>::linsolve(matrix<T> &rhs) method!");
-        
+
         linsolve_lu(A, numRow, numCol, rhs.A, rhs.numCol);
     }
 
@@ -5639,7 +5639,7 @@ namespace evolm
         FILE *dbgFile;
         dbgFile = fopen(debug_file.c_str(), "a");
 
-        size_t maxRows = 30;
+        size_t maxRows = 50;
         fprintf(dbgFile, "%s", whiichMatrix.c_str());
         // fprintf (dbgFile, "\n");
         if (rectangular)
@@ -5690,7 +5690,7 @@ namespace evolm
 
             Return value: none.
         */
-
+       
         if (ondisk)
             throw std::string("Matrix is empty. Use fread() to relocate data to memory. matrix<T>::printf(std::string)");
 
@@ -5722,7 +5722,7 @@ namespace evolm
                     if (isInt)
                         fprintf(dbgFile, "%12d", (int)A[i * numCol + j]);
                     else
-                        fprintf(dbgFile, "%12.5G", (double)A[i * numCol + j]);
+                        fprintf(dbgFile, "%17.10G", (double)A[i * numCol + j]);
                 }
                 fprintf(dbgFile, "\n");
             }
@@ -5736,7 +5736,7 @@ namespace evolm
                     if (isInt)
                         fprintf(dbgFile, "%12d", (int)A[i * (i + 1) / 2 + j]);
                     else
-                        fprintf(dbgFile, "%12.5G", (double)A[i * (i + 1) / 2 + j]);
+                        fprintf(dbgFile, "%17.10G", (double)A[i * (i + 1) / 2 + j]);
                 }
                 fprintf(dbgFile, "\n");
             }

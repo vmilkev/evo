@@ -182,6 +182,9 @@ else
 	$(TARGET_TEST)
 endif
 
+fnd:
+	$(TESTDIR)/$(SRCDIR)/launch_snp_sstep.sh
+
 run:
 	@echo " Running ..."
 ifeq ($(UNAME_OS),Darwin)

@@ -517,32 +517,30 @@ namespace evolm
             else
                 throw std::string("Unable to open solution file " + sol_file + " for output!");
 
-            std::string structure_file = "sol_struct_"+sol_file;
+            std::string structure_file = sol_file+"_struct";
             solution.open(structure_file);
 
-            if (solution.is_open())
-            {
-                solution << "The names of columns in the " << sol_file << " file" << "\n";
-                solution << "\n";
-                solution << "Column 1: Trait" << "\n";
-                solution << "Column 2: Group" << "\n";
-                solution << "Column 3: Name" << "\n";
-                solution << "Column 4: Levels (name x group)" << "\n";
-                solution << "Column 5: Estimate" << "\n";
-                solution << "\n";
-                
-                solution << "Structure of estimates in the " << sol_file << " file:" << "\n";
-                solution << "(Access the specific estimates using 'Starts at Row' and 'Ends at Row')"<< "\n";
-                solution << "\n";
-                int dist = 23;
-                int dist2 = 14;
-                for (size_t i = 0; i < sol_structure.size(); i++)
-                    solution <<std::setw(dist2)<<std::left << sol_structure[i][0] << " "<<std::setw(dist)<<std::left << sol_structure[i][1] << " " <<std::setw(dist)<<std::left << sol_structure[i][2] << " " <<std::setw(dist)<<std::left << sol_structure[i][3] << " " <<std::setw(dist)<<std::left << sol_structure[i][4] << " " <<std::setw(dist2)<<std::left << sol_structure[i][5] << " " <<std::setw(dist2)<<std::left << sol_structure[i][6] << " " <<std::setw(dist2)<<std::left << sol_structure[i][7] << "\n";
+            if ( !solution.is_open() )
+                throw std::string("Unable to open solution structure file " + structure_file + " for output!");
 
-                solution.close();
-            }
-            else
-                throw std::string("Unable to open solution structure file " + structure_file + " for output!");    
+            solution << "The names of columns in the " << sol_file << " file" << "\n";
+            solution << "\n";
+            solution << "Column 1: Trait" << "\n";
+            solution << "Column 2: Group" << "\n";
+            solution << "Column 3: Name" << "\n";
+            solution << "Column 4: Levels (name x group)" << "\n";
+            solution << "Column 5: Estimate" << "\n";
+            solution << "\n";
+            
+            solution << "Structure of estimates in the " << sol_file << " file:" << "\n";
+            solution << "(Access the specific estimates using 'Starts at Row' and 'Ends at Row')"<< "\n";
+            solution << "\n";
+            int dist = 23;
+            int dist2 = 14;
+            for (size_t i = 0; i < sol_structure.size(); i++)
+                solution <<std::setw(dist2)<<std::left << sol_structure[i][0] << " "<<std::setw(dist)<<std::left << sol_structure[i][1] << " " <<std::setw(dist)<<std::left << sol_structure[i][2] << " " <<std::setw(dist)<<std::left << sol_structure[i][3] << " " <<std::setw(dist)<<std::left << sol_structure[i][4] << " " <<std::setw(dist2)<<std::left << sol_structure[i][5] << " " <<std::setw(dist2)<<std::left << sol_structure[i][6] << " " <<std::setw(dist2)<<std::left << sol_structure[i][7] << "\n";
+
+            solution.close();
         }
         catch(const std::exception& e)
         {
@@ -703,25 +701,26 @@ namespace evolm
         }
     }
     //===============================================================================================================
-    void lmm::snp_to_bv( const std::string &fname_zmatr, const std::string &fname_solsnp, const std::string &fname_outres )
+    void lmm::snp_to_bv( const std::string &fname_zmatr, const std::string &fname_solsnp, const std::string &fname_outres, size_t start_row, size_t end_row )
     {
         try
         {
-            parser.binmatr_by_txtvect(fname_zmatr, fname_solsnp, fname_outres);
+            size_t estimate_col = 5; // column with estimates in the solution file
+            parser.binmatr_by_txtvect(fname_zmatr, fname_solsnp, fname_outres, start_row, end_row, estimate_col);
         }
         catch(const std::exception& e)
         {
-            std::cerr << "lmm::snp_to_bv(const std::string &, const std::string): " << e.what() << '\n';
+            std::cerr << "lmm::snp_to_bv(const std::string &, const std::string, size_t, size_t): " << e.what() << '\n';
             throw e;
         }
         catch(const std::string & e)
         {
-            std::cerr << "lmm::snp_to_bv(const std::string &, const std::string): " << e <<'\n';
+            std::cerr << "lmm::snp_to_bv(const std::string &, const std::string, size_t, size_t): " << e <<'\n';
             throw e;
         }
         catch(...)
         {
-            std::cerr << "lmm::snp_to_bv(const std::string &, const std::string): " << "Unknown exception." << '\n';
+            std::cerr << "lmm::snp_to_bv(const std::string &, const std::string, size_t, size_t): " << "Unknown exception." << '\n';
             throw;
         }
     }

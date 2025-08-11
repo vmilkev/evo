@@ -288,7 +288,7 @@ int main(int argc, char *argv[])
 		}
 
 		G_newborn.aging(4);
-		G_newborn.genotype();
+		G_newborn.set_not_genotyped();
 		G_newborn.kill();
 
 		G_newborn.move(pop_newborn);

@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <algorithm>
+#include <iomanip>
 
 #include "effects_storage.hpp"
 #include "iointerface.hpp"
@@ -120,7 +121,7 @@ namespace evolm
         void set_fname(evolm::IOInterface &io_class_instance, const std::string &var);
         void get_missing_obs();
 
-        void binmatr_by_txtvect( const std::string &fname_matr, const std::string &fname_vect, const std::string &fname_outres );
+        void binmatr_by_txtvect( const std::string &fname_matr, const std::string &fname_vect, const std::string &fname_outres, size_t start_row, size_t end_row, size_t col );
 
     public:
         model_parser();

@@ -3159,24 +3159,22 @@ namespace evolm
         }
     }
     // -------------------------------------------------------------
-    void model_parser::binmatr_by_txtvect( const std::string &fname_matr, const std::string &fname_vect, const std::string &fname_outres )
+    void model_parser::binmatr_by_txtvect( const std::string &fname_matr, const std::string &fname_vect, const std::string &fname_outres, size_t start_row, size_t end_row, size_t col )
     {
         try
         {
-            // Reading vector from txt  file
-            std::vector<std::vector<float>> vect_data;
+            // Reading vector from txt file
+            std::vector<float> vect_data;
             IOInterface in;
             in.set_fname(fname_vect);
-            in.fgetdata(vect_data);
+
+            in.fgetdata(vect_data, start_row, end_row, col);
 
             if ( vect_data.empty() )
-                throw std::string("Empty data read from the file"+fname_vect+".");
+                throw std::string("Empty data read from the file " + fname_vect + "!");
             
-            size_t vect_rows = vect_data.size();
-            size_t vect_cols = vect_data[0].size();
-
-            if ( vect_cols != 1 )
-                throw std::string("Multiple columns read from the file"+fname_vect+"; expected only a vector data.");
+            if ( vect_data.size() != (end_row-start_row+1) )
+                throw std::string("The number of rows read from the file " + fname_vect + " is " + std::to_string(vect_data.size()) + ", which is not the same as expected: " + std::to_string(end_row-start_row+1) + "!");
 
             // Reading matrix from binary file
             evolm::matrix<float> d_ext_eff;
@@ -3201,7 +3199,7 @@ namespace evolm
                 evolm::matrix<float> vect;
                 evolm::matrix<float> res;
 
-                vect.from_vector2d(vect_data);
+                vect.from_vector(vect_data);
                 res = d_ext_eff * vect;
 
                 std::ofstream out(fname_outres);
@@ -3227,7 +3225,7 @@ namespace evolm
                 evolm::smatrix<float> vect(vect_data.size(),1);
                 evolm::smatrix<float> res;
                 for (size_t i = 0; i < vect_data.size(); i++)
-                    vect(i,1) = vect_data[i][0];
+                    vect(i,1) = vect_data[i];
                 
                 res = s_ext_eff * vect;
 
@@ -3249,19 +3247,19 @@ namespace evolm
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in model_parser::binmatr_by_txtvect(const std::string &, const std::string &, const std::string &)"<< "\n";
+            std::cerr << "Exception in model_parser::binmatr_by_txtvect(const std::string &, const std::string &, const std::string &, size_t, size_t, size_t)"<< "\n";
             std::cerr << "Reason => " << e << "\n";
             throw e;
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in model_parser::binmatr_by_txtvect(const std::string &, const std::string &, const std::string &)"<< "\n";
+            std::cerr << "Exception in model_parser::binmatr_by_txtvect(const std::string &, const std::string &, const std::string &, size_t, size_t, size_t)"<< "\n";
             std::cerr << "Reason => " << e.what() << "\n";
             throw e;
         }
         catch (...)
         {
-            std::cerr << "Exception in model_parser::binmatr_by_txtvect(const std::string &, const std::string &, const std::string &)"<< "\n";
+            std::cerr << "Exception in model_parser::binmatr_by_txtvect(const std::string &, const std::string &, const std::string &, size_t, size_t, size_t)"<< "\n";
             throw;
         }
     }

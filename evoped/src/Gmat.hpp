@@ -84,6 +84,9 @@ namespace evoped
 
         void read_snp(const std::string &snp_file);
         void read_snp(const std::string &snp_file, const std::string& ids_file);
+        int get_snp_asciifile_format(const std::string &snp_file); // detecting whether ascii file has strictly snps, snps + 1 or snps + 2 extra columns
+        bool is_number(const std::string &snp_str);
+        bool is_one_digit(int number);
         void parse_string(std::string &snp_str, std::vector<int> &markers);
         void parse_string(std::string &snp_str, std::vector<float> &markers);
         void make_zmatrix();

@@ -77,6 +77,44 @@ namespace evogen
         }
     }
     //===============================================================================================================
+    void Population::set_birthday(int time)
+    {
+        //    register a birth day for newly added individuals
+        //    whose added after the last call of this method:
+        //    new_individuals are active_individuals[ from i1 to i2 ];
+        //    i1 =  last_added_index;
+        //    i2 = active_individuals.size() - 1.
+        try
+        {
+            if ( active_individuals.empty() ) return;
+            if ( last_added_index == active_individuals.size() ) return;
+
+            for (size_t i = last_added_index; i < active_individuals.size(); i++)
+            {
+                if ( active_individuals[i] == -1 ) continue;
+                birth_at(i,time);
+            }
+            last_added_index = active_individuals.size();
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Population::set_birthday(int)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &err)
+        {
+            std::cerr << "Exception in Population::set_birthday(int)" << '\n';
+            std::cerr << err << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Population::set_birthday(int)" << '\n';
+            throw;
+        }
+    }
+    //===============================================================================================================
     void Population::set_population(size_t nindividuals, const std::string &genotype_structure, float ref_allele_probability, int n_ploidy)
     {
         try
@@ -137,8 +175,11 @@ namespace evogen
 
             for (size_t i = 0; i < nindividuals; i++)
             {
-                Animal a;
+                size_t position_as_id = origin_id + i; // will be asigned id
+
+                Animal a(position_as_id);
                 a.genome.set_genome(genome_structure, ref_allele_probability, (short)n_ploidy, gen_dist, origin_id); // also initializes gene ancestry
+                
                 individuals.push_back(a);
                 active_individuals.push_back((poplen_t)i);
             }
@@ -176,8 +217,8 @@ namespace evogen
             std::vector<float> gen_dist;
             std::vector<double> chromosome; /* chromosome id of each marker, will be used to make the genome_structure data table */
 
-            /* because it is the animal population we have diploid genotype,
-            hence, read piars of haplotype for each individual */
+            //  because it is the animal population we have diploid genotype,
+            //  hence, read piars of haplotype for each individual
 
             evogen::IOInterface data;
             
@@ -251,7 +292,9 @@ namespace evogen
                 markers[0] = haplotypes[i];
                 markers[1] = haplotypes[i + 1];
 
-                Animal a;
+                size_t position_as_id = origin_id + i; // will be asigned id
+
+                Animal a(position_as_id);
                 a.genome.set_genome(markers, genome_structure, gen_dist, origin_id); // also initializes gene ancestry
 
                 if (with_pedigree)
@@ -301,7 +344,6 @@ namespace evogen
             if (e != -1) len++;
         }
         return len;
-        //return active_individuals.size();
     }
     //===============================================================================================================
     size_t Population::capacity()
@@ -465,66 +507,122 @@ namespace evogen
         }
     }
     //===============================================================================================================
-    void Population::get_all_genotypes(const std::string &file_out)
+    // void Population::get_all_genotypes(const std::string &file_out)
+    // {
+    //     try
+    //     {
+    //         size_t count = 0;
+    //         for (auto const &e: active_individuals) // looking for the first non-negative value
+    //         {
+    //             if ( e != -1 ) break;
+    //             count++;
+    //         }
+
+    //         if ( count != active_individuals.size() )
+    //         {
+    //             std::vector<short> vect_out = individuals[(size_t)active_individuals[count]].genome.get_genome();
+    //             size_t n_snp = vect_out.size();
+
+    //             vect_out.clear();
+    //             vect_out.shrink_to_fit();
+
+    //             FILE *pFile;
+    //             pFile = fopen(file_out.c_str(), "a");
+    //             if (pFile != NULL)
+    //             {
+    //                 for (size_t i = 0; i < active_individuals.size(); i++)
+    //                 {
+    //                     if (active_individuals[i] == -1)
+    //                         continue;
+    //                     vect_out = individuals[(size_t)active_individuals[i]].genome.get_genome();
+    //                     unsigned long id = individuals[(size_t)active_individuals[i]].get_id();
+                        
+    //                     fprintf(pFile, "%lu %c", id, ' ');
+
+    //                     for (size_t j = 0; j < n_snp; j++)
+    //                         fprintf(pFile, "%3d", vect_out[j]);
+                        
+    //                     fprintf(pFile, "\n");
+    //                 }
+    //                 fclose(pFile);
+    //             }
+    //             else
+    //                 throw std::string("Cannot open file for writing out genotypes!");
+    //         }
+    //         else
+    //             throw std::string("Cannot return the genotypes for the empty population");
+    //     }
+    //     catch (const std::exception &e)
+    //     {
+    //         std::cerr << "Exception in Population::get_all_genotypes(const std::string &)" << '\n';
+    //         std::cerr << e.what() << '\n';
+    //         throw;
+    //     }
+    //     catch (const std::string &e)
+    //     {
+    //         std::cerr << "Exception in Population::get_all_genotypes(const std::string &)" << '\n';
+    //         std::cerr << "Reason: " << e << '\n';
+    //         throw;
+    //     }
+    //     catch (...)
+    //     {
+    //         std::cerr << "Exception in Population::get_all_genotypes(const std::string &)" << '\n';
+    //         throw;
+    //     }
+    // }
+    //===============================================================================================================
+    void Population::get_selected_genotypes(const std::string &file_out, std::vector<poplen_t> &selected_individuals, bool append_mode)
     {
+        // selected_individuals is equal to active_individuals but consist only non-negative values fro whose individualsto output
         try
         {
-            size_t count = 0;
-            for (auto const &e: active_individuals) // looking for the first non-negative value
-            {
-                if ( e != -1 ) break;
-                count++;
-            }
+            std::vector<short> vect_out = individuals[(size_t)selected_individuals[0]].genome.get_genome();
+            size_t n_snp = vect_out.size();
 
-            if ( count != active_individuals.size() )
-            {
-                std::vector<short> vect_out = individuals[(size_t)active_individuals[count]].genome.get_genome();
-                size_t n_snp = vect_out.size();
+            vect_out.clear();
+            vect_out.shrink_to_fit();
 
-                vect_out.clear();
-                vect_out.shrink_to_fit();
-
-                FILE *pFile;
+            FILE *pFile;
+            if (append_mode)
                 pFile = fopen(file_out.c_str(), "a");
-                if (pFile != NULL)
-                {
-                    for (size_t i = 0; i < active_individuals.size(); i++)
-                    {
-                        if (active_individuals[i] == -1)
-                            continue;
-                        vect_out = individuals[(size_t)active_individuals[i]].genome.get_genome();
-                        unsigned long id = individuals[(size_t)active_individuals[i]].get_id();
-                        
-                        fprintf(pFile, "%lu %c", id, ' ');
-
-                        for (size_t j = 0; j < n_snp; j++)
-                            fprintf(pFile, "%3d", vect_out[j]);
-                        
-                        fprintf(pFile, "\n");
-                    }
-                    fclose(pFile);
-                }
-                else
-                    throw std::string("Cannot open file for writing out genotypes!");
-            }
             else
-                throw std::string("Cannot return the genotypes for the empty population");
+                pFile = fopen(file_out.c_str(), "w");
+            if (pFile == NULL)
+                throw std::string("Cannot open file " + file_out + " for writing out genotypes!");
+
+            for (size_t i = 0; i < selected_individuals.size(); i++)
+            {
+                if ( selected_individuals[i] == -1 )
+                    continue;
+                
+                vect_out = individuals[(size_t)selected_individuals[i]].genome.get_genome();
+                unsigned long id = individuals[(size_t)selected_individuals[i]].get_id();
+                
+                fprintf(pFile, "%lu %c", id, ' ');
+
+                for (size_t j = 0; j < n_snp; j++)
+                    fprintf(pFile, "%2d", vect_out[j]);
+                
+                fprintf(pFile, "\n");
+            }
+
+            fclose(pFile);
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Population::get_all_genotypes(const std::string &)" << '\n';
+            std::cerr << "Exception in Population::get_selected_genotypes(const std::string &, std::vector<poplen_t> &, bool)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Population::get_all_genotypes(const std::string &)" << '\n';
+            std::cerr << "Exception in Population::get_selected_genotypes(const std::string &, std::vector<poplen_t> &, bool)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Population::get_all_genotypes(const std::string &)" << '\n';
+            std::cerr << "Exception in Population::get_selected_genotypes(const std::string &, std::vector<poplen_t> &, bool)" << '\n';
             throw;
         }
     }
@@ -533,26 +631,58 @@ namespace evogen
     {
         try
         {
-            size_t count = 0;
-            for (auto const &e: active_individuals) // looking for the first non-negative value
-            {
-                if ( e != -1 ) break;
-                count++;
-            }
-            if ( count == active_individuals.size() )
-                throw std::string("Cannot return ancestry genotypes for the empty population");
+            std::vector<poplen_t> selected_individuals;
 
-            std::ofstream fout(file_out);
+            for (auto const &v: active_individuals)
+            {
+                if ( v != -1 ) selected_individuals.push_back(v);
+            }
+
+            if ( selected_individuals.empty() )
+                throw std::string ("The list of selected for output individuals is empty!");
+
+            get_selected_ancestry(file_out, selected_individuals, false);
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Population::get_ancestry(const std::string &)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Population::get_ancestry(const std::string &)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Population::get_ancestry(const std::string &)" << '\n';
+            throw;
+        }
+    }
+    //===============================================================================================================
+    void Population::get_selected_ancestry(const std::string &file_out, std::vector<poplen_t> &selected_individuals, bool append_mode)
+    {
+        try
+        {
+            std::ofstream fout;
+
+            if ( append_mode )
+                fout.open(file_out, std::ofstream::out | std::ofstream::app);
+            else
+                fout.open(file_out, std::ofstream::out | std::ofstream::trunc);
+
             if (fout.is_open())
             {
-                for (size_t i = 0; i < active_individuals.size(); i++)
+                for (size_t i = 0; i < selected_individuals.size(); i++)
                 {
-                    if (active_individuals[i] == -1)
+                    if ( selected_individuals[i] == -1 )
                         continue;
 
                     std::vector<std::vector<ancestry_segment>> ancestry;
-                    individuals[(size_t)active_individuals[i]].genome.get_ancestry(ancestry);
-                    unsigned long id = individuals[(size_t)active_individuals[i]].get_id();
+                    individuals[(size_t)selected_individuals[i]].genome.get_ancestry(ancestry);
+                    unsigned long id = individuals[(size_t)selected_individuals[i]].get_id();
 
                     for (size_t i2 = 0; i2 < ancestry.size(); i2++) // expected/required ancestry.size() = n_ploidy 
                     {
@@ -569,19 +699,227 @@ namespace evogen
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Population::get_ancestry(const std::string &)" << '\n';
+            std::cerr << "Exception in Population::get_selected_ancestry(const std::string &, std::vector<poplen_t> &, bool)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Population::get_ancestry(const std::string &)" << '\n';
+            std::cerr << "Exception in Population::get_selected_ancestry(const std::string &, std::vector<poplen_t> &, bool)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Population::get_ancestry(const std::string &)" << '\n';
+            std::cerr << "Exception in Population::get_selected_ancestry(const std::string &, std::vector<poplen_t> &, bool)" << '\n';
+            throw;
+        }
+    }
+    //===============================================================================================================
+    void Population::get_selected_pedigree(const std::string &file_out, std::vector<poplen_t> &selected_individuals, bool append_mode)
+    {
+        try
+        {
+            std::ofstream fout;
+
+            if ( append_mode )
+                fout.open(file_out, std::ofstream::out | std::ofstream::app);
+            else
+                fout.open(file_out, std::ofstream::out | std::ofstream::trunc);
+
+            if (fout.is_open())
+            {
+                for (size_t i = 0; i < selected_individuals.size(); i++)
+                {
+                    if ( selected_individuals[i] == -1 )
+                        continue;
+                    
+                    unsigned long id = individuals[(size_t)selected_individuals[i]].get_id();
+                    unsigned long sire = individuals[(size_t)selected_individuals[i]].get_sire();
+                    unsigned long dame = individuals[(size_t)selected_individuals[i]].get_dame();
+                    int birth = individuals[(size_t)selected_individuals[i]].get_birth();
+
+                    fout<< id << " " << sire << " " << dame << " " << birth << '\n';
+                }
+                fout.close();
+            }
+            else
+                std::cerr << "Error while opening file " + file_out << "\n";    
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Population::get_selected_pedigree(const std::string &, std::vector<poplen_t> &, bool)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Population::get_selected_pedigree(const std::string &, std::vector<poplen_t> &, bool)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Population::get_selected_pedigree(const std::string &, std::vector<poplen_t> &, bool)" << '\n';
+            throw;
+        }
+    }
+    //===============================================================================================================
+    void Population::get_pedigree(const std::string &file_out)
+    {
+        try
+        {
+            std::vector<poplen_t> selected_individuals;
+
+            for (auto const &v: active_individuals)
+            {
+                if ( v != -1 ) selected_individuals.push_back(v);
+            }
+
+            if ( selected_individuals.empty() )
+                throw std::string ("The list of selected for output individuals is empty!");
+
+            get_selected_pedigree(file_out, selected_individuals, false);
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Population::get_pedigree(const std::string &)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Population::get_pedigree(const std::string &)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Population::get_pedigree(const std::string &)" << '\n';
+            throw;
+        }
+    }
+    //===============================================================================================================
+    void Population::get_selected_data(const std::string &file_out, std::vector<poplen_t> &selected_individuals, bool append_mode)
+    {
+        try
+        {
+            std::ofstream fout;
+
+            if ( append_mode )
+                fout.open(file_out, std::ofstream::out | std::ofstream::app);
+            else
+                fout.open(file_out, std::ofstream::out | std::ofstream::trunc);
+
+            if (fout.is_open())
+            {
+                // writing header
+                std::vector<float> phen = individuals[(size_t)selected_individuals[0]].get_phenotype();
+                fout<< "id";
+                fout << " " << "sire";
+                fout << " " << "dame";
+                fout << " " << "birth";
+                fout << " " << "age";
+                fout << " " << "sex";
+                fout << " " << "genotyped";
+                fout << " " << "z1";
+                for (size_t i = 0; i < phen.size(); i++)
+                {
+                    std::string s( "trait_"+std::to_string(i+1) );
+                    fout << " " << s;
+                }
+                fout << '\n';
+                phen.clear();
+
+                for (size_t i = 0; i < selected_individuals.size(); i++)
+                {
+                    if ( selected_individuals[i] == -1 )
+                        continue;
+                    
+                    unsigned long id = individuals[(size_t)selected_individuals[i]].get_id();
+                    unsigned long sire = individuals[(size_t)selected_individuals[i]].get_sire();
+                    unsigned long dame = individuals[(size_t)selected_individuals[i]].get_dame();
+                    int birth = individuals[(size_t)selected_individuals[i]].get_birth();
+                    int age = individuals[(size_t)selected_individuals[i]].get_age();
+                    int sex = individuals[(size_t)selected_individuals[i]].get_sex();
+                    bool genotyped = individuals[(size_t)selected_individuals[i]].get_isgenotyped();
+                    std::vector<float> phenotype = individuals[(size_t)selected_individuals[i]].get_phenotype();
+                    long long z1 = missing_obs_const;
+                    if (!genotyped)
+                        z1 = id;
+
+                    fout<< id;
+                    fout << " " << sire;
+                    fout << " " << dame;
+                    fout << " " << birth;
+                    fout << " " << age;
+                    fout << " " << sex;
+                    fout << " " << genotyped;
+                    fout << " " << z1;
+                    for (auto const &v: phenotype)
+                    {
+                        if ( v == missing_obs_const )
+                            fout << " " << (int)v;
+                        else
+                            fout << " " << v;
+                    }
+                    fout << '\n';
+                }
+                fout.close();
+            }
+            else
+                std::cerr << "Error while opening file " + file_out << "\n";    
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Population::get_selected_data(const std::string &, std::vector<poplen_t> &, bool)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Population::get_selected_data(const std::string &, std::vector<poplen_t> &, bool)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Population::get_selected_data(const std::string &, std::vector<poplen_t> &, bool)" << '\n';
+            throw;
+        }
+    }
+    //===============================================================================================================
+    void Population::get_data(const std::string &file_out)
+    {
+        try
+        {
+            std::vector<poplen_t> selected_individuals;
+
+            for (auto const &v: active_individuals)
+            {
+                if ( v != -1 ) selected_individuals.push_back(v);
+            }
+
+            if ( selected_individuals.empty() )
+                throw std::string ("The list of selected for output individuals is empty!");
+
+            get_selected_data(file_out, selected_individuals, false);
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Population::get_data(const std::string &)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Population::get_data(const std::string &)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Population::get_data(const std::string &)" << '\n';
             throw;
         }
     }
@@ -590,7 +928,17 @@ namespace evogen
     {
         try
         {
-            get_all_genotypes(file_out);
+            std::vector<poplen_t> selected_individuals;
+
+            for (auto const &v: active_individuals)
+            {
+                if ( v != -1 && isgenotyped_at(v) ) selected_individuals.push_back(v);
+            }
+
+            if ( selected_individuals.empty() )
+                throw std::string ("The list of selected for output individuals is empty!");
+
+            get_selected_genotypes(file_out, selected_individuals, false);
         }
         catch (const std::exception &e)
         {
@@ -615,21 +963,54 @@ namespace evogen
     {
         try
         {
+            std::vector<poplen_t> selected_individuals;
+
+            for (auto const &v: active_individuals)
+            {
+                if ( v != -1 && isgenotyped_at(v) ) selected_individuals.push_back(v);
+            }
+
+            if ( selected_individuals.empty() )
+                throw std::string ("The list of selected for output individuals is empty!");
+
+            get_selected_haplotypes(file_out, selected_individuals, false);
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Population::get_haplotypes(const std::string &)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Population::get_haplotypes(const std::string &)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Population::get_haplotypes(const std::string &)" << '\n';
+            throw;
+        }
+    }
+    //===============================================================================================================
+    void Population::get_selected_haplotypes(const std::string &file_out, std::vector<poplen_t> &selected_individuals, bool append_mode)
+    {
+        try
+        {
             std::vector<std::vector<bool>> haplotypes;
             std::vector<std::vector<unsigned long>> snp_table;
             std::vector<float> gen_distance;
 
-            get_all_haplotypes(haplotypes, snp_table, gen_distance);
+            get_selected_haplotypes(haplotypes, snp_table, gen_distance, selected_individuals);
 
             snp_table.clear();
             gen_distance.clear();
 
             std::vector<unsigned long> id_list;
-            for (size_t i = 0; i < active_individuals.size(); i++)
+            for (size_t i = 0; i < selected_individuals.size(); i++)
             {
-                if (active_individuals[i] == -1)
-                    continue;
-                id_list.push_back( individuals[(size_t)active_individuals[i]].get_id() );
+                id_list.push_back( individuals[(size_t)selected_individuals[i]].get_id() );
             }
 
             size_t n_ploidy = get_ploidy();
@@ -637,7 +1018,13 @@ namespace evogen
             if ( (size_t)( id_list.size() * n_ploidy ) != haplotypes.size() )
                 throw std::string("(size_t)( id_list.size() * get_ploidy() ) != haplotypes.size()");
 
-            std::ofstream fout(file_out); // writing haplotypes to file
+            std::ofstream fout;
+
+            if ( append_mode )
+                fout.open(file_out, std::ofstream::out | std::ofstream::app);
+            else
+                fout.open(file_out, std::ofstream::out | std::ofstream::trunc);
+
             if (fout.is_open())
             {
                 int id_count = -1;
@@ -657,19 +1044,19 @@ namespace evogen
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Population::get_haplotypes(const std::string &)" << '\n';
+            std::cerr << "Exception in Population::get_selected_haplotypes(const std::string &, std::vector<poplen_t> &, bool)" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Population::get_haplotypes(const std::string &)" << '\n';
+            std::cerr << "Exception in Population::get_selected_haplotypes(const std::string &, std::vector<poplen_t> &, bool)" << '\n';
             std::cerr << "Reason: " << e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Population::get_haplotypes(const std::string &)" << '\n';
+            std::cerr << "Exception in Population::get_selected_haplotypes(const std::string &, std::vector<poplen_t> &, bool)" << '\n';
             throw;
         }
     }
@@ -762,6 +1149,51 @@ namespace evogen
         catch (...)
         {
             std::cerr << "Exception in Population::get_all_haplotypes(std::vector<std::vector<bool>> &, std::vector<std::vector<unsigned long>> &, std::vector<float> &)" << '\n';
+            throw;
+        }
+    }
+    //===============================================================================================================
+    void Population::get_selected_haplotypes(std::vector<std::vector<bool>> &vect_out, std::vector<std::vector<unsigned long>> &out_snp_table, std::vector<float> &out_gen_distance, std::vector<poplen_t> &selected_individuals)
+    {
+        try
+        {
+            std::vector<std::vector<bool>> i_haplotypes;
+            std::vector<std::vector<unsigned long>> i_gstructure;
+
+            for (size_t i = 0; i < selected_individuals.size(); i++)
+            {
+                if ( selected_individuals[i] == -1 )
+                    continue;
+                
+                individuals[(size_t)selected_individuals[i]].genome.get_genome(i_haplotypes, i_gstructure); // get all haplotypes for individual i
+                
+                for ( size_t j = 0; j < i_haplotypes.size(); j++) // write haplotypes to the population haplotypes pool
+                    vect_out.push_back( i_haplotypes[j] );
+                                
+                i_haplotypes.clear();
+                i_haplotypes.shrink_to_fit();
+                i_gstructure.clear();
+                i_gstructure.shrink_to_fit();
+            }
+
+            out_snp_table = individuals[(size_t)selected_individuals[0]].genome.get_snp_table();
+            out_gen_distance = individuals[(size_t)selected_individuals[0]].genome.get_gen_distance();
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Population::get_all_haplotypes(std::vector<std::vector<bool>> &, std::vector<std::vector<unsigned long>> &, std::vector<float> &, std::vector<poplen_t> &)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Population::get_all_haplotypes(std::vector<std::vector<bool>> &, std::vector<std::vector<unsigned long>> &, std::vector<float> &, std::vector<poplen_t> &)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Population::get_all_haplotypes(std::vector<std::vector<bool>> &, std::vector<std::vector<unsigned long>> &, std::vector<float> &, std::vector<poplen_t> &)" << '\n';
             throw;
         }
     }
@@ -988,9 +1420,9 @@ namespace evogen
     {
         try
         {
-            if (size() < which_genome + 1)
+            if ( capacity() < which_genome + 1 )
                 throw std::string("Cannot return the markers value for the requested individual, which is not exists!");
-            
+
             if (active_individuals[which_genome] == -1)
                 throw std::string("Cannot return the markers value for the requested individual, which is not alive!");
             
@@ -1352,6 +1784,68 @@ namespace evogen
         catch (...)
         {
             std::cerr << "Exception in Population::age_at(size_t, int)" << '\n';
+            throw;
+        }
+    }
+    //===============================================================================================================
+    int Population::birth_at(size_t at)
+    {
+        try
+        {
+            if ( at >= active_individuals.size() )
+                throw std::string("Illegal value of passed parameter!");
+
+            if (active_individuals[at] == -1)
+                throw std::string("Cannot access the requested individual, it is not alive!");
+
+            return individuals[(size_t)active_individuals[at]].get_birth();
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Population::birth_at(size_t)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Population::birth_at(size_t)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Population::birth_at(size_t)" << '\n';
+            throw;
+        }
+    }
+    //===============================================================================================================
+    void Population::birth_at(size_t at, int age)
+    {
+        try
+        {
+            if ( at >= active_individuals.size() )
+                throw std::string("Illegal value of passed parameter!");
+
+            if (active_individuals[at] == -1)
+                throw std::string("Cannot access the requested individual, it is not alive!");
+
+            individuals[(size_t)active_individuals[at]].set_birth(age);
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Population::birth_at(size_t, int)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Population::birth_at(size_t, int)" << '\n';
+            std::cerr << "Reason: " << e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Population::birth_at(size_t, int)" << '\n';
             throw;
         }
     }
@@ -1935,6 +2429,8 @@ namespace evogen
     {
         try
         {
+            contin_individ_index = contin_individ_index + individuals.size();
+
             std::vector<size_t> valid_index;
             for (size_t i = 0; i < active_individuals.size(); i++)
             {
@@ -1962,6 +2458,8 @@ namespace evogen
 
             for (size_t j = 0; j < individuals.size(); j++)
                 active_individuals.push_back((poplen_t)j);
+            
+            last_added_index = active_individuals.size();
         }
         catch (const std::exception &e)
         {

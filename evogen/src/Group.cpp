@@ -13,11 +13,6 @@ namespace evogen
         clear();
     }
     //===============================================================================================================
-    Population & Group::get_population( size_t which_pop )
-    {
-        return pop_list[which_pop].get();
-    }
-    //===============================================================================================================
     std::vector<size_t> Group::get_individuals( size_t which_pop )
     {
         return individuals_list[which_pop];
@@ -349,6 +344,17 @@ namespace evogen
     {
         try
         {
+            if (max_offspring < 0)
+                throw std::string("The number of offspring cannot be negative! The passed value: "+std::to_string(max_offspring));
+            if (success_rate < 0.0f)
+                throw std::string("The success_rate parameter cannot be negative! The passed value: "+std::to_string(success_rate));
+            if (success_rate > 1.0f)
+                throw std::string("The success_rate parameter cannot be greater than 1.0! The passed value: "+std::to_string(success_rate));
+            if (mutation_frequency < 0.0)
+                throw std::string("The mutation_frequency parameter cannot be negative! The passed value: "+std::to_string(mutation_frequency));
+            if (mutation_frequency > 1.0)
+                throw std::string("The mutation_frequency parameter cannot be greater than 1.0! The passed value: "+std::to_string(mutation_frequency));
+
             // auto start = std::chrono::high_resolution_clock::now();
 
             Utilites u;
@@ -447,7 +453,9 @@ namespace evogen
                     size_t i_anim2 = pop_list[i_pop2].get().active_individuals[i_male];
                     for (size_t j = 0; j < (size_t)n_offsprings[l]; j++)
                     {
-                        Animal c( pop_list[i_pop2].get().individuals[i_anim2], pop_list[i_pop].get().individuals[i_anim], mutation_frequency, num_crossovers ); // constructing new-born individual
+                        size_t position_as_id = pop_list[i_pop].get().origin_id + pop_list[i_pop].get().contin_individ_index + in_pos2[l]+j; // will be asigned id
+                        //size_t position_as_id = 0;
+                        Animal c( pop_list[i_pop2].get().individuals[i_anim2], pop_list[i_pop].get().individuals[i_anim], mutation_frequency, num_crossovers, position_as_id ); // constructing new-born individual
                         pop_list[i_pop].get().add_at(c, in_pos2[l]+j); // add to female's population
                     }
                 }
@@ -609,10 +617,15 @@ namespace evogen
             if ( category == "active") _category = 6;
             if ( category == "genot") _category = 7;
             if ( category == "id") _category = 8;
+            if ( category == "birth") _category = 9;
+
+            if ( _category == 0 ) throw std::string("Used incorect selection categoty. Allowed categories: phen, bv, age, sex, alive, active, genot, birth.");
             
             if ( mode == "rand") _mode = 1;
             if ( mode == "best") _mode = 2;
             if ( mode == "worst") _mode = 3;
+            
+            if ( _mode == 0 ) throw std::string("Used incorect selection mode. Allowed modes: rand, best, worst.");
 
             switch (_category)
             {
@@ -627,10 +640,10 @@ namespace evogen
             if ( num <= 0 )
                 throw std::string("The parameter indicating number of selecting candidates should be positive value greater than 0.");
 
+            std::vector<selection_candidate> candidates; // container for selection candidates
+
             for (size_t i = 0; i < pop_list.size(); i++) // loop over added (in advance) populations in the group
             {
-                std::vector<selection_candidate> candidates; // container for selection candidates
-
                 for (size_t j = 0; j < individuals_list[i].size(); j++) // looop over individuals of population i in the group
                 {
                     selection_candidate cand;
@@ -660,6 +673,7 @@ namespace evogen
                         }
                         std::get<0>(cand) = t_var2;
                         std::get<1>(cand) = pos_in_activelist;
+                        std::get<2>(cand) = i;
                         empty_candidate = false;
                         break;
                     case 2:
@@ -677,6 +691,7 @@ namespace evogen
                         }
                         std::get<0>(cand) = t_var2;
                         std::get<1>(cand) = pos_in_activelist;
+                        std::get<2>(cand) = i;
                         empty_candidate = false;
                         break;
                     case 3:
@@ -685,22 +700,23 @@ namespace evogen
                         {
                             std::get<0>(cand) = t_var1;
                             std::get<1>(cand) = pos_in_activelist;
+                            std::get<2>(cand) = i;
                             empty_candidate = false;
                         }
                         else
                         {
-                            //std::cout<<"here 1, _mode "<<_mode<<" t_var1 = "<<t_var1<<" val = "<<val<<'\n';
                             if ( _mode == 2 && t_var1 >= val ) // select above the threshold value defined by val
                             {
-                                //std::cout<<"here 2"<<'\n';
                                 std::get<0>(cand) = t_var1;
                                 std::get<1>(cand) = pos_in_activelist;
+                                std::get<2>(cand) = i;
                                 empty_candidate = false;
                             }
                             if ( _mode == 3 && t_var1 <= val ) // select bellow the threshold value defined by val
                             {
                                 std::get<0>(cand) = t_var1;
                                 std::get<1>(cand) = pos_in_activelist;
+                                std::get<2>(cand) = i;
                                 empty_candidate = false;
                             }
                         }
@@ -711,8 +727,8 @@ namespace evogen
                         {
                             std::get<0>(cand) = t_var1;
                             std::get<1>(cand) = pos_in_activelist;
+                            std::get<2>(cand) = i;
                             empty_candidate = false;
-                            //std::cout<<"id: "<<pop_list[i].get().individuals[pos_animal].get_id()<<" sex: "<<pop_list[i].get().individuals[pos_animal].get_sex()<<" pos: "<<pos_in_activelist<<'\n';
                         }
                         break;
                     case 5:
@@ -721,6 +737,7 @@ namespace evogen
                         {
                             std::get<0>(cand) = t_var1;
                             std::get<1>(cand) = pos_in_activelist;
+                            std::get<2>(cand) = i;
                             empty_candidate = false;
                         }
                         break;
@@ -730,6 +747,7 @@ namespace evogen
                         {
                             std::get<0>(cand) = t_var1;
                             std::get<1>(cand) = pos_in_activelist;
+                            std::get<2>(cand) = i;
                             empty_candidate = false;
                         }
                         break;
@@ -739,52 +757,82 @@ namespace evogen
                         {
                             std::get<0>(cand) = t_var1;
                             std::get<1>(cand) = pos_in_activelist;
+                            std::get<2>(cand) = i;
                             empty_candidate = false;
                         }
                         break;
                     case 8:
                         std::get<0>(cand) = (float)pop_list[i].get().individuals[pos_animal].get_id();
                         std::get<1>(cand) = pos_in_activelist;
+                        std::get<2>(cand) = i;
                         empty_candidate = false;
                         break;
+                    case 9:
+                        t_var1 = (float)pop_list[i].get().individuals[pos_animal].get_birth();
+                        if ( val == -1.0f || _mode == 1 ) // select all available if val is default or the mode set to random
+                        {
+                            std::get<0>(cand) = t_var1;
+                            std::get<1>(cand) = pos_in_activelist;
+                            std::get<2>(cand) = i;
+                            empty_candidate = false;
+                        }
+                        else
+                        {
+                            if ( _mode == 2 && t_var1 >= val ) // select above the threshold value defined by val
+                            {
+                                std::get<0>(cand) = t_var1;
+                                std::get<1>(cand) = pos_in_activelist;
+                                std::get<2>(cand) = i;
+                                empty_candidate = false;
+                            }
+                            if ( _mode == 3 && t_var1 <= val ) // select bellow the threshold value defined by val
+                            {
+                                std::get<0>(cand) = t_var1;
+                                std::get<1>(cand) = pos_in_activelist;
+                                std::get<2>(cand) = i;
+                                empty_candidate = false;
+                            }
+                        }
+                        break;
                     default:
-                        throw std::string("Used incorect selection categoty. Allowed categories: phen, bv, age, sex, alive, active, genot.");
+                        throw std::string("Used incorect selection categoty. Allowed categories: phen, bv, age, sex, alive, active, genot, birth.");
                         break;
                     }
 
                     if ( !empty_candidate )
+                    {
                         candidates.push_back(cand);
+                    }
                 }
-
-                if ( candidates.empty() )
-                    continue;
-                
-                auto rng = std::default_random_engine {};
-
-                switch (_mode)
-                {
-                case 1:
-                    std::shuffle(std::begin(candidates), std::end(candidates), rng);
-                    break;
-                case 2:
-                    std::sort(candidates.begin(), candidates.end(), sortdesc); // use descending order: best comes first
-                    break;
-                case 3:
-                    std::sort(candidates.begin(), candidates.end()); // use the (default) ascending order: worst comes first
-                    break;
-                default:
-                    throw std::string("Used incorect selection mode. Allowed modes: rand, best, worst.");
-                    break;
-                }
-                
-                int num_selected = std::min(num, (int)candidates.size());
-
-                for (size_t l = 0; l < (size_t)num_selected; l++)
-                    selected.add( pop_list[i], std::get<1>(candidates[l]) );
-                
-                for (size_t l = (size_t)num_selected; l < candidates.size(); l++)
-                    notselected.add( pop_list[i], std::get<1>(candidates[l]) );
             }
+
+            if ( candidates.empty() ) return;
+                
+            auto rng = std::default_random_engine {};
+
+            switch (_mode)
+            {
+            case 1:
+                std::shuffle(std::begin(candidates), std::end(candidates), rng);
+                break;
+            case 2:
+                std::sort(candidates.begin(), candidates.end(), sortdesc); // use descending order: best comes first
+                break;
+            case 3:
+                std::sort(candidates.begin(), candidates.end()); // use the (default) ascending order: worst comes first
+                break;
+            default:
+                throw std::string("Used incorect selection mode. Allowed modes: rand, best, worst.");
+                break;
+            }
+            
+            int num_selected = std::min(num, (int)candidates.size());
+
+            for (size_t l = 0; l < (size_t)num_selected; l++)
+                selected.add( pop_list[ std::get<2>(candidates[l]) ], std::get<1>(candidates[l]) );
+            
+            for (size_t l = (size_t)num_selected; l < candidates.size(); l++)
+                notselected.add( pop_list[ std::get<2>(candidates[l]) ], std::get<1>(candidates[l]) );
         }
         catch (const std::exception &e)
         {
@@ -901,29 +949,63 @@ namespace evogen
         }
     }
     //===============================================================================================================
-    void Group::genotype()
+    void Group::set_not_genotyped()
     {
         try
         {
             for (size_t i = 0; i < pop_list.size(); i++)
                 for (size_t j = 0; j < individuals_list[i].size(); j++)
-                    pop_list[i].get().isgenotyped_at( individuals_list[i][j], true );
+                    pop_list[i].get().isgenotyped_at( individuals_list[i][j], false );
         }
         catch (const std::exception &e)
         {
-            std::cerr << "Exception in Group::genotype()" << '\n';
+            std::cerr << "Exception in Group::set_not_genotyped()" << '\n';
             std::cerr << e.what() << '\n';
             throw;
         }
         catch (const std::string &e)
         {
-            std::cerr << "Exception in Group::genotype()" << '\n';
+            std::cerr << "Exception in Group::set_not_genotyped()" << '\n';
             std::cerr <<"Reason: "<< e << '\n';
             throw;
         }
         catch (...)
         {
-            std::cerr << "Exception in Group::genotype()" << '\n';
+            std::cerr << "Exception in Group::set_not_genotyped()" << '\n';
+            throw;
+        }
+    }
+    //===============================================================================================================
+    void Group::set_missing_observations()
+    {
+        try
+        {
+            for (size_t i = 0; i < pop_list.size(); i++)
+                for (size_t j = 0; j < individuals_list[i].size(); j++)
+                {
+                    std::vector<float> phen = pop_list[i].get().phenotype_at_cpp( individuals_list[i][j]);
+                    for(size_t i = 0; i < phen.size(); i++)
+                    {
+                        phen[i] = missing_obs_const;
+                    }
+                    pop_list[i].get().phenotype_at_cpp( individuals_list[i][j], phen);
+                }
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Group::set_missing_observations()" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Group::set_missing_observations()" << '\n';
+            std::cerr <<"Reason: "<< e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Group::set_missing_observations()" << '\n';
             throw;
         }
     }
@@ -957,6 +1039,196 @@ namespace evogen
         }
     }
     //===============================================================================================================
+    void Group::get_genotypes(const std::string &file_out)
+    {
+        try
+        {
+            for (size_t i = 0; i < pop_list.size(); i++)
+            {
+                std::vector<poplen_t> selected_individuals;
+
+                for (size_t j = 0; j < individuals_list[i].size(); j++)
+                {
+                    int value_in_active_vect = pop_list[i].get().active_individuals[ individuals_list[i][j] ];
+
+                    if ( value_in_active_vect != -1 && pop_list[i].get().isgenotyped_at(individuals_list[i][j]) )
+                        selected_individuals.push_back(value_in_active_vect);
+                }
+
+                pop_list[i].get().get_selected_genotypes(file_out, selected_individuals, true);
+            }
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Group::get_genotypes(const std::string &)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Group::get_genotypes(const std::string &)" << '\n';
+            std::cerr <<"Reason: "<< e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Group::get_genotypes(const std::string &)" << '\n';
+            throw;
+        }
+    }
+    //===============================================================================================================
+    void Group::get_haplotypes(const std::string &file_out)
+    {
+        try
+        {
+            for (size_t i = 0; i < pop_list.size(); i++)
+            {
+                std::vector<poplen_t> selected_individuals;
+
+                for (size_t j = 0; j < individuals_list[i].size(); j++)
+                {
+                    int value_in_active_vect = pop_list[i].get().active_individuals[ individuals_list[i][j] ];
+
+                    if ( value_in_active_vect != -1 && pop_list[i].get().isgenotyped_at(individuals_list[i][j]) )
+                        selected_individuals.push_back(value_in_active_vect);
+                }
+                
+                pop_list[i].get().get_selected_haplotypes(file_out, selected_individuals, true);
+            }
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Group::get_haplotypes(const std::string &)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Group::get_haplotypes(const std::string &)" << '\n';
+            std::cerr <<"Reason: "<< e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Group::get_haplotypes(const std::string &)" << '\n';
+            throw;
+        }
+    }
+    //===============================================================================================================
+    void Group::get_ancestry(const std::string &file_out)
+    {
+        try
+        {
+            for (size_t i = 0; i < pop_list.size(); i++)
+            {
+                std::vector<poplen_t> selected_individuals;
+
+                for (size_t j = 0; j < individuals_list[i].size(); j++)
+                {
+                    int value_in_active_vect = pop_list[i].get().active_individuals[ individuals_list[i][j] ];
+
+                    if ( value_in_active_vect != -1 )
+                        selected_individuals.push_back(value_in_active_vect);
+                }
+                
+                pop_list[i].get().get_selected_ancestry(file_out, selected_individuals, true);
+            }
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Group::get_ancestry(const std::string &)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Group::get_ancestry(const std::string &)" << '\n';
+            std::cerr <<"Reason: "<< e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Group::get_ancestry(const std::string &)" << '\n';
+            throw;
+        }
+    }
+    //===============================================================================================================
+    void Group::get_pedigree(const std::string &file_out)
+    {
+        try
+        {
+            for (size_t i = 0; i < pop_list.size(); i++)
+            {
+                std::vector<poplen_t> selected_individuals;
+
+                for (size_t j = 0; j < individuals_list[i].size(); j++)
+                {
+                    int value_in_active_vect = pop_list[i].get().active_individuals[ individuals_list[i][j] ];
+
+                    if ( value_in_active_vect != -1 )
+                        selected_individuals.push_back(value_in_active_vect);
+                }
+                
+                pop_list[i].get().get_selected_pedigree(file_out, selected_individuals, true);
+            }
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Group::get_pedigree(const std::string &)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Group::get_pedigree(const std::string &)" << '\n';
+            std::cerr <<"Reason: "<< e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Group::get_pedigree(const std::string &)" << '\n';
+            throw;
+        }
+    }
+    //===============================================================================================================
+    void Group::get_data(const std::string &file_out)
+    {
+        try
+        {
+            for (size_t i = 0; i < pop_list.size(); i++)
+            {
+                std::vector<poplen_t> selected_individuals;
+
+                for (size_t j = 0; j < individuals_list[i].size(); j++)
+                {
+                    int value_in_active_vect = pop_list[i].get().active_individuals[ individuals_list[i][j] ];
+
+                    if ( value_in_active_vect != -1 )
+                        selected_individuals.push_back(value_in_active_vect);
+                }
+                
+                pop_list[i].get().get_selected_data(file_out, selected_individuals, true);
+            }
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Exception in Group::get_data(const std::string &)" << '\n';
+            std::cerr << e.what() << '\n';
+            throw;
+        }
+        catch (const std::string &e)
+        {
+            std::cerr << "Exception in Group::get_data(const std::string &)" << '\n';
+            std::cerr <<"Reason: "<< e << '\n';
+            throw;
+        }
+        catch (...)
+        {
+            std::cerr << "Exception in Group::get_data(const std::string &)" << '\n';
+            throw;
+        }
+    }
+    //===============================================================================================================
 
 #ifdef PYBIND
 
@@ -977,7 +1249,9 @@ namespace evogen
 
             for (size_t g = 0; g < gr_size; g++)
             {
-                Population in_pop = get_population(g);
+                //pop_list[g].get()
+                //Population in_pop = get_population(g);
+
                 std::vector<size_t> individuals_list = get_individuals(g);
 
                 size_t n_individuals = individuals_list.size();
@@ -1004,12 +1278,12 @@ namespace evogen
                 if (env.size() != n_traits)
                     throw std::string("The demension of the array ENV array does not correspond to the number of traits!");
 
-                if (trt.base_genome_structure != in_pop.get_genome_structure())
+                if (trt.base_genome_structure != pop_list[g].get().get_genome_structure())
                     throw std::string("The genome structure of the base population is not the same as in the population being observed!");
 
                 trt.realloc_traits(n_individuals, n_traits);
 
-                trt.calculate_trait(in_pop, individuals_list, env, n_traits);
+                trt.calculate_trait(pop_list[g].get(), individuals_list, env, n_traits);
 
                 evolm::matrix<float> t(n_individuals, n_traits);
 
@@ -1029,7 +1303,7 @@ namespace evogen
                     {
                         obs.push_back( t(i,j) );
                     }
-                    in_pop.phenotype_at_cpp(individuals_list[i],obs);
+                    pop_list[g].get().phenotype_at_cpp(individuals_list[i],obs);
                 }
 
                 trt.ta.clear();
@@ -1078,7 +1352,7 @@ namespace evogen
 
             for (size_t g = 0; g < gr_size; g++)
             {
-                Population in_pop = get_population(g);
+                //Population in_pop = get_population(g);
                 std::vector<size_t> individuals_list = get_individuals(g);
 
                 size_t n_individuals = individuals_list.size();
@@ -1105,12 +1379,12 @@ namespace evogen
                 if (env.size() != n_traits)
                     throw std::string("The demension of the array ENV array does not correspond to the number of traits!");
 
-                if (trt.base_genome_structure != in_pop.get_genome_structure())
+                if (trt.base_genome_structure != pop_list[g].get().get_genome_structure())
                     throw std::string("The genome structure of the base population is not the same as in the population being observed!");
 
                 trt.realloc_traits(n_individuals, n_traits);
 
-                trt.calculate_trait(in_pop, individuals_list, env, n_traits);
+                trt.calculate_trait(pop_list[g].get(), individuals_list, env, n_traits);
 
                 evolm::matrix<float> t(n_individuals, n_traits);
 
@@ -1130,7 +1404,7 @@ namespace evogen
                     {
                         obs.push_back( t(i,j) );
                     }
-                    in_pop.phenotype_at_cpp(individuals_list[i],obs);
+                    pop_list[g].get().phenotype_at_cpp(individuals_list[i],obs);
                 }
 
                 t.printf(out_trvalues, true); // in append mode
@@ -1182,7 +1456,7 @@ namespace evogen
 
             for (size_t g = 0; g < gr_size; g++)
             {
-                Population in_pop = get_population(g);
+                //Population in_pop = get_population(g);
                 std::vector<size_t> individuals_list = get_individuals(g);
 
                 size_t n_individuals = individuals_list.size();
@@ -1209,12 +1483,12 @@ namespace evogen
                 if (env.size() != n_traits)
                     throw std::string("The demension of the array ENV array does not correspond to the number of traits!");
 
-                if (trt.base_genome_structure != in_pop.get_genome_structure())
+                if (trt.base_genome_structure != pop_list[g].get().get_genome_structure())
                     throw std::string("The genome structure of the base population is not the same as in the population being observed!");
 
                 trt.realloc_traits(n_individuals, n_traits);
 
-                trt.calculate_trait(in_pop, individuals_list, env, n_traits);
+                trt.calculate_trait(pop_list[g].get(), individuals_list, env, n_traits);
 
                 evolm::matrix<float> t(n_individuals, n_traits);
 
@@ -1234,7 +1508,7 @@ namespace evogen
                     {
                         obs.push_back( t(i,j) );
                     }
-                    in_pop.phenotype_at_cpp(individuals_list[i],obs);
+                    pop_list[g].get().phenotype_at_cpp(individuals_list[i],obs);
                 }
 
                 t.printf(out_trvalues, true); // in append mode
@@ -1243,7 +1517,8 @@ namespace evogen
                 trt.te.clear();
                 t.clear();
 
-                in_pop.get_all_genotypes(out_genotypes); // in append mode
+                //in_pop.get_all_genotypes(out_genotypes); // in append mode
+                pop_list[g].get().get_genotypes(out_genotypes); // in append mode
             }
         }
         catch (const std::exception &e)
@@ -1284,7 +1559,7 @@ namespace evogen
 
             for (size_t g = 0; g < gr_size; g++)
             {
-                Population in_pop = get_population(g);
+                //Population in_pop = get_population(g);
                 std::vector<size_t> individuals_list = get_individuals(g);
 
                 size_t n_individuals = individuals_list.size();
@@ -1311,12 +1586,12 @@ namespace evogen
                 if (env.size() != n_traits)
                     throw std::string("The demension of the array ENV array does not correspond to the number of traits!");
 
-                if (trt.base_genome_structure != in_pop.get_genome_structure())
+                if (trt.base_genome_structure != pop_list[g].get().get_genome_structure())
                     throw std::string("The genome structure of the base population is not the same as in the population being observed!");
 
                 trt.realloc_traits(n_individuals, n_traits);
 
-                trt.calculate_trait(in_pop, individuals_list, env, n_traits);
+                trt.calculate_trait(pop_list[g].get(), individuals_list, env, n_traits);
 
                 evolm::matrix<float> t(n_individuals, n_traits);
 
@@ -1336,7 +1611,7 @@ namespace evogen
                     {
                         obs.push_back( t(i,j) );
                     }
-                    in_pop.phenotype_at_cpp(individuals_list[i],obs);
+                    pop_list[g].get().phenotype_at_cpp(individuals_list[i],obs);
                 }
 
                 //------------------------------
@@ -1411,7 +1686,7 @@ namespace evogen
 
             for (size_t g = 0; g < gr_size; g++)
             {
-                Population in_pop = get_population(g);
+                //Population in_pop = get_population(g);
                 std::vector<size_t> individuals_list = get_individuals(g);
 
                 size_t n_individuals = individuals_list.size();
@@ -1438,12 +1713,12 @@ namespace evogen
                 if (env.size() != n_traits)
                     throw std::string("The demension of the array ENV array does not correspond to the number of traits!");
 
-                if (trt.base_genome_structure != in_pop.get_genome_structure())
+                if (trt.base_genome_structure != pop_list[g].get().get_genome_structure())
                     throw std::string("The genome structure of the base population is not the same as in the population being observed!");
 
                 trt.realloc_traits(n_individuals, n_traits);
 
-                trt.calculate_trait(in_pop, individuals_list, env, n_traits);
+                trt.calculate_trait(pop_list[g].get(), individuals_list, env, n_traits);
 
                 evolm::matrix<float> t(n_individuals, n_traits);
 
@@ -1463,7 +1738,7 @@ namespace evogen
                     {
                         obs.push_back( t(i,j) );
                     }
-                    in_pop.phenotype_at_cpp(individuals_list[i],obs);
+                    pop_list[g].get().phenotype_at_cpp(individuals_list[i],obs);
                 }
 
                 //------------------------------
@@ -1498,7 +1773,7 @@ namespace evogen
                 //--------------------------------------
                 std::vector<std::vector<short>> out_genotypes;
 
-                in_pop.get_all_genotypes(out_genotypes);
+                pop_list[g].get().get_all_genotypes(out_genotypes);
 
                 N = M = 0;
 
@@ -1566,7 +1841,7 @@ namespace evogen
 
             for (size_t g = 0; g < gr_size; g++)
             {
-                Population in_pop = get_population(g);
+                //Population in_pop = get_population(g);
                 std::vector<size_t> individuals_list = get_individuals(g);
 
                 size_t n_individuals = individuals_list.size();
@@ -1579,12 +1854,12 @@ namespace evogen
                 if (env.size() != n_traits)
                     throw std::string("The demension of the array ENV array does not correspond to the number of traits!");
 
-                if (trt.base_genome_structure != in_pop.get_genome_structure())
+                if (trt.base_genome_structure != pop_list[g].get().get_genome_structure())
                     throw std::string("The genome structure of the base population is not the same as in the population being observed!");
 
                 trt.realloc_traits(n_individuals, n_traits);
 
-                trt.calculate_trait(in_pop, individuals_list, env, n_traits);
+                trt.calculate_trait(pop_list[g].get(), individuals_list, env, n_traits);
 
                 evolm::matrix<float> t(n_individuals, n_traits);
 
@@ -1604,7 +1879,7 @@ namespace evogen
                     {
                         obs.push_back( t(i,j) );
                     }
-                    in_pop.phenotype_at_cpp(individuals_list[i],obs);
+                    pop_list[g].get().phenotype_at_cpp(individuals_list[i],obs);
                 }
 
                 trt.ta.clear();
@@ -1653,7 +1928,7 @@ namespace evogen
 
             for (size_t g = 0; g < gr_size; g++)
             {
-                Population in_pop = get_population(g);
+                //Population in_pop = get_population(g);
                 std::vector<size_t> individuals_list = get_individuals(g);
 
                 size_t n_individuals = individuals_list.size();
@@ -1666,12 +1941,12 @@ namespace evogen
                 if (env.size() != n_traits)
                     throw std::string("The demension of the array ENV array does not correspond to the number of traits!");
 
-                if (trt.base_genome_structure != in_pop.get_genome_structure())
+                if (trt.base_genome_structure != pop_list[g].get().get_genome_structure())
                     throw std::string("The genome structure of the base population is not the same as in the population being observed!");
 
                 trt.realloc_traits(n_individuals, n_traits);
 
-                trt.calculate_trait(in_pop, individuals_list, env, n_traits);
+                trt.calculate_trait(pop_list[g].get(), individuals_list, env, n_traits);
 
                 evolm::matrix<float> t(n_individuals, n_traits);
 
@@ -1691,7 +1966,7 @@ namespace evogen
                     {
                         obs.push_back( t(i,j) );
                     }
-                    in_pop.phenotype_at_cpp(individuals_list[i],obs);
+                    pop_list[g].get().phenotype_at_cpp(individuals_list[i],obs);
                 }
 
                 t.printf(out_trvalues, true); // in append mode
@@ -1743,7 +2018,7 @@ namespace evogen
 
             for (size_t g = 0; g < gr_size; g++)
             {
-                Population in_pop = get_population(g);
+                //Population in_pop = get_population(g);
                 std::vector<size_t> individuals_list = get_individuals(g);
 
                 size_t n_individuals = individuals_list.size();
@@ -1756,12 +2031,12 @@ namespace evogen
                 if (env.size() != n_traits)
                     throw std::string("The demension of the array ENV array does not correspond to the number of traits!");
 
-                if (trt.base_genome_structure != in_pop.get_genome_structure())
+                if (trt.base_genome_structure != pop_list[g].get().get_genome_structure())
                     throw std::string("The genome structure of the base population is not the same as in the population being observed!");
 
                 trt.realloc_traits(n_individuals, n_traits);
 
-                trt.calculate_trait(in_pop, individuals_list, env, n_traits);
+                trt.calculate_trait(pop_list[g].get(), individuals_list, env, n_traits);
 
                 evolm::matrix<float> t(n_individuals, n_traits);
 
@@ -1781,7 +2056,7 @@ namespace evogen
                     {
                         obs.push_back( t(i,j) );
                     }
-                    in_pop.phenotype_at_cpp(individuals_list[i],obs);
+                    pop_list[g].get().phenotype_at_cpp(individuals_list[i],obs);
                 }
 
                 t.printf(out_trvalues, true); // in append mode
@@ -1790,7 +2065,8 @@ namespace evogen
                 trt.te.clear();
                 t.clear();
 
-                in_pop.get_all_genotypes(out_genotypes); // in append mode
+                //in_pop.get_all_genotypes(out_genotypes); // in append mode
+                pop_list[g].get().get_genotypes(out_genotypes); // in append mode
             }
         }
         catch (const std::exception &e)
@@ -1831,7 +2107,7 @@ namespace evogen
 
             for (size_t g = 0; g < gr_size; g++)
             {
-                Population in_pop = get_population(g);
+                //Population pop_list[g].get() = get_population(g);
                 std::vector<size_t> individuals_list = get_individuals(g);
 
                 size_t n_individuals = individuals_list.size();
@@ -1844,12 +2120,12 @@ namespace evogen
                 if (env.size() != n_traits)
                     throw std::string("The demension of the array ENV array does not correspond to the number of traits!");
 
-                if (trt.base_genome_structure != in_pop.get_genome_structure())
+                if (trt.base_genome_structure != pop_list[g].get().get_genome_structure())
                     throw std::string("The genome structure of the base population is not the same as in the population being observed!");
 
                 trt.realloc_traits(n_individuals, n_traits);
 
-                trt.calculate_trait(in_pop, individuals_list, env, n_traits);
+                trt.calculate_trait(pop_list[g].get(), individuals_list, env, n_traits);
 
                 evolm::matrix<float> t(n_individuals, n_traits);
 
@@ -1869,7 +2145,7 @@ namespace evogen
                     {
                         obs.push_back( t(i,j) );
                     }
-                    in_pop.phenotype_at_cpp(individuals_list[i],obs);
+                    pop_list[g].get().phenotype_at_cpp(individuals_list[i],obs);
                 }
 
                 t.to_vector2d(out_trvalues);
@@ -1917,7 +2193,7 @@ namespace evogen
 
             for (size_t g = 0; g < gr_size; g++)
             {
-                Population in_pop = get_population(g);
+                //Population in_pop = get_population(g);
                 std::vector<size_t> individuals_list = get_individuals(g);
 
                 size_t n_individuals = individuals_list.size();
@@ -1930,12 +2206,12 @@ namespace evogen
                 if (env.size() != n_traits)
                     throw std::string("The demension of the array ENV array does not correspond to the number of traits!");
 
-                if (trt.base_genome_structure != in_pop.get_genome_structure())
+                if (trt.base_genome_structure != pop_list[g].get().get_genome_structure())
                     throw std::string("The genome structure of the base population is not the same as in the population being observed!");
 
                 trt.realloc_traits(n_individuals, n_traits);
 
-                trt.calculate_trait(in_pop, individuals_list, env, n_traits);
+                trt.calculate_trait(pop_list[g].get(), individuals_list, env, n_traits);
 
                 evolm::matrix<float> t(n_individuals, n_traits);
 
@@ -1955,7 +2231,7 @@ namespace evogen
                     {
                         obs.push_back( t(i,j) );
                     }
-                    in_pop.phenotype_at_cpp(individuals_list[i],obs);
+                    pop_list[g].get().phenotype_at_cpp(individuals_list[i],obs);
                 }
 
                 t.to_vector2d(out_trvalues);
@@ -1964,7 +2240,7 @@ namespace evogen
                 trt.te.clear();
                 t.clear();
 
-                in_pop.get_all_genotypes(out_genotypes);
+                pop_list[g].get().get_all_genotypes(out_genotypes);
             }
         }
         catch (const std::exception &e)

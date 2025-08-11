@@ -46,6 +46,8 @@ namespace evoped
                         std::vector<std::int64_t> &out);
         void save_matrix(const std::string &name,
                         const std::string &out_fname);
+        void save_ids(const std::string &name,
+                      const std::string &out_fname);    
     private:
 
         double data_sparsity;

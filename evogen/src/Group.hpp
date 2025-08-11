@@ -39,12 +39,19 @@ namespace evogen
         void regroup_newborn(Group &grp);
 
         void aging(int delta_t);
-        void genotype();
+        void set_not_genotyped();
+        void set_missing_observations();
         void kill();
 
         void select_basic( Group &selected, Group &notselected, const std::string category, const std::string mode, int num, float val = -1 );
         void select( const std::string category, const std::string mode, int num, float val = -1 );
         void select_into_group( Group &grp, const std::string category, const std::string mode, int num, float val = -1 );
+
+        void get_genotypes(const std::string &file_out);
+        void get_haplotypes(const std::string &file_out);
+        void get_ancestry(const std::string &file_out);
+        void get_pedigree(const std::string &file_out);
+        void get_data(const std::string &file_out);
 
 #ifdef PYBIND
         void make_observation(Trait &trt,
@@ -97,7 +104,6 @@ namespace evogen
         std::vector<std::reference_wrapper<Population>> pop_list_newborn;
         std::vector<std::vector<size_t>> individuals_list_newborn;
 
-        Population &get_population(size_t which_pop);
         std::vector<size_t> get_individuals(size_t which_pop);
         void add_newborn(Population &pop, size_t which_one);
 

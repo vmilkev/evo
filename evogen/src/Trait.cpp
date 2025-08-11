@@ -324,7 +324,7 @@ namespace evogen
         {
             // --------- Initial set-up and input check -------------
             size_t n_trait = trmean.size();
-
+            
             if (pop.size() < 1)
                 throw std::string("Cannot set the trait for the empty base population!");
 
@@ -352,7 +352,7 @@ namespace evogen
                 else
                     throw std::string("The values of proportion of snps specified for one of the chromosomes is not eligible!");
             }
-
+            
             if (corr_g.size() != n_trait)
                 throw std::string("The number of rows in the genetic correlation matrix is not equal the number of correlated traits!");
 
@@ -421,11 +421,11 @@ namespace evogen
             // --------- Allocating memory for traits values containers ----------------------
 
             realloc_traits(pop, n_trait);
-
+            
             // --------- Calculate un-adjusted (to required variances) traits ----------------
 
             calculate_trait(pop, envr, n_trait);
-
+            
             // ta.printf("ta1.dat", false); // debugging
             // te.printf("te1.dat", false); // debugging
 
@@ -808,17 +808,22 @@ namespace evogen
         try
         {
             size_t n_ploidy = in_pop.get_ploidy();
-            size_t n_indiv = in_pop.size();
+            size_t n_indiv = in_pop.capacity();
 
             float p_eff = ploidy_effect(n_ploidy, 2.0f);
+            
+            auto start = std::chrono::high_resolution_clock::now();
 
             for (size_t trait = 0; trait < n_trate; trait++)
             {
-                for (size_t individ = 0; individ < n_indiv; individ++)
+#pragma omp parallel for
+                for (size_t individ = 0; individ < in_pop.size(); individ++)
                 {
+                    size_t individ2 = in_pop.get_valid_pos(individ);
+
                     for (size_t iqtl = 0; iqtl < qtls.size(); iqtl++)
                     {
-                        std::vector<int> locus_state = get_locus_state(in_pop, individ, qtls(iqtl, 0));
+                        std::vector<int> locus_state = get_locus_state(in_pop, individ2, qtls(iqtl, 0));
 
                         float qtl_val = (float)locus_state[0];   // qtl value of genotype, number of ref alleles
                         float dom_cases = (float)locus_state[1]; // cases of dominance
@@ -828,6 +833,10 @@ namespace evogen
                     }
                 }
             }
+
+            auto stop = std::chrono::high_resolution_clock::now();
+            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+            std::cout <<"==> calculate_trait duration, millisec "<< duration.count() << std::endl;
         }
         catch (const std::exception &e)
         {
@@ -860,6 +869,7 @@ namespace evogen
 
             for (size_t trait = 0; trait < n_trate; trait++)
             {
+#pragma omp parallel for
                 for (size_t individ = 0; individ < n_indiv; individ++)
                 {
                     for (size_t iqtl = 0; iqtl < qtls.size(); iqtl++)
@@ -923,8 +933,6 @@ namespace evogen
     {
         try
         {
-            // std::cout<<"Animal: "<<individ<<", pos: "<<qtl_position<<"\n";
-
             std::vector<int> lstate;
 
             int ref_alleles_count = 0; // number of reference alleles for all pairs of haplotypes
@@ -1226,21 +1234,28 @@ namespace evogen
 
             for (size_t i = 0; i < n_traits; i++)
             {
-                for (size_t j = 0; j < n_individuals; j++)
+                size_t pos = 0;
+                for (size_t j = 0; j < in_pop.capacity(); j++)
                 {
-                    t(j, i) = ta(j, i) + te(j, i) + t_mean(i, 0);
+                    if ( !in_pop.is_valid_pos(j) ) continue;
+                    t(pos, i) = ta(pos, i) + te(pos, i) + t_mean(i, 0);
+                    pos++;
                 }
             }
 
             // register the observed phenotypes for corresponding individual
-            for (size_t i = 0; i < n_individuals; i++)
+            size_t pos = 0;
+            for (size_t i = 0; i < in_pop.capacity(); i++)
             {
+                if ( !in_pop.is_valid_pos(i) ) continue;
+
                 std::vector<float> obs;
                 for (size_t j = 0; j < n_traits; j++)
                 {
-                    obs.push_back(t(i, j));
+                    obs.push_back(t(pos, j));
                 }
                 in_pop.phenotype_at_cpp(i, obs);
+                pos++;
             }
 
             ta.clear();
@@ -1299,21 +1314,28 @@ namespace evogen
 
             for (size_t i = 0; i < n_traits; i++)
             {
-                for (size_t j = 0; j < n_individuals; j++)
+                size_t pos = 0;
+                for (size_t j = 0; j < in_pop.capacity(); j++)
                 {
-                    t(j, i) = ta(j, i) + te(j, i) + t_mean(i, 0);
+                    if ( !in_pop.is_valid_pos(j) ) continue;
+                    t(pos, i) = ta(pos, i) + te(pos, i) + t_mean(i, 0);
+                    pos++;
                 }
             }
 
             // register the observed phenotypes for corresponding individual
-            for (size_t i = 0; i < n_individuals; i++)
+            size_t pos = 0;
+            for (size_t i = 0; i < in_pop.capacity(); i++)
             {
+                if ( !in_pop.is_valid_pos(i) ) continue;
+
                 std::vector<float> obs;
                 for (size_t j = 0; j < n_traits; j++)
                 {
-                    obs.push_back(t(i, j));
+                    obs.push_back(t(pos, j));
                 }
                 in_pop.phenotype_at_cpp(i, obs);
+                pos++;
             }
 
             //------------------------------
@@ -1397,21 +1419,28 @@ namespace evogen
 
             for (size_t i = 0; i < n_traits; i++)
             {
-                for (size_t j = 0; j < n_individuals; j++)
+                size_t pos = 0;
+                for (size_t j = 0; j < in_pop.capacity(); j++)
                 {
-                    t(j, i) = ta(j, i) + te(j, i) + t_mean(i, 0);
+                    if ( !in_pop.is_valid_pos(j) ) continue;
+                    t(pos, i) = ta(pos, i) + te(pos, i) + t_mean(i, 0);
+                    pos++;
                 }
             }
 
             // register the observed phenotypes for corresponding individual
-            for (size_t i = 0; i < n_individuals; i++)
+            size_t pos = 0;
+            for (size_t i = 0; i < in_pop.capacity(); i++)
             {
+                if ( !in_pop.is_valid_pos(i) ) continue;
+
                 std::vector<float> obs;
                 for (size_t j = 0; j < n_traits; j++)
                 {
-                    obs.push_back(t(i, j));
+                    obs.push_back(t(pos, j));
                 }
                 in_pop.phenotype_at_cpp(i, obs);
+                pos++;
             }
 
             //------------------------------
@@ -1522,21 +1551,28 @@ namespace evogen
 
             for (size_t i = 0; i < n_traits; i++)
             {
-                for (size_t j = 0; j < n_individuals; j++)
+                size_t pos = 0;
+                for (size_t j = 0; j < in_pop.capacity(); j++)
                 {
-                    t(j, i) = ta(j, i) + te(j, i) + t_mean(i, 0);
+                    if ( !in_pop.is_valid_pos(j) ) continue;
+                    t(pos, i) = ta(pos, i) + te(pos, i) + t_mean(i, 0);
+                    pos++;
                 }
             }
 
             // register the observed phenotypes for corresponding individual
-            for (size_t i = 0; i < n_individuals; i++)
+            size_t pos = 0;
+            for (size_t i = 0; i < in_pop.capacity(); i++)
             {
+                if ( !in_pop.is_valid_pos(i) ) continue;
+
                 std::vector<float> obs;
                 for (size_t j = 0; j < n_traits; j++)
                 {
-                    obs.push_back(t(i, j));
+                    obs.push_back(t(pos, j));
                 }
                 in_pop.phenotype_at_cpp(i, obs);
+                pos++;
             }
 
             t.printf(out_t, false); // not in append mode
@@ -1597,21 +1633,28 @@ namespace evogen
 
             for (size_t i = 0; i < n_traits; i++)
             {
-                for (size_t j = 0; j < n_individuals; j++)
+                size_t pos = 0;
+                for (size_t j = 0; j < in_pop.capacity(); j++)
                 {
-                    t(j, i) = ta(j, i) + te(j, i) + t_mean(i, 0);
+                    if ( !in_pop.is_valid_pos(j) ) continue;
+                    t(pos, i) = ta(pos, i) + te(pos, i) + t_mean(i, 0);
+                    pos++;
                 }
             }
 
             // register the observed phenotypes for corresponding individual
-            for (size_t i = 0; i < n_individuals; i++)
+            size_t pos = 0;
+            for (size_t i = 0; i < in_pop.capacity(); i++)
             {
+                if ( !in_pop.is_valid_pos(i) ) continue;
+
                 std::vector<float> obs;
                 for (size_t j = 0; j < n_traits; j++)
                 {
-                    obs.push_back(t(i, j));
+                    obs.push_back(t(pos, j));
                 }
                 in_pop.phenotype_at_cpp(i, obs);
+                pos++;
             }
 
             t.printf(out_t, false); // not in append mode
@@ -1623,7 +1666,8 @@ namespace evogen
             Utilites u;
             u.fremove(out_g);
 
-            in_pop.get_all_genotypes(out_g);
+            //in_pop.get_all_genotypes(out_g);
+            in_pop.get_genotypes(out_g);
         }
         catch (const std::exception &e)
         {
@@ -1677,21 +1721,28 @@ namespace evogen
 
             for (size_t i = 0; i < n_traits; i++)
             {
-                for (size_t j = 0; j < n_individuals; j++)
+                size_t pos = 0;
+                for (size_t j = 0; j < in_pop.capacity(); j++)
                 {
-                    t(j, i) = ta(j, i) + te(j, i) + t_mean(i, 0);
+                    if ( !in_pop.is_valid_pos(j) ) continue;
+                    t(pos, i) = ta(pos, i) + te(pos, i) + t_mean(i, 0);
+                    pos++;
                 }
             }
 
             // register the observed phenotypes for corresponding individual
-            for (size_t i = 0; i < n_individuals; i++)
+            size_t pos = 0;
+            for (size_t i = 0; i < in_pop.capacity(); i++)
             {
+                if ( !in_pop.is_valid_pos(i) ) continue;
+
                 std::vector<float> obs;
                 for (size_t j = 0; j < n_traits; j++)
                 {
-                    obs.push_back(t(i, j));
+                    obs.push_back(t(pos, j));
                 }
                 in_pop.phenotype_at_cpp(i, obs);
+                pos++;
             }
 
             ta.clear();
@@ -1748,21 +1799,28 @@ namespace evogen
 
             for (size_t i = 0; i < n_traits; i++)
             {
-                for (size_t j = 0; j < n_individuals; j++)
+                size_t pos = 0;
+                for (size_t j = 0; j < in_pop.capacity(); j++)
                 {
-                    t(j, i) = ta(j, i) + te(j, i) + t_mean(i, 0);
+                    if ( !in_pop.is_valid_pos(j) ) continue;
+                    t(pos, i) = ta(pos, i) + te(pos, i) + t_mean(i, 0);
+                    pos++;
                 }
             }
 
             // register the observed phenotypes for corresponding individual
-            for (size_t i = 0; i < n_individuals; i++)
+            size_t pos = 0;
+            for (size_t i = 0; i < in_pop.capacity(); i++)
             {
+                if ( !in_pop.is_valid_pos(i) ) continue;
+
                 std::vector<float> obs;
                 for (size_t j = 0; j < n_traits; j++)
                 {
-                    obs.push_back(t(i, j));
+                    obs.push_back(t(pos, j));
                 }
                 in_pop.phenotype_at_cpp(i, obs);
+                pos++;
             }
 
             t.to_vector2d(out_t);
@@ -1823,21 +1881,28 @@ namespace evogen
 
             for (size_t i = 0; i < n_traits; i++)
             {
-                for (size_t j = 0; j < n_individuals; j++)
+                size_t pos = 0;
+                for (size_t j = 0; j < in_pop.capacity(); j++)
                 {
-                    t(j, i) = ta(j, i) + te(j, i) + t_mean(i, 0);
+                    if ( !in_pop.is_valid_pos(j) ) continue;
+                    t(pos, i) = ta(pos, i) + te(pos, i) + t_mean(i, 0);
+                    pos++;
                 }
             }
 
             // register the observed phenotypes for corresponding individual
-            for (size_t i = 0; i < n_individuals; i++)
+            size_t pos = 0;
+            for (size_t i = 0; i < in_pop.capacity(); i++)
             {
+                if ( !in_pop.is_valid_pos(i) ) continue;
+
                 std::vector<float> obs;
                 for (size_t j = 0; j < n_traits; j++)
                 {
-                    obs.push_back(t(i, j));
+                    obs.push_back(t(pos, j));
                 }
                 in_pop.phenotype_at_cpp(i, obs);
+                pos++;
             }
 
             t.printf(out_t, false); // not in append mode
@@ -1849,7 +1914,8 @@ namespace evogen
             Utilites u;
             u.fremove(out_g);
 
-            in_pop.get_all_genotypes(out_g);
+            //in_pop.get_all_genotypes(out_g);
+            in_pop.get_genotypes(out_g);
         }
         catch (const std::exception &e)
         {
@@ -1901,21 +1967,28 @@ namespace evogen
 
             for (size_t i = 0; i < n_traits; i++)
             {
-                for (size_t j = 0; j < n_individuals; j++)
+                size_t pos = 0;
+                for (size_t j = 0; j < in_pop.capacity(); j++)
                 {
-                    t(j, i) = ta(j, i) + te(j, i) + t_mean(i, 0);
+                    if ( !in_pop.is_valid_pos(j) ) continue;
+                    t(pos, i) = ta(pos, i) + te(pos, i) + t_mean(i, 0);
+                    pos++;
                 }
             }
 
             // register the observed phenotypes for corresponding individual
-            for (size_t i = 0; i < n_individuals; i++)
+            size_t pos = 0;
+            for (size_t i = 0; i < in_pop.capacity(); i++)
             {
+                if ( !in_pop.is_valid_pos(i) ) continue;
+
                 std::vector<float> obs;
                 for (size_t j = 0; j < n_traits; j++)
                 {
-                    obs.push_back(t(i, j));
+                    obs.push_back(t(pos, j));
                 }
                 in_pop.phenotype_at_cpp(i, obs);
+                pos++;
             }
 
             t.printf(out_t, false); // not in append mode
@@ -1974,21 +2047,28 @@ namespace evogen
 
             for (size_t i = 0; i < n_traits; i++)
             {
-                for (size_t j = 0; j < n_individuals; j++)
+                size_t pos = 0;
+                for (size_t j = 0; j < in_pop.capacity(); j++)
                 {
-                    t(j, i) = ta(j, i) + te(j, i) + t_mean(i, 0);
+                    if ( !in_pop.is_valid_pos(j) ) continue;
+                    t(pos, i) = ta(pos, i) + te(pos, i) + t_mean(i, 0);
+                    pos++;
                 }
             }
 
             // register the observed phenotypes for corresponding individual
-            for (size_t i = 0; i < n_individuals; i++)
+            size_t pos = 0;
+            for (size_t i = 0; i < in_pop.capacity(); i++)
             {
+                if ( !in_pop.is_valid_pos(i) ) continue;
+
                 std::vector<float> obs;
                 for (size_t j = 0; j < n_traits; j++)
                 {
-                    obs.push_back(t(i, j));
+                    obs.push_back(t(pos, j));
                 }
                 in_pop.phenotype_at_cpp(i, obs);
+                pos++;
             }
 
             t.to_vector2d(out_t);

@@ -20,8 +20,10 @@ namespace evolm
     public:
     
         IOInterface();
+
         void set_fname(std::string file);                                 // Setting IO file name
-        void fgetdata(size_t samples,
+
+        void fgetdata(size_t samples, // <= maybe redundant !?
                       size_t variants,
                       std::vector<std::vector<int>> &out);                // Reads a binary SNP data stored in the PLINK bed format
         void fgetdata(bool includes_id,
@@ -30,7 +32,9 @@ namespace evolm
         
         template <typename T>
         void fgetdata(std::vector<std::vector<T>> &out);                  // Reads general ASCII formated data
-        
+        template <typename T>
+        void fgetdata(std::vector<T> &out, size_t start_row, size_t end_row, size_t col);  // Reads the specific part of general ASCII formated data
+
         void fgetvar(const std::string &var_name,                         // Extract data for a specific variable accessed by the name 'var_name'
                      float miss_constant,
                      std::vector<bool> &missing_vect,
@@ -60,8 +64,7 @@ namespace evolm
         bool is_plink_file(const std::string &fname);
         
         template <typename T>
-        int find_value(std::vector<T> &where,
-                       T what);                                           // fins the position of the string 'what' in the vector 'where'
+        int find_value(std::vector<T> &where, T what);             // fins the position of the string 'what' in the vector 'where'
         
         template <typename T>
         void fread_matrix(const std::string &fname, std::vector<T> &vals, std::vector<size_t> &keys, std::vector<std::int64_t> &ids);
@@ -78,8 +81,7 @@ namespace evolm
         float missing_constant = 0.0f;
         int missing_int = 999999999;
 
-        void str_parse(std::string &snpStr,
-                       std::vector<int> &markers);                        // Parsing a SNP string
+        void str_parse(std::string &snpStr, std::vector<int> &markers);           // Parsing a SNP string
         int get_datatype(std::string &str_token, const std::string &var_name);                         // accepts data as a string token and return its type
         int define_vartype(std::vector<int> &types_vect, const std::string &var_name, std::string &messege);                 // accepts types vector and defines a future variable data type
         
